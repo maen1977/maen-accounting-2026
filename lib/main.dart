@@ -2584,9 +2584,6 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
     return DateFormat('yyyy-MM-dd – HH:mm', 'ar').format(value);
   }
 
-  String _compactDateTimeText(DateTime value) {
-    return DateFormat('dd/MM – HH:mm', 'ar').format(value);
-  }
 
   String _marketValue(MarketQuote quote) {
     final pattern = quote.symbol == 'EUR/USD' ? '#,##0.0000' : '#,##0.00';
