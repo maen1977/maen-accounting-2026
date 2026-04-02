@@ -37,3 +37,7 @@ flutter run
 ```bash
 flutterfire configure
 ```
+
+
+## مهم للأندرويد
+تحتاج النسخة المبنية إلى صلاحيات الموقع داخل AndroidManifest.xml حتى يعمل الوقت والطقس حسب موقع الجهاز.

@@ -2150,17 +2150,17 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
     if (_locationWeatherLoading) {
       return const Card(
         child: Padding(
-          padding: EdgeInsets.all(22),
+          padding: EdgeInsets.all(18),
           child: Row(
             children: [
               SizedBox(
-                width: 22,
-                height: 22,
+                width: 20,
+                height: 20,
                 child: CircularProgressIndicator(strokeWidth: 2.5),
               ),
-              SizedBox(width: 12),
+              SizedBox(width: 10),
               Expanded(
-                child: Text('جارٍ تحديد موقع الجهاز وجلب التاريخ والساعة والطقس الحالي...'),
+                child: Text('جارٍ تجهيز التاريخ والوقت والطقس حسب موقع الجهاز...'),
               ),
             ],
           ),
@@ -2177,7 +2177,7 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'تعذّر عرض التاريخ والساعة والطقس حسب الموقع',
+                'التاريخ والوقت والطقس',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
@@ -2200,108 +2200,117 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
     final now = _locationAwareNow;
     final weatherColor = snapshot.isDay ? const Color(0xFF1F6FEB) : const Color(0xFF6E56CF);
 
+    Widget infoBox({required IconData icon, required String title, required String value}) {
+      return Expanded(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade50,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(icon, size: 16, color: weatherColor),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: const TextStyle(fontSize: 12.5, color: Colors.black54),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                value,
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Column(
       children: [
-        if (_locationWeatherError != null) ...[
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.orange.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Text(
-              _locationWeatherError!,
-              style: const TextStyle(height: 1.5, color: Colors.black87),
-            ),
-          ),
-          const SizedBox(height: 12),
-        ],
         Card(
           child: Padding(
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  crossAxisAlignment: WrapCrossAlignment.center,
+                Row(
                   children: [
                     CircleAvatar(
-                      radius: 26,
+                      radius: 22,
                       backgroundColor: weatherColor.withValues(alpha: 0.12),
                       child: Icon(_weatherIcon(snapshot), color: weatherColor),
                     ),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(minWidth: 220, maxWidth: 560),
+                    const SizedBox(width: 10),
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'التاريخ والساعة والطقس حسب موقع الجهاز',
+                            'التاريخ والوقت والطقس',
                             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 2),
                           Text(
-                            'المنطقة الزمنية: ${snapshot.timezoneAbbreviation} • الإحداثيات: ${_coordinatesText(snapshot)}',
-                            style: const TextStyle(color: Colors.black54, height: 1.5),
+                            '${snapshot.description} • ${snapshot.timezoneAbbreviation}',
+                            style: const TextStyle(color: Colors.black54, height: 1.4),
                           ),
                         ],
                       ),
                     ),
-                    OutlinedButton.icon(
+                    IconButton(
                       onPressed: _locationWeatherRefreshing ? null : _refreshLocationWeather,
+                      tooltip: 'تحديث الموقع والطقس',
                       icon: _locationWeatherRefreshing
                           ? const SizedBox(
-                              width: 16,
-                              height: 16,
+                              width: 18,
+                              height: 18,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : const Icon(Icons.my_location),
-                      label: Text(_locationWeatherRefreshing ? 'جارٍ التحديث' : 'تحديث الموقع والطقس'),
+                          : const Icon(Icons.refresh),
                     ),
                   ],
                 ),
-                const SizedBox(height: 18),
-                Text(
-                  _timeText(now),
-                  style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w800),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  _fullDateText(now),
-                  style: const TextStyle(fontSize: 15, color: Colors.black54, height: 1.5),
-                ),
                 const SizedBox(height: 14),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: weatherColor.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(_weatherIcon(snapshot), color: weatherColor),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          snapshot.description,
-                          style: TextStyle(
-                            color: weatherColor,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                Row(
+                  children: [
+                    infoBox(
+                      icon: Icons.today_outlined,
+                      title: 'التاريخ',
+                      value: _fullDateText(now),
+                    ),
+                    const SizedBox(width: 8),
+                    infoBox(
+                      icon: Icons.access_time,
+                      title: 'الوقت',
+                      value: _timeText(now),
+                    ),
+                    const SizedBox(width: 8),
+                    infoBox(
+                      icon: _weatherIcon(snapshot),
+                      title: 'الطقس',
+                      value: '${snapshot.temperatureCelsius.toStringAsFixed(1)}° • ${snapshot.description}',
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  'آخر وقت طقس من الخدمة: ${_dateTimeText(snapshot.weatherTime)}',
-                  style: const TextStyle(fontSize: 12.5, color: Colors.black54),
-                ),
+                if (_locationWeatherError != null) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    _locationWeatherError!,
+                    style: const TextStyle(fontSize: 12.5, color: Colors.black54, height: 1.5),
+                  ),
+                ],
               ],
             ),
           ),
@@ -2919,66 +2928,51 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
     );
   }
 
+  String _marketShortTitle(MarketQuote quote) {
+    if (quote.symbol.contains('XAU')) return 'ذهب';
+    if (quote.symbol.contains('XAG')) return 'فضة';
+    if (quote.symbol.contains('EUR')) return 'EUR/USD';
+    return quote.title;
+  }
+
   Widget _marketTile(MarketQuote quote) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 CircleAvatar(
-                  radius: 21,
+                  radius: 18,
                   backgroundColor: quote.color.withValues(alpha: 0.12),
-                  child: Icon(quote.icon, color: quote.color),
+                  child: Icon(quote.icon, color: quote.color, size: 18),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        quote.title,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        quote.symbol,
-                        style: const TextStyle(fontSize: 12.5, color: Colors.black54),
-                      ),
-                    ],
+                  child: Text(
+                    _marketShortTitle(quote),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 10),
             Text(
               _marketValue(quote),
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             Text(
               quote.unit,
-              style: const TextStyle(color: Colors.black54),
-            ),
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: quote.color.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Text(
-                quote.sourceUpdatedAt == null
-                    ? 'المصدر: ${quote.sourceLabel}'
-                    : 'المصدر: ${quote.sourceLabel} • ${_compactDateTimeText(quote.sourceUpdatedAt!)}',
-                style: TextStyle(
-                  fontSize: 12.5,
-                  color: quote.color,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              style: const TextStyle(fontSize: 11.5, color: Colors.black54),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -2990,15 +2984,15 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
     if (_marketLoading) {
       return const Card(
         child: Padding(
-          padding: EdgeInsets.all(22),
+          padding: EdgeInsets.all(18),
           child: Row(
             children: [
               SizedBox(
-                width: 22,
-                height: 22,
+                width: 20,
+                height: 20,
                 child: CircularProgressIndicator(strokeWidth: 2.5),
               ),
-              SizedBox(width: 12),
+              SizedBox(width: 10),
               Expanded(
                 child: Text('جارٍ جلب أسعار الذهب والفضة واليورو/الدولار...'),
               ),
@@ -3041,34 +3035,58 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
       return const SizedBox.shrink();
     }
 
-    return Column(
-      children: [
-        Row(
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: Text(
-                _marketError == null
-                    ? 'آخر مزامنة: ${_dateTimeText(snapshot.fetchedAt)}'
-                    : 'يعرض آخر بيانات ناجحة • ${_dateTimeText(snapshot.fetchedAt)}',
-                style: const TextStyle(color: Colors.black54),
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'الذهب • الفضة • EUR/USD',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                IconButton(
+                  onPressed: _marketRefreshing ? null : _refreshMarketData,
+                  tooltip: 'تحديث مؤشرات السوق',
+                  icon: _marketRefreshing
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.wifi_tethering_outlined),
+                ),
+              ],
+            ),
+            Text(
+              _marketError == null
+                  ? 'آخر مزامنة: ${_dateTimeText(snapshot.fetchedAt)}'
+                  : 'آخر بيانات محفوظة: ${_dateTimeText(snapshot.fetchedAt)}',
+              style: const TextStyle(fontSize: 12.5, color: Colors.black54),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                for (int i = 0; i < snapshot.quotes.length; i++) ...[
+                  Expanded(child: _marketTile(snapshot.quotes[i])),
+                  if (i != snapshot.quotes.length - 1) const SizedBox(width: 8),
+                ],
+              ],
+            ),
+            if (_marketError != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                _marketError!,
+                style: const TextStyle(fontSize: 12.5, color: Colors.black54, height: 1.5),
               ),
-            ),
-            OutlinedButton.icon(
-              onPressed: _marketRefreshing ? null : _refreshMarketData,
-              icon: _marketRefreshing
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.wifi_tethering_outlined),
-              label: Text(_marketRefreshing ? 'جارٍ التحديث' : 'تحديث مباشر'),
-            ),
+            ],
           ],
         ),
-        const SizedBox(height: 12),
-        _statsWrap(snapshot.quotes.map(_marketTile).toList(growable: false)),
-      ],
+      ),
     );
   }
 
@@ -3081,6 +3099,10 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        _buildLocationWeatherSection(),
+        const SizedBox(height: 14),
+        _buildMarketSection(),
+        const SizedBox(height: 16),
         Card(
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -3194,20 +3216,6 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
             footer: 'إجمالي السجلات: ${_entries.length}',
           ),
         ]),
-        const SizedBox(height: 20),
-        _sectionHeader(
-          'التاريخ والساعة والطقس حسب موقع الجهاز',
-          subtitle: 'يعرض الوقت المحلي والطقس الحالي بالاعتماد على موقع الجهاز بعد منح إذن الموقع.',
-        ),
-        const SizedBox(height: 10),
-        _buildLocationWeatherSection(),
-        const SizedBox(height: 20),
-        _sectionHeader(
-          'مؤشرات السوق المتصلة بالإنترنت',
-          subtitle: 'سعر الذهب أونصة، سعر الفضة أونصة، وسعر اليورو مقابل الدولار من مصادر خارجية يتم تحديثها تلقائيًا.',
-        ),
-        const SizedBox(height: 10),
-        _buildMarketSection(),
         const SizedBox(height: 20),
         _sectionHeader(
           'أحدث السجلات',
