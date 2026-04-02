@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart' as geo;
 import 'package:http/http.dart' as http;
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -1218,9 +1219,7 @@ class DeviceLocationWeatherService {
 
     try {
       return await geo.Geolocator.getCurrentPosition(
-        locationSettings: const geo.LocationSettings(
-          accuracy: geo.LocationAccuracy.medium,
-        ),
+        desiredAccuracy: geo.LocationAccuracy.medium,
       ).timeout(const Duration(seconds: 15));
     } on TimeoutException {
       throw const DeviceLocationWeatherException(
@@ -2240,7 +2239,6 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
       final data = await DatabaseHelper.instance.getAllEntries();
       final file = await BackupService.instance.exportFile(email: _userEmail, entries: data);
       final backupInfo = await BackupService.instance.readInfo(_userEmail);
-      final cloudInfo = await CloudBackupService.instance.readInfo(_userEmail);
       if (!mounted) return;
       setState(() {
         _backupInfo = backupInfo;
