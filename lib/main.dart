@@ -2300,7 +2300,7 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                     infoBox(
                       icon: _weatherIcon(snapshot),
                       title: 'الطقس',
-                      value: '${snapshot.temperatureCelsius.toStringAsFixed(1)}° • ${snapshot.description}',
+                      value: '${snapshot.temperatureC.toStringAsFixed(1)}° • ${snapshot.description}',
                     ),
                   ],
                 ),
