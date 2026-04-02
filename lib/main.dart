@@ -2273,109 +2273,81 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
       );
     }
 
-    return Column(
-      children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 22,
-                      backgroundColor: weatherColor.withValues(alpha: 0.12),
-                      child: Icon(_weatherIcon(snapshot), color: weatherColor),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'التاريخ والوقت والطقس',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '${snapshot.description} • ${snapshot.timezoneAbbreviation}',
-                            style: const TextStyle(color: Colors.black54, height: 1.4),
-                          ),
-                        ],
+                CircleAvatar(
+                  radius: 22,
+                  backgroundColor: weatherColor.withValues(alpha: 0.12),
+                  child: Icon(_weatherIcon(snapshot), color: weatherColor),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'التاريخ والوقت والطقس',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
-                    ),
-                    IconButton(
-                      onPressed: _locationWeatherRefreshing ? null : _refreshLocationWeather,
-                      tooltip: 'تحديث الوقت والطقس',
-                      icon: _locationWeatherRefreshing
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.refresh),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    infoBox(
-                      icon: Icons.today_outlined,
-                      title: 'التاريخ',
-                      value: _fullDateText(now),
-                    ),
-                    const SizedBox(width: 8),
-                    infoBox(
-                      icon: Icons.access_time,
-                      title: 'الوقت',
-                      value: _timeText(now),
-                    ),
-                    const SizedBox(width: 8),
-                    infoBox(
-                      icon: _weatherIcon(snapshot),
-                      title: 'الطقس',
-                      value: '${snapshot.temperatureC.toStringAsFixed(1)}° • ${snapshot.description}',
-                    ),
-                  ],
-                ),
-                if (_locationWeatherError != null) ...[
-                  const SizedBox(height: 10),
-                  Text(
-                    _locationWeatherError!,
-                    style: const TextStyle(fontSize: 12.5, color: Colors.black54, height: 1.5),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${snapshot.description} • ${snapshot.timezoneAbbreviation}',
+                        style: const TextStyle(color: Colors.black54, height: 1.4),
+                      ),
+                    ],
                   ),
-                ],
+                ),
+                IconButton(
+                  onPressed: _locationWeatherRefreshing ? null : _refreshLocationWeather,
+                  tooltip: 'تحديث الوقت والطقس',
+                  icon: _locationWeatherRefreshing
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.refresh),
+                ),
               ],
             ),
-          ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                infoBox(
+                  icon: Icons.today_outlined,
+                  title: 'التاريخ',
+                  value: _fullDateText(now),
+                ),
+                const SizedBox(width: 8),
+                infoBox(
+                  icon: Icons.access_time,
+                  title: 'الوقت',
+                  value: _timeText(now),
+                ),
+                const SizedBox(width: 8),
+                infoBox(
+                  icon: _weatherIcon(snapshot),
+                  title: 'الطقس',
+                  value: '${snapshot.temperatureC.toStringAsFixed(1)}° • ${snapshot.description}',
+                ),
+              ],
+            ),
+            if (_locationWeatherError != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                _locationWeatherError!,
+                style: const TextStyle(fontSize: 12.5, color: Colors.black54, height: 1.5),
+              ),
+            ],
+          ],
         ),
-        const SizedBox(height: 12),
-        _statsWrap([
-          _statCard(
-            title: 'الحرارة الحالية',
-            value: '${snapshot.temperatureC.toStringAsFixed(1)}°',
-            icon: Icons.thermostat_outlined,
-            color: Colors.deepOrange,
-            footer: 'من الإنترنت مباشرة',
-          ),
-          _statCard(
-            title: 'المحسوسة',
-            value: '${snapshot.apparentTemperatureC.toStringAsFixed(1)}°',
-            icon: Icons.device_thermostat,
-            color: Colors.orange,
-            footer: 'الحالة: ${snapshot.description}',
-          ),
-          _statCard(
-            title: 'سرعة الرياح',
-            value: '${snapshot.windSpeedKmH.toStringAsFixed(1)} كم/س',
-            icon: Icons.air,
-            color: Colors.blue,
-            footer: 'آخر جلب: ${_compactDateTimeText(snapshot.fetchedAt)}',
-          ),
-        ]),
-      ],
+      ),
     );
   }
 

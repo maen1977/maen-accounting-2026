@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "565086596003",
+    "project_id": "maen-accountings",
+    "storage_bucket": "maen-accountings.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:565086596003:android:17e175ce8105c2c4664816",
+        "android_client_info": {
+          "package_name": "com.example.profit_tracker"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCA0IAkOuIo3CAobgtWArgnMdVqd0WsaPY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,3 +1,7 @@
+## تم دمج google-services.json
+- هذا الملف تم وضعه داخل `firebase/google-services.json` وسيتم نسخه تلقائيًا إلى `android/app/google-services.json` أثناء البناء في GitHub Actions.
+- يبقى عليك فقط تفعيل Authentication و Firestore من Firebase Console.
+
 # إعداد Firebase للمزامنة التلقائية
 
 هذه النسخة تستخدم:
