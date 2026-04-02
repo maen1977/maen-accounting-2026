@@ -3566,6 +3566,37 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                 const SizedBox(height: 14),
                 _infoRow('الحساب الحالي', _userEmail),
                 _infoRow(
+                  'وضع تشغيل البرنامج',
+                  CloudBackupService.instance.isAvailable
+                      ? (_cloudBackupInfo.exists
+                          ? 'سحابي + محلي، والاسترجاع التلقائي بين الأجهزة جاهز'
+                          : 'سحابي + محلي، لكن بانتظار أول مزامنة ناجحة')
+                      : 'محلي فقط داخل هذا الجهاز',
+                  valueColor: CloudBackupService.instance.isAvailable
+                      ? Colors.green.shade700
+                      : Colors.orange.shade900,
+                ),
+                _infoRow(
+                  'حالة Firebase / السحابة',
+                  CloudBackupService.instance.isAvailable
+                      ? 'مفعّل وجاهز'
+                      : 'غير مكتمل أو غير متاح حاليًا',
+                  valueColor: CloudBackupService.instance.isAvailable
+                      ? Colors.green.shade700
+                      : Colors.orange.shade900,
+                ),
+                _infoRow(
+                  'الاسترجاع على جهاز آخر',
+                  _cloudBackupInfo.exists
+                      ? 'متاح تلقائيًا بعد تسجيل الدخول بنفس الإيميل'
+                      : (CloudBackupService.instance.isAvailable
+                          ? 'سيتفعل بعد أول مزامنة سحابية ناجحة'
+                          : 'غير متاح حتى يكتمل إعداد Firebase'),
+                  valueColor: _cloudBackupInfo.exists
+                      ? Colors.green.shade700
+                      : Colors.orange.shade900,
+                ),
+                _infoRow(
                   'النسخة المحلية',
                   _backupInfo.exists
                       ? 'متوفرة (${_backupInfo.entriesCount} سجل)'
@@ -3586,6 +3617,26 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                 _infoRow(
                   'آخر تحديث سحابي',
                   _cloudBackupInfo.updatedAt == null ? '—' : _dateTimeText(_cloudBackupInfo.updatedAt!),
+                ),
+                _infoRow(
+                  'آخر نتيجة مزامنة',
+                  CloudBackupService.instance.lastError == null
+                      ? (_cloudBackupInfo.updatedAt != null
+                          ? 'نجحت آخر مزامنة سحابية'
+                          : (_backupInfo.updatedAt != null
+                              ? 'الحفظ المحلي يعمل، ولم تُسجّل مزامنة سحابية بعد'
+                              : 'بانتظار أول حفظ'))
+                      : 'تعذر آخر اتصال سحابي',
+                  valueColor: CloudBackupService.instance.lastError == null
+                      ? Colors.green.shade700
+                      : Colors.orange.shade900,
+                ),
+                _infoRow(
+                  'تفاصيل آخر حالة سحابية',
+                  CloudBackupService.instance.lastError ??
+                      (CloudBackupService.instance.isAvailable
+                          ? 'لا يوجد خطأ حاليًا'
+                          : 'أكمل إعداد Firebase لتفعيل النسخ والاسترجاع بين الأجهزة'),
                 ),
                 _infoRow(
                   'مسار الملف المحلي',
