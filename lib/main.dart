@@ -7,7 +7,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:geolocator/geolocator.dart' as geo;
 import 'package:http/http.dart' as http;
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -1110,6 +1109,22 @@ class LocationWeatherStore {
   }
 }
 
+class _ApproxInternetLocation {
+  final double latitude;
+  final double longitude;
+  final String timezone;
+  final String timezoneAbbreviation;
+  final int utcOffsetSeconds;
+
+  const _ApproxInternetLocation({
+    required this.latitude,
+    required this.longitude,
+    required this.timezone,
+    required this.timezoneAbbreviation,
+    required this.utcOffsetSeconds,
+  });
+}
+
 class DeviceLocationWeatherException implements Exception {
   final String message;
 
@@ -1125,12 +1140,12 @@ class DeviceLocationWeatherService {
   static final http.Client _client = http.Client();
 
   static Future<LocationWeatherSnapshot> fetchSnapshot() async {
-    final position = await _resolvePosition();
+    final approx = await _resolveApproxLocationFromInternet();
 
     final uri = Uri.parse(
       'https://api.open-meteo.com/v1/forecast'
-      '?latitude=${position.latitude}'
-      '&longitude=${position.longitude}'
+      '?latitude=${approx.latitude}'
+      '&longitude=${approx.longitude}'
       '&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,is_day'
       '&timezone=auto',
     );
@@ -1170,14 +1185,16 @@ class DeviceLocationWeatherService {
     final isDayValue = current['is_day'];
     final isDay = isDayValue is num ? isDayValue.toInt() == 1 : true;
     final weatherTime = DateTime.tryParse((current['time'] as String?) ?? '') ?? DateTime.now();
-    final timezone = (decoded['timezone'] as String?) ?? '—';
-    final timezoneAbbreviation = (decoded['timezone_abbreviation'] as String?) ?? timezone;
-    final utcOffsetSeconds = (decoded['utc_offset_seconds'] as num?)?.toInt() ?? 0;
+    final timezone = (decoded['timezone'] as String?) ?? approx.timezone;
+    final timezoneAbbreviation =
+        (decoded['timezone_abbreviation'] as String?) ?? approx.timezoneAbbreviation;
+    final utcOffsetSeconds =
+        (decoded['utc_offset_seconds'] as num?)?.toInt() ?? approx.utcOffsetSeconds;
     final code = weatherCode.toInt();
 
     return LocationWeatherSnapshot(
-      latitude: position.latitude,
-      longitude: position.longitude,
+      latitude: approx.latitude,
+      longitude: approx.longitude,
       temperatureC: temperature.toDouble(),
       apparentTemperatureC: apparent.toDouble(),
       windSpeedKmH: windSpeed.toDouble(),
@@ -1192,44 +1209,64 @@ class DeviceLocationWeatherService {
     );
   }
 
-  static Future<geo.Position> _resolvePosition() async {
-    final serviceEnabled = await geo.Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      throw const DeviceLocationWeatherException(
-        'خدمة الموقع متوقفة في الجهاز. فعّل خدمة الموقع ثم أعد التحديث.',
+  static Future<_ApproxInternetLocation> _resolveApproxLocationFromInternet() async {
+    final uri = Uri.parse('https://ipwho.is/');
+    final response = await _client.get(
+      uri,
+      headers: const {
+        'Accept': 'application/json',
+        'User-Agent': 'profit-tracker-app/1.0',
+      },
+    ).timeout(const Duration(seconds: 12));
+
+    if (response.statusCode != 200) {
+      throw DeviceLocationWeatherException(
+        'تعذّر تحديد المنطقة التقريبية من الإنترنت (رمز الاستجابة: ${response.statusCode}).',
       );
     }
 
-    var permission = await geo.Geolocator.checkPermission();
-    if (permission == geo.LocationPermission.denied) {
-      permission = await geo.Geolocator.requestPermission();
-    }
-
-    if (permission == geo.LocationPermission.denied) {
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map<String, dynamic>) {
       throw const DeviceLocationWeatherException(
-        'تم رفض إذن الموقع. اسمح للتطبيق باستخدام الموقع لعرض التاريخ والساعة والطقس حسب موقع الجهاز.',
+        'تم استلام بيانات منطقة غير صالحة من الإنترنت.',
       );
     }
 
-    if (permission == geo.LocationPermission.deniedForever) {
+    final success = decoded['success'];
+    if (success == false) {
       throw const DeviceLocationWeatherException(
-        'إذن الموقع مرفوض نهائيًا. افتح إعدادات التطبيق واسمح بإذن الموقع ثم أعد المحاولة.',
+        'تعذّر تحديد المنطقة التقريبية من الإنترنت حاليًا.',
       );
     }
 
-    try {
-      return await geo.Geolocator.getCurrentPosition(
-        desiredAccuracy: geo.LocationAccuracy.medium,
-      ).timeout(const Duration(seconds: 15));
-    } on TimeoutException {
+    final latitude = decoded['latitude'];
+    final longitude = decoded['longitude'];
+    if (latitude is! num || longitude is! num) {
       throw const DeviceLocationWeatherException(
-        'انتهت مهلة تحديد موقع الجهاز. تأكد من توفر الإنترنت أو GPS ثم حاول مرة أخرى.',
-      );
-    } catch (_) {
-      throw const DeviceLocationWeatherException(
-        'تعذّر تحديد موقع الجهاز حاليًا. حاول مرة أخرى بعد لحظات.',
+        'تعذّر تحديد المنطقة التقريبية من الإنترنت حاليًا.',
       );
     }
+
+    final timezoneMap = decoded['timezone'];
+    String timezone = 'UTC';
+    String timezoneAbbreviation = 'UTC';
+    int utcOffsetSeconds = 0;
+    if (timezoneMap is Map<String, dynamic>) {
+      timezone = (timezoneMap['id'] as String?) ?? timezone;
+      timezoneAbbreviation = (timezoneMap['abbr'] as String?) ?? timezoneAbbreviation;
+      final offset = timezoneMap['offset'];
+      if (offset is num) {
+        utcOffsetSeconds = offset.toInt();
+      }
+    }
+
+    return _ApproxInternetLocation(
+      latitude: latitude.toDouble(),
+      longitude: longitude.toDouble(),
+      timezone: timezone,
+      timezoneAbbreviation: timezoneAbbreviation,
+      utcOffsetSeconds: utcOffsetSeconds,
+    );
   }
 
   static String _weatherCodeDescription(int code, {required bool isDay}) {
@@ -1282,7 +1319,6 @@ class DeviceLocationWeatherService {
     }
   }
 }
-
 
 class AppStartupGate extends StatefulWidget {
   const AppStartupGate({super.key});
@@ -2100,7 +2136,7 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
         if (cached != null) {
           _locationWeatherSnapshot = cached;
           _locationWeatherError =
-              'تعذّر تحديث التاريخ والطقس من الموقع الآن، ويجري عرض آخر بيانات ناجحة محفوظة.';
+              'تعذّر تحديث التاريخ والطقس من الإنترنت الآن، ويجري عرض آخر بيانات ناجحة محفوظة.';
         } else {
           _locationWeatherError = e.toString();
         }
@@ -2160,7 +2196,7 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
               ),
               SizedBox(width: 10),
               Expanded(
-                child: Text('جارٍ تجهيز التاريخ والوقت والطقس حسب موقع الجهاز...'),
+                child: Text('جارٍ تجهيز التاريخ والوقت والطقس من الإنترنت مباشرة...'),
               ),
             ],
           ),
@@ -2182,7 +2218,7 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
               ),
               const SizedBox(height: 8),
               Text(
-                _locationWeatherError ?? 'تعذّر تحديد موقع الجهاز أو جلب الطقس الحالي.',
+                _locationWeatherError ?? 'تعذّر جلب الوقت أو التاريخ أو الطقس من الإنترنت حاليًا.',
                 style: const TextStyle(height: 1.5, color: Colors.black54),
               ),
               const SizedBox(height: 12),
@@ -2271,7 +2307,7 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                     ),
                     IconButton(
                       onPressed: _locationWeatherRefreshing ? null : _refreshLocationWeather,
-                      tooltip: 'تحديث الموقع والطقس',
+                      tooltip: 'تحديث الوقت والطقس',
                       icon: _locationWeatherRefreshing
                           ? const SizedBox(
                               width: 18,
@@ -2322,7 +2358,7 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
             value: '${snapshot.temperatureC.toStringAsFixed(1)}°',
             icon: Icons.thermostat_outlined,
             color: Colors.deepOrange,
-            footer: 'حسب موقع الجهاز',
+            footer: 'من الإنترنت مباشرة',
           ),
           _statCard(
             title: 'المحسوسة',
@@ -3566,37 +3602,6 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                 const SizedBox(height: 14),
                 _infoRow('الحساب الحالي', _userEmail),
                 _infoRow(
-                  'وضع تشغيل البرنامج',
-                  CloudBackupService.instance.isAvailable
-                      ? (_cloudBackupInfo.exists
-                          ? 'سحابي + محلي، والاسترجاع التلقائي بين الأجهزة جاهز'
-                          : 'سحابي + محلي، لكن بانتظار أول مزامنة ناجحة')
-                      : 'محلي فقط داخل هذا الجهاز',
-                  valueColor: CloudBackupService.instance.isAvailable
-                      ? Colors.green.shade700
-                      : Colors.orange.shade900,
-                ),
-                _infoRow(
-                  'حالة Firebase / السحابة',
-                  CloudBackupService.instance.isAvailable
-                      ? 'مفعّل وجاهز'
-                      : 'غير مكتمل أو غير متاح حاليًا',
-                  valueColor: CloudBackupService.instance.isAvailable
-                      ? Colors.green.shade700
-                      : Colors.orange.shade900,
-                ),
-                _infoRow(
-                  'الاسترجاع على جهاز آخر',
-                  _cloudBackupInfo.exists
-                      ? 'متاح تلقائيًا بعد تسجيل الدخول بنفس الإيميل'
-                      : (CloudBackupService.instance.isAvailable
-                          ? 'سيتفعل بعد أول مزامنة سحابية ناجحة'
-                          : 'غير متاح حتى يكتمل إعداد Firebase'),
-                  valueColor: _cloudBackupInfo.exists
-                      ? Colors.green.shade700
-                      : Colors.orange.shade900,
-                ),
-                _infoRow(
                   'النسخة المحلية',
                   _backupInfo.exists
                       ? 'متوفرة (${_backupInfo.entriesCount} سجل)'
@@ -3619,26 +3624,6 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                   _cloudBackupInfo.updatedAt == null ? '—' : _dateTimeText(_cloudBackupInfo.updatedAt!),
                 ),
                 _infoRow(
-                  'آخر نتيجة مزامنة',
-                  CloudBackupService.instance.lastError == null
-                      ? (_cloudBackupInfo.updatedAt != null
-                          ? 'نجحت آخر مزامنة سحابية'
-                          : (_backupInfo.updatedAt != null
-                              ? 'الحفظ المحلي يعمل، ولم تُسجّل مزامنة سحابية بعد'
-                              : 'بانتظار أول حفظ'))
-                      : 'تعذر آخر اتصال سحابي',
-                  valueColor: CloudBackupService.instance.lastError == null
-                      ? Colors.green.shade700
-                      : Colors.orange.shade900,
-                ),
-                _infoRow(
-                  'تفاصيل آخر حالة سحابية',
-                  CloudBackupService.instance.lastError ??
-                      (CloudBackupService.instance.isAvailable
-                          ? 'لا يوجد خطأ حاليًا'
-                          : 'أكمل إعداد Firebase لتفعيل النسخ والاسترجاع بين الأجهزة'),
-                ),
-                _infoRow(
                   'مسار الملف المحلي',
                   _backupInfo.filePath ?? 'سيظهر بعد إنشاء أول نسخة احتياطية',
                 ),
@@ -3655,7 +3640,7 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                       : '${_locationWeatherSnapshot!.timezone} (${_locationWeatherSnapshot!.timezoneAbbreviation})',
                 ),
                 _infoRow(
-                  'إحداثيات الموقع الحالي',
+                  'الإحداثيات التقريبية',
                   _locationWeatherSnapshot == null
                       ? '—'
                       : _coordinatesText(_locationWeatherSnapshot!),
@@ -3696,7 +3681,7 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.my_location),
-                      label: const Text('تحديث الموقع والطقس'),
+                      label: const Text('تحديث الوقت والطقس'),
                     ),
                     OutlinedButton.icon(
                       onPressed: _editManualMarketSettings,
