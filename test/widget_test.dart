@@ -6,6 +6,6 @@ void main() {
     await tester.pumpWidget(const ProfitTrackerApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('أدخل بريدك الشخصي قبل فتح البرنامج'), findsOneWidget);
+    expect(find.textContaining('Firebase'), findsOneWidget);
   });
 }

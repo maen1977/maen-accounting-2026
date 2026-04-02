@@ -32,3 +32,9 @@ flutter run
 ```bash
 flutter build apk --release
 ```
+
+
+إعداد الاسم والأيقونة على أندرويد:
+- اسم التطبيق بعد التثبيت: Maen Accountings
+- أيقونة التطبيق يتم توليدها تلقائيًا من الملف assets/icon/maen_accountings_icon.png عبر flutter_launcher_icons داخل GitHub Actions.
+- عند البناء محليًا شغّل: dart run flutter_launcher_icons ثم flutter build apk --release

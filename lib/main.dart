@@ -2,9 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart' as geo;
 import 'package:http/http.dart' as http;
-import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
@@ -32,7 +35,7 @@ class ProfitTrackerApp extends StatelessWidget {
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'برنامج تتبع الأرباح',
+      title: 'Maen Accountings',
       locale: const Locale('ar'),
       supportedLocales: const [Locale('ar')],
       localizationsDelegates: const [
@@ -263,6 +266,149 @@ class ProfileStore {
   }
 }
 
+class FirebaseBootstrap {
+  FirebaseBootstrap._();
+
+  static bool _initialized = false;
+  static bool _available = false;
+  static String? _lastError;
+
+  static bool get isAvailable => _available;
+  static String? get lastError => _lastError;
+
+  static Future<void> ensureInitialized() async {
+    if (_initialized) return;
+    _initialized = true;
+    try {
+      await Firebase.initializeApp();
+      _available = true;
+      _lastError = null;
+    } catch (e) {
+      _available = false;
+      _lastError = e.toString();
+    }
+  }
+}
+
+class AuthResult {
+  final bool success;
+  final String message;
+  final String? email;
+  final bool isNewAccount;
+
+  const AuthResult({
+    required this.success,
+    required this.message,
+    this.email,
+    this.isNewAccount = false,
+  });
+}
+
+class AuthService {
+  AuthService._();
+
+  static final AuthService instance = AuthService._();
+
+  bool get isAvailable => FirebaseBootstrap.isAvailable;
+  String? get lastError => FirebaseBootstrap.lastError;
+  bool get isSignedIn => FirebaseAuth.instance.currentUser != null;
+  String? get currentUserEmail => FirebaseAuth.instance.currentUser?.email;
+
+  Future<void> init() async {
+    await FirebaseBootstrap.ensureInitialized();
+  }
+
+  Future<AuthResult> signIn({
+    required String email,
+    required String password,
+  }) async {
+    await init();
+    if (!isAvailable) {
+      return const AuthResult(
+        success: false,
+        message: 'Firebase غير مفعّل بعد. أكمل الإعداد أولًا.',
+      );
+    }
+
+    try {
+      final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email.trim(),
+        password: password,
+      );
+      return AuthResult(
+        success: true,
+        message: 'تم تسجيل الدخول بنجاح.',
+        email: credential.user?.email ?? email.trim(),
+      );
+    } on FirebaseAuthException catch (e) {
+      return AuthResult(success: false, message: _mapError(e));
+    } catch (e) {
+      return AuthResult(success: false, message: 'حدث خطأ غير متوقع: $e');
+    }
+  }
+
+  Future<AuthResult> register({
+    required String email,
+    required String password,
+  }) async {
+    await init();
+    if (!isAvailable) {
+      return const AuthResult(
+        success: false,
+        message: 'Firebase غير مفعّل بعد. أكمل الإعداد أولًا.',
+      );
+    }
+
+    try {
+      final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email.trim(),
+        password: password,
+      );
+      return AuthResult(
+        success: true,
+        message: 'تم إنشاء الحساب وتسجيل الدخول بنجاح.',
+        email: credential.user?.email ?? email.trim(),
+        isNewAccount: true,
+      );
+    } on FirebaseAuthException catch (e) {
+      return AuthResult(success: false, message: _mapError(e));
+    } catch (e) {
+      return AuthResult(success: false, message: 'حدث خطأ غير متوقع: $e');
+    }
+  }
+
+  Future<void> signOut() async {
+    await init();
+    if (!isAvailable) return;
+    await FirebaseAuth.instance.signOut();
+  }
+
+  String _mapError(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'invalid-email':
+        return 'صيغة الإيميل غير صحيحة.';
+      case 'invalid-credential':
+        return 'بيانات الدخول غير صحيحة.';
+      case 'user-disabled':
+        return 'هذا الحساب موقوف.';
+      case 'user-not-found':
+        return 'لا يوجد حساب بهذا الإيميل.';
+      case 'wrong-password':
+        return 'كلمة المرور غير صحيحة.';
+      case 'email-already-in-use':
+        return 'هذا الإيميل مستخدم مسبقًا.';
+      case 'weak-password':
+        return 'كلمة المرور ضعيفة. استخدم 6 أحرف على الأقل.';
+      case 'network-request-failed':
+        return 'تعذر الاتصال بالإنترنت. تحقق من الشبكة.';
+      case 'too-many-requests':
+        return 'تمت محاولات كثيرة. انتظر قليلًا ثم حاول مرة أخرى.';
+      default:
+        return e.message ?? 'حدث خطأ في المصادقة.';
+    }
+  }
+}
+
 class BackupSnapshotInfo {
   final bool exists;
   final String? email;
@@ -399,6 +545,287 @@ class BackupService {
 }
 
 
+class CloudBackupSnapshotInfo {
+  final bool exists;
+  final String? email;
+  final DateTime? updatedAt;
+  final int entriesCount;
+
+  const CloudBackupSnapshotInfo({
+    required this.exists,
+    this.email,
+    this.updatedAt,
+    this.entriesCount = 0,
+  });
+}
+
+class CloudBackupService {
+  CloudBackupService._();
+
+  static final CloudBackupService instance = CloudBackupService._();
+
+  bool _initialized = false;
+  bool _available = false;
+  String? _lastError;
+
+  bool get isAvailable => _available;
+  String? get lastError => _lastError;
+
+  String _normalizeEmail(String email) => email.trim().toLowerCase();
+
+  Future<void> init() async {
+    if (_initialized) return;
+    _initialized = true;
+    await FirebaseBootstrap.ensureInitialized();
+    _available = FirebaseBootstrap.isAvailable;
+    _lastError = FirebaseBootstrap.lastError;
+  }
+
+  Future<bool> writeBackup({
+    required String email,
+    required List<ProfitEntry> entries,
+  }) async {
+    await init();
+    if (!_available) return false;
+
+    try {
+      await FirebaseFirestore.instance
+          .collection('profit_tracker_backups')
+          .doc(_normalizeEmail(email))
+          .set({
+        'backupEmail': _normalizeEmail(email),
+        'updatedAtIso': DateTime.now().toIso8601String(),
+        'updatedAt': FieldValue.serverTimestamp(),
+        'entriesCount': entries.length,
+        'entries': entries.map((entry) => entry.toBackupMap()).toList(),
+      }, SetOptions(merge: true));
+      _lastError = null;
+      return true;
+    } catch (e) {
+      _lastError = e.toString();
+      return false;
+    }
+  }
+
+  Future<CloudBackupSnapshotInfo> readInfo(String email) async {
+    await init();
+    if (!_available) return const CloudBackupSnapshotInfo(exists: false);
+
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('profit_tracker_backups')
+          .doc(_normalizeEmail(email))
+          .get();
+      if (!snapshot.exists) {
+        _lastError = null;
+        return const CloudBackupSnapshotInfo(exists: false);
+      }
+      final data = snapshot.data();
+      if (data == null) return const CloudBackupSnapshotInfo(exists: false);
+      DateTime? updatedAt;
+      final updatedAtValue = data['updatedAt'];
+      if (updatedAtValue is Timestamp) {
+        updatedAt = updatedAtValue.toDate();
+      } else {
+        final updatedAtIso = data['updatedAtIso'] as String?;
+        if (updatedAtIso != null) updatedAt = DateTime.tryParse(updatedAtIso);
+      }
+      final entries = data['entries'];
+      _lastError = null;
+      return CloudBackupSnapshotInfo(
+        exists: true,
+        email: data['backupEmail'] as String?,
+        updatedAt: updatedAt,
+        entriesCount: entries is List ? entries.length : 0,
+      );
+    } catch (e) {
+      _lastError = e.toString();
+      return const CloudBackupSnapshotInfo(exists: false);
+    }
+  }
+
+  Future<bool> restoreIfDatabaseEmpty(String email) async {
+    final currentCount = await DatabaseHelper.instance.countEntries();
+    if (currentCount > 0) return false;
+
+    await init();
+    if (!_available) return false;
+
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('profit_tracker_backups')
+          .doc(_normalizeEmail(email))
+          .get();
+      if (!snapshot.exists) return false;
+      final data = snapshot.data();
+      if (data == null) return false;
+      final entriesRaw = data['entries'];
+      if (entriesRaw is! List || entriesRaw.isEmpty) return false;
+      final entries = entriesRaw
+          .whereType<Map>()
+          .map((entry) => ProfitEntry.fromBackupMap(Map<String, dynamic>.from(entry)))
+          .toList();
+      if (entries.isEmpty) return false;
+      await DatabaseHelper.instance.replaceAllEntries(entries);
+      _lastError = null;
+      return true;
+    } catch (e) {
+      _lastError = e.toString();
+      return false;
+    }
+  }
+}
+
+class ManualMarketSettings {
+  final double? gold;
+  final double? silver;
+  final double? eurUsd;
+
+  const ManualMarketSettings({this.gold, this.silver, this.eurUsd});
+
+  bool get hasAny => gold != null || silver != null || eurUsd != null;
+  bool get isComplete => gold != null && silver != null && eurUsd != null;
+
+  MarketSnapshot toSnapshot() {
+    final now = DateTime.now();
+    return MarketSnapshot(
+      gold: MarketQuote(
+        title: 'سعر الذهب',
+        symbol: 'XAU',
+        value: gold ?? 0,
+        unit: 'دولار / أونصة',
+        sourceUpdatedAt: now,
+        sourceLabel: 'قيمة يدوية',
+        icon: Icons.workspace_premium_outlined,
+        color: const Color(0xFFC79A1B),
+      ),
+      silver: MarketQuote(
+        title: 'سعر الفضة',
+        symbol: 'XAG',
+        value: silver ?? 0,
+        unit: 'دولار / أونصة',
+        sourceUpdatedAt: now,
+        sourceLabel: 'قيمة يدوية',
+        icon: Icons.brightness_5_outlined,
+        color: const Color(0xFF6B7A90),
+      ),
+      eurUsd: MarketQuote(
+        title: 'اليورو مقابل الدولار',
+        symbol: 'EUR/USD',
+        value: eurUsd ?? 0,
+        unit: 'دولار لكل يورو',
+        sourceUpdatedAt: now,
+        sourceLabel: 'قيمة يدوية',
+        icon: Icons.currency_exchange,
+        color: const Color(0xFF1669C1),
+      ),
+      fetchedAt: now,
+    );
+  }
+}
+
+class MarketSettingsStore {
+  static const _manualGoldKey = 'manual_market_gold';
+  static const _manualSilverKey = 'manual_market_silver';
+  static const _manualEurUsdKey = 'manual_market_eur_usd';
+  static const _cachedSnapshotKey = 'cached_market_snapshot';
+
+  Future<ManualMarketSettings> loadManual() async {
+    final prefs = await SharedPreferences.getInstance();
+    return ManualMarketSettings(
+      gold: prefs.getDouble(_manualGoldKey),
+      silver: prefs.getDouble(_manualSilverKey),
+      eurUsd: prefs.getDouble(_manualEurUsdKey),
+    );
+  }
+
+  Future<void> saveManual(ManualMarketSettings settings) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (settings.gold == null) {
+      await prefs.remove(_manualGoldKey);
+    } else {
+      await prefs.setDouble(_manualGoldKey, settings.gold!);
+    }
+    if (settings.silver == null) {
+      await prefs.remove(_manualSilverKey);
+    } else {
+      await prefs.setDouble(_manualSilverKey, settings.silver!);
+    }
+    if (settings.eurUsd == null) {
+      await prefs.remove(_manualEurUsdKey);
+    } else {
+      await prefs.setDouble(_manualEurUsdKey, settings.eurUsd!);
+    }
+  }
+
+  Future<void> saveCachedSnapshot(MarketSnapshot snapshot) async {
+    final prefs = await SharedPreferences.getInstance();
+    final payload = {
+      'fetchedAt': snapshot.fetchedAt.toIso8601String(),
+      'gold': snapshot.gold.value,
+      'silver': snapshot.silver.value,
+      'eurUsd': snapshot.eurUsd.value,
+      'goldUpdatedAt': snapshot.gold.sourceUpdatedAt?.toIso8601String(),
+      'silverUpdatedAt': snapshot.silver.sourceUpdatedAt?.toIso8601String(),
+      'eurUpdatedAt': snapshot.eurUsd.sourceUpdatedAt?.toIso8601String(),
+    };
+    await prefs.setString(_cachedSnapshotKey, jsonEncode(payload));
+  }
+
+  Future<MarketSnapshot?> loadCachedSnapshot() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_cachedSnapshotKey);
+    if (raw == null || raw.trim().isEmpty) return null;
+    try {
+      final map = jsonDecode(raw) as Map<String, dynamic>;
+      DateTime? parseDate(String key) {
+        final value = map[key] as String?;
+        return value == null ? null : DateTime.tryParse(value);
+      }
+      final fetchedAt = parseDate('fetchedAt') ?? DateTime.now();
+      final gold = (map['gold'] as num?)?.toDouble();
+      final silver = (map['silver'] as num?)?.toDouble();
+      final eurUsd = (map['eurUsd'] as num?)?.toDouble();
+      if (gold == null || silver == null || eurUsd == null) return null;
+      return MarketSnapshot(
+        gold: MarketQuote(
+          title: 'سعر الذهب',
+          symbol: 'XAU',
+          value: gold,
+          unit: 'دولار / أونصة',
+          sourceUpdatedAt: parseDate('goldUpdatedAt'),
+          sourceLabel: 'آخر بيانات ناجحة',
+          icon: Icons.workspace_premium_outlined,
+          color: const Color(0xFFC79A1B),
+        ),
+        silver: MarketQuote(
+          title: 'سعر الفضة',
+          symbol: 'XAG',
+          value: silver,
+          unit: 'دولار / أونصة',
+          sourceUpdatedAt: parseDate('silverUpdatedAt'),
+          sourceLabel: 'آخر بيانات ناجحة',
+          icon: Icons.brightness_5_outlined,
+          color: const Color(0xFF6B7A90),
+        ),
+        eurUsd: MarketQuote(
+          title: 'اليورو مقابل الدولار',
+          symbol: 'EUR/USD',
+          value: eurUsd,
+          unit: 'دولار لكل يورو',
+          sourceUpdatedAt: parseDate('eurUpdatedAt'),
+          sourceLabel: 'آخر بيانات ناجحة',
+          icon: Icons.currency_exchange,
+          color: const Color(0xFF1669C1),
+        ),
+        fetchedAt: fetchedAt,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+}
+
 class MarketQuote {
   final String title;
   final String symbol;
@@ -480,7 +907,10 @@ class MarketService {
     required Color color,
   }) async {
     final response = await _client
-        .get(Uri.parse('https://api.gold-api.com/price/$symbol'))
+        .get(
+          Uri.parse('https://api.gold-api.com/price/$symbol'),
+          headers: const {'Accept': 'application/json', 'User-Agent': 'profit-tracker-app/1.0'},
+        )
         .timeout(const Duration(seconds: 12));
 
     if (response.statusCode != 200) {
@@ -518,7 +948,10 @@ class MarketService {
   static Future<MarketQuote> _fetchEurUsdQuote() async {
     try {
       final response = await _client
-          .get(Uri.parse('https://api.frankfurter.dev/v2/rate/EUR/USD'))
+          .get(
+            Uri.parse('https://api.frankfurter.dev/v2/rate/EUR/USD'),
+            headers: const {'Accept': 'application/json', 'User-Agent': 'profit-tracker-app/1.0'},
+          )
           .timeout(const Duration(seconds: 12));
 
       if (response.statusCode == 200) {
@@ -545,7 +978,10 @@ class MarketService {
     }
 
     final fallback = await _client
-        .get(Uri.parse('https://api.frankfurter.dev/v1/latest?base=EUR&symbols=USD'))
+        .get(
+          Uri.parse('https://api.frankfurter.dev/v1/latest?base=EUR&symbols=USD'),
+          headers: const {'Accept': 'application/json', 'User-Agent': 'profit-tracker-app/1.0'},
+        )
         .timeout(const Duration(seconds: 12));
 
     if (fallback.statusCode != 200) {
@@ -581,6 +1017,274 @@ class MarketService {
   }
 }
 
+
+
+class LocationWeatherSnapshot {
+  final double latitude;
+  final double longitude;
+  final double temperatureC;
+  final double apparentTemperatureC;
+  final double windSpeedKmH;
+  final int weatherCode;
+  final bool isDay;
+  final String description;
+  final String timezone;
+  final String timezoneAbbreviation;
+  final int utcOffsetSeconds;
+  final DateTime weatherTime;
+  final DateTime fetchedAt;
+
+  const LocationWeatherSnapshot({
+    required this.latitude,
+    required this.longitude,
+    required this.temperatureC,
+    required this.apparentTemperatureC,
+    required this.windSpeedKmH,
+    required this.weatherCode,
+    required this.isDay,
+    required this.description,
+    required this.timezone,
+    required this.timezoneAbbreviation,
+    required this.utcOffsetSeconds,
+    required this.weatherTime,
+    required this.fetchedAt,
+  });
+
+  Map<String, Object?> toJson() {
+    return {
+      'latitude': latitude,
+      'longitude': longitude,
+      'temperatureC': temperatureC,
+      'apparentTemperatureC': apparentTemperatureC,
+      'windSpeedKmH': windSpeedKmH,
+      'weatherCode': weatherCode,
+      'isDay': isDay,
+      'description': description,
+      'timezone': timezone,
+      'timezoneAbbreviation': timezoneAbbreviation,
+      'utcOffsetSeconds': utcOffsetSeconds,
+      'weatherTime': weatherTime.toIso8601String(),
+      'fetchedAt': fetchedAt.toIso8601String(),
+    };
+  }
+
+  factory LocationWeatherSnapshot.fromJson(Map<String, dynamic> map) {
+    return LocationWeatherSnapshot(
+      latitude: (map['latitude'] as num).toDouble(),
+      longitude: (map['longitude'] as num).toDouble(),
+      temperatureC: (map['temperatureC'] as num).toDouble(),
+      apparentTemperatureC: (map['apparentTemperatureC'] as num).toDouble(),
+      windSpeedKmH: (map['windSpeedKmH'] as num).toDouble(),
+      weatherCode: (map['weatherCode'] as num).toInt(),
+      isDay: map['isDay'] == true,
+      description: (map['description'] as String?) ?? '—',
+      timezone: (map['timezone'] as String?) ?? '—',
+      timezoneAbbreviation: (map['timezoneAbbreviation'] as String?) ?? '—',
+      utcOffsetSeconds: (map['utcOffsetSeconds'] as num?)?.toInt() ?? 0,
+      weatherTime: DateTime.tryParse((map['weatherTime'] as String?) ?? '') ?? DateTime.now(),
+      fetchedAt: DateTime.tryParse((map['fetchedAt'] as String?) ?? '') ?? DateTime.now(),
+    );
+  }
+}
+
+class LocationWeatherStore {
+  static const _cachedSnapshotKey = 'cached_location_weather_snapshot';
+
+  Future<void> saveCachedSnapshot(LocationWeatherSnapshot snapshot) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_cachedSnapshotKey, jsonEncode(snapshot.toJson()));
+  }
+
+  Future<LocationWeatherSnapshot?> loadCachedSnapshot() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_cachedSnapshotKey);
+    if (raw == null || raw.trim().isEmpty) return null;
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map<String, dynamic>) return null;
+      return LocationWeatherSnapshot.fromJson(decoded);
+    } catch (_) {
+      return null;
+    }
+  }
+}
+
+class DeviceLocationWeatherException implements Exception {
+  final String message;
+
+  const DeviceLocationWeatherException(this.message);
+
+  @override
+  String toString() => message;
+}
+
+class DeviceLocationWeatherService {
+  DeviceLocationWeatherService._();
+
+  static final http.Client _client = http.Client();
+
+  static Future<LocationWeatherSnapshot> fetchSnapshot() async {
+    final position = await _resolvePosition();
+
+    final uri = Uri.parse(
+      'https://api.open-meteo.com/v1/forecast'
+      '?latitude=${position.latitude}'
+      '&longitude=${position.longitude}'
+      '&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,is_day'
+      '&timezone=auto',
+    );
+
+    final response = await _client.get(
+      uri,
+      headers: const {
+        'Accept': 'application/json',
+        'User-Agent': 'profit-tracker-app/1.0',
+      },
+    ).timeout(const Duration(seconds: 15));
+
+    if (response.statusCode != 200) {
+      throw DeviceLocationWeatherException(
+        'تعذّر تحميل الطقس الحالي من الإنترنت (رمز الاستجابة: ${response.statusCode}).',
+      );
+    }
+
+    final decoded = jsonDecode(response.body);
+    if (decoded is! Map<String, dynamic>) {
+      throw const DeviceLocationWeatherException('تم استلام بيانات طقس غير صالحة.');
+    }
+
+    final current = decoded['current'];
+    if (current is! Map<String, dynamic>) {
+      throw const DeviceLocationWeatherException('الخدمة لم ترجع بيانات الطقس الحالية.');
+    }
+
+    final temperature = current['temperature_2m'];
+    final apparent = current['apparent_temperature'];
+    final windSpeed = current['wind_speed_10m'];
+    final weatherCode = current['weather_code'];
+    if (temperature is! num || apparent is! num || windSpeed is! num || weatherCode is! num) {
+      throw const DeviceLocationWeatherException('بيانات الطقس الحالية ناقصة أو غير مكتملة.');
+    }
+
+    final isDayValue = current['is_day'];
+    final isDay = isDayValue is num ? isDayValue.toInt() == 1 : true;
+    final weatherTime = DateTime.tryParse((current['time'] as String?) ?? '') ?? DateTime.now();
+    final timezone = (decoded['timezone'] as String?) ?? '—';
+    final timezoneAbbreviation = (decoded['timezone_abbreviation'] as String?) ?? timezone;
+    final utcOffsetSeconds = (decoded['utc_offset_seconds'] as num?)?.toInt() ?? 0;
+    final code = weatherCode.toInt();
+
+    return LocationWeatherSnapshot(
+      latitude: position.latitude,
+      longitude: position.longitude,
+      temperatureC: temperature.toDouble(),
+      apparentTemperatureC: apparent.toDouble(),
+      windSpeedKmH: windSpeed.toDouble(),
+      weatherCode: code,
+      isDay: isDay,
+      description: _weatherCodeDescription(code, isDay: isDay),
+      timezone: timezone,
+      timezoneAbbreviation: timezoneAbbreviation,
+      utcOffsetSeconds: utcOffsetSeconds,
+      weatherTime: weatherTime,
+      fetchedAt: DateTime.now(),
+    );
+  }
+
+  static Future<geo.Position> _resolvePosition() async {
+    final serviceEnabled = await geo.Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      throw const DeviceLocationWeatherException(
+        'خدمة الموقع متوقفة في الجهاز. فعّل خدمة الموقع ثم أعد التحديث.',
+      );
+    }
+
+    var permission = await geo.Geolocator.checkPermission();
+    if (permission == geo.LocationPermission.denied) {
+      permission = await geo.Geolocator.requestPermission();
+    }
+
+    if (permission == geo.LocationPermission.denied) {
+      throw const DeviceLocationWeatherException(
+        'تم رفض إذن الموقع. اسمح للتطبيق باستخدام الموقع لعرض التاريخ والساعة والطقس حسب موقع الجهاز.',
+      );
+    }
+
+    if (permission == geo.LocationPermission.deniedForever) {
+      throw const DeviceLocationWeatherException(
+        'إذن الموقع مرفوض نهائيًا. افتح إعدادات التطبيق واسمح بإذن الموقع ثم أعد المحاولة.',
+      );
+    }
+
+    try {
+      return await geo.Geolocator.getCurrentPosition(
+        locationSettings: const geo.LocationSettings(
+          accuracy: geo.LocationAccuracy.medium,
+        ),
+      ).timeout(const Duration(seconds: 15));
+    } on TimeoutException {
+      throw const DeviceLocationWeatherException(
+        'انتهت مهلة تحديد موقع الجهاز. تأكد من توفر الإنترنت أو GPS ثم حاول مرة أخرى.',
+      );
+    } catch (_) {
+      throw const DeviceLocationWeatherException(
+        'تعذّر تحديد موقع الجهاز حاليًا. حاول مرة أخرى بعد لحظات.',
+      );
+    }
+  }
+
+  static String _weatherCodeDescription(int code, {required bool isDay}) {
+    switch (code) {
+      case 0:
+        return isDay ? 'سماء صافية' : 'سماء صافية ليلًا';
+      case 1:
+        return isDay ? 'صحو غالبًا' : 'سماء شبه صافية';
+      case 2:
+        return 'غائم جزئيًا';
+      case 3:
+        return 'غائم';
+      case 45:
+      case 48:
+        return 'ضباب';
+      case 51:
+      case 53:
+      case 55:
+        return 'رذاذ';
+      case 56:
+      case 57:
+        return 'رذاذ متجمد';
+      case 61:
+      case 63:
+      case 65:
+        return 'أمطار';
+      case 66:
+      case 67:
+        return 'أمطار متجمدة';
+      case 71:
+      case 73:
+      case 75:
+        return 'ثلوج';
+      case 77:
+        return 'حبوب ثلج';
+      case 80:
+      case 81:
+      case 82:
+        return 'زخات مطر';
+      case 85:
+      case 86:
+        return 'زخات ثلج';
+      case 95:
+        return 'عاصفة رعدية';
+      case 96:
+      case 99:
+        return 'عاصفة رعدية مع برد';
+      default:
+        return 'حالة طقس غير معروفة';
+    }
+  }
+}
+
+
 class AppStartupGate extends StatefulWidget {
   const AppStartupGate({super.key});
 
@@ -591,7 +1295,10 @@ class AppStartupGate extends StatefulWidget {
 class _AppStartupGateState extends State<AppStartupGate> {
   final ProfileStore _profileStore = ProfileStore();
   bool _loading = true;
+  bool _firebaseAvailable = false;
+  String? _firebaseError;
   String? _userEmail;
+  String? _prefillEmail;
   String? _startupMessage;
 
   @override
@@ -602,53 +1309,101 @@ class _AppStartupGateState extends State<AppStartupGate> {
 
   Future<void> _initialize() async {
     final profile = await _profileStore.load();
+    await AuthService.instance.init();
+
+    final signedInEmail = AuthService.instance.currentUserEmail?.trim().toLowerCase();
     String? message;
 
-    if (profile != null) {
-      final restored = await BackupService.instance.restoreIfDatabaseEmpty(profile.email);
-      if (restored) {
+    if (signedInEmail != null && signedInEmail.isNotEmpty) {
+      final restoredLocal = await BackupService.instance.restoreIfDatabaseEmpty(signedInEmail);
+      if (restoredLocal) {
         message = 'تمت استعادة النسخة الاحتياطية المحلية تلقائيًا.';
+      } else {
+        final restoredCloud = await CloudBackupService.instance.restoreIfDatabaseEmpty(signedInEmail);
+        if (restoredCloud) {
+          final entries = await DatabaseHelper.instance.getAllEntries();
+          await BackupService.instance.writeBackup(email: signedInEmail, entries: entries);
+          message = 'تمت استعادة النسخة السحابية تلقائيًا.';
+        }
       }
+      await _profileStore.saveEmail(signedInEmail);
     }
 
     if (!mounted) return;
     setState(() {
-      _userEmail = profile?.email;
+      _firebaseAvailable = AuthService.instance.isAvailable;
+      _firebaseError = AuthService.instance.lastError;
+      _userEmail = signedInEmail;
+      _prefillEmail = profile?.email ?? signedInEmail;
       _startupMessage = message;
       _loading = false;
     });
   }
 
-  Future<void> _completeSetup(String email) async {
-    final normalized = email.trim().toLowerCase();
-    await _profileStore.saveEmail(normalized);
-    final restored = await BackupService.instance.restoreIfDatabaseEmpty(normalized);
-    final entries = await DatabaseHelper.instance.getAllEntries();
-    await BackupService.instance.writeBackup(email: normalized, entries: entries);
+  Future<AuthResult> _authenticate({
+    required String email,
+    required String password,
+    required bool register,
+  }) async {
+    final result = register
+        ? await AuthService.instance.register(email: email, password: password)
+        : await AuthService.instance.signIn(email: email, password: password);
 
-    if (!mounted) return;
+    if (!result.success) return result;
+
+    final normalized = (result.email ?? email).trim().toLowerCase();
+    await _profileStore.saveEmail(normalized);
+
+    String message;
+    final currentCount = await DatabaseHelper.instance.countEntries();
+    if (currentCount == 0) {
+      final restoredLocal = await BackupService.instance.restoreIfDatabaseEmpty(normalized);
+      var restoredCloud = false;
+      if (!restoredLocal) {
+        restoredCloud = await CloudBackupService.instance.restoreIfDatabaseEmpty(normalized);
+      }
+      final entriesAfterRestore = await DatabaseHelper.instance.getAllEntries();
+      await BackupService.instance.writeBackup(email: normalized, entries: entriesAfterRestore);
+      final cloudSaved = await CloudBackupService.instance.writeBackup(
+        email: normalized,
+        entries: entriesAfterRestore,
+      );
+      if (restoredCloud) {
+        message = 'تم تسجيل الدخول واستعادة البيانات السحابية تلقائيًا.';
+      } else if (restoredLocal) {
+        message = 'تم تسجيل الدخول واستعادة النسخة المحلية تلقائيًا.';
+      } else if (cloudSaved) {
+        message = result.isNewAccount
+            ? 'تم إنشاء الحساب وتجهيز النسخة المحلية والسحابية.'
+            : 'تم تسجيل الدخول وتجهيز النسخة المحلية والسحابية.';
+      } else {
+        message = result.isNewAccount
+            ? 'تم إنشاء الحساب وتجهيز النسخة المحلية. أكمل إعداد Firestore للمزامنة السحابية.'
+            : 'تم تسجيل الدخول وتجهيز النسخة المحلية. أكمل إعداد Firestore للمزامنة السحابية.';
+      }
+    } else {
+      final entries = await DatabaseHelper.instance.getAllEntries();
+      await BackupService.instance.writeBackup(email: normalized, entries: entries);
+      final cloudSaved = await CloudBackupService.instance.writeBackup(
+        email: normalized,
+        entries: entries,
+      );
+      message = cloudSaved
+          ? 'تم تسجيل الدخول ومزامنة البيانات المحلية إلى السحابة.'
+          : 'تم تسجيل الدخول. البيانات المحلية محفوظة، لكن المزامنة السحابية تحتاج إكمال إعداد Firestore.';
+    }
+
+    if (!mounted) return result;
     setState(() {
       _userEmail = normalized;
-      _startupMessage = restored
-          ? 'تم حفظ البريد الشخصي واستعادة النسخة الاحتياطية المحلية.'
-          : 'تم حفظ البريد الشخصي وتجهيز النسخة المحلية على الجهاز.';
+      _prefillEmail = normalized;
+      _startupMessage = message;
     });
+    return result;
   }
 
-  Future<void> _updateEmail(String newEmail) async {
-    final normalized = newEmail.trim().toLowerCase();
-    await _profileStore.saveEmail(normalized);
-    final entries = await DatabaseHelper.instance.getAllEntries();
-    await BackupService.instance.writeBackup(email: normalized, entries: entries);
-
-    if (!mounted) return;
-    setState(() {
-      _userEmail = normalized;
-      _startupMessage = 'تم تحديث البريد الشخصي وربط النسخة الاحتياطية به.';
-    });
-  }
-
-  Future<void> _resetProfile() async {
+  Future<void> _signOut() async {
+    await AuthService.instance.signOut();
     await _profileStore.clear();
     if (!mounted) return;
     setState(() {
@@ -659,19 +1414,23 @@ class _AppStartupGateState extends State<AppStartupGate> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return const SplashLoadingScreen();
+    if (_loading) return const SplashLoadingScreen();
+
+    if (!_firebaseAvailable) {
+      return FirebaseSetupRequiredScreen(errorMessage: _firebaseError);
     }
 
     if (_userEmail == null || _userEmail!.isEmpty) {
-      return EmailSetupGate(onContinue: _completeSetup);
+      return BackupAuthGate(
+        initialEmail: _prefillEmail,
+        onAuthenticate: _authenticate,
+      );
     }
 
     return ProfitHomePage(
       userEmail: _userEmail!,
       startupMessage: _startupMessage,
-      onEmailUpdated: _updateEmail,
-      onResetProfile: _resetProfile,
+      onSignOut: _signOut,
     );
   }
 }
@@ -694,7 +1453,7 @@ class SplashLoadingScreen extends StatelessWidget {
             ),
             const SizedBox(height: 18),
             const Text(
-              'جارٍ تجهيز برنامج تتبع الأرباح',
+              'جارٍ تجهيز Maen Accountings',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
@@ -710,26 +1469,105 @@ class SplashLoadingScreen extends StatelessWidget {
   }
 }
 
-class EmailSetupGate extends StatefulWidget {
-  final Future<void> Function(String email) onContinue;
+class FirebaseSetupRequiredScreen extends StatelessWidget {
+  final String? errorMessage;
 
-  const EmailSetupGate({
+  const FirebaseSetupRequiredScreen({super.key, this.errorMessage});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(22),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.cloud_off_outlined, size: 42),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'يلزم إكمال إعداد Firebase أولًا',
+                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'هذه النسخة مجهزة لتسجيل الدخول بالإيميل وكلمة المرور، والمزامنة السحابية التلقائية بين الأجهزة عبر Firebase Authentication وCloud Firestore.',
+                      style: TextStyle(height: 1.6),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Text(
+                        errorMessage ?? 'نفّذ flutterfire configure ثم فعّل Email/Password في Authentication وأنشئ Cloud Firestore.',
+                        style: const TextStyle(height: 1.6),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    const Text(
+                      'بعد إكمال الإعداد، سيعمل البرنامج على حفظ البيانات محليًا داخل الجهاز ومزامنتها تلقائيًا على السحابة، وعند تسجيل الدخول من جهاز آخر ستعود البيانات تلقائيًا.',
+                      style: TextStyle(height: 1.6),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class BackupAuthGate extends StatefulWidget {
+  final String? initialEmail;
+  final Future<AuthResult> Function({
+    required String email,
+    required String password,
+    required bool register,
+  }) onAuthenticate;
+
+  const BackupAuthGate({
     super.key,
-    required this.onContinue,
+    required this.onAuthenticate,
+    this.initialEmail,
   });
 
   @override
-  State<EmailSetupGate> createState() => _EmailSetupGateState();
+  State<BackupAuthGate> createState() => _BackupAuthGateState();
 }
 
-class _EmailSetupGateState extends State<EmailSetupGate> {
+class _BackupAuthGateState extends State<BackupAuthGate> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  final TextEditingController _emailController = TextEditingController();
+  late final TextEditingController _emailController;
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
   bool _saving = false;
+  bool _registerMode = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController = TextEditingController(text: widget.initialEmail ?? '');
+  }
 
   @override
   void dispose() {
     _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -741,19 +1579,18 @@ class _EmailSetupGateState extends State<EmailSetupGate> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
-    await widget.onContinue(_emailController.text.trim());
+    final result = await widget.onAuthenticate(
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+      register: _registerMode,
+    );
     if (!mounted) return;
     setState(() => _saving = false);
-  }
-
-  Widget _featureItem(IconData icon, String text) {
-    return Row(
-      children: [
-        Icon(icon, size: 18),
-        const SizedBox(width: 8),
-        Expanded(child: Text(text, style: const TextStyle(height: 1.4))),
-      ],
-    );
+    if (!result.success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(result.message)),
+      );
+    }
   }
 
   @override
@@ -775,10 +1612,10 @@ class _EmailSetupGateState extends State<EmailSetupGate> {
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 620),
+              constraints: const BoxConstraints(maxWidth: 560),
               child: Card(
                 child: Padding(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.all(22),
                   child: Form(
                     key: _formKey,
                     child: Column(
@@ -788,53 +1625,95 @@ class _EmailSetupGateState extends State<EmailSetupGate> {
                         CircleAvatar(
                           radius: 28,
                           backgroundColor: scheme.primary.withValues(alpha: 0.12),
-                          child: Icon(Icons.mail_lock_outlined, size: 30, color: scheme.primary),
+                          child: Icon(Icons.cloud_done_outlined, size: 30, color: scheme.primary),
                         ),
                         const SizedBox(height: 16),
-                        const Text(
-                          'أدخل بريدك الشخصي قبل فتح البرنامج',
-                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                        Text(
+                          _registerMode ? 'إنشاء حساب ومزامنة تلقائية' : 'تسجيل الدخول قبل فتح البرنامج',
+                          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 10),
                         const Text(
-                          'سيتم ربط البيانات بهذا البريد الشخصي، وحفظ كل السجلات داخل الجهاز في قاعدة محلية وملف احتياطي جاهز للمشاركة إلى بريدك الإلكتروني.',
+                          'سجّل دخولك ليتم حفظ بياناتك داخل الجهاز ومزامنتها تلقائيًا على السحابة. عند فتح التطبيق في جهاز آخر وتسجيل الدخول بنفس الحساب ستعود بياناتك تلقائيًا.',
                           style: TextStyle(height: 1.6),
                         ),
-                        const SizedBox(height: 16),
-                        Wrap(
-                          runSpacing: 10,
-                          spacing: 12,
-                          children: [
-                            SizedBox(
-                              width: 260,
-                              child: _featureItem(Icons.phone_android, 'جميع البيانات محفوظة داخل الجهاز محليًا'),
+                        const SizedBox(height: 18),
+                        SegmentedButton<bool>(
+                          segments: const [
+                            ButtonSegment<bool>(
+                              value: false,
+                              icon: Icon(Icons.login),
+                              label: Text('تسجيل الدخول'),
                             ),
-                            SizedBox(
-                              width: 260,
-                              child: _featureItem(Icons.backup_outlined, 'إنشاء نسخة احتياطية JSON بعد كل تعديل'),
-                            ),
-                            SizedBox(
-                              width: 260,
-                              child: _featureItem(Icons.email_outlined, 'مشاركة ملف النسخة إلى بريدك الشخصي من داخل التطبيق'),
+                            ButtonSegment<bool>(
+                              value: true,
+                              icon: Icon(Icons.person_add_alt_1),
+                              label: Text('إنشاء حساب'),
                             ),
                           ],
+                          selected: {_registerMode},
+                          onSelectionChanged: (value) {
+                            setState(() {
+                              _registerMode = value.first;
+                            });
+                          },
                         ),
-                        const SizedBox(height: 18),
+                        const SizedBox(height: 16),
                         TextFormField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
                           decoration: const InputDecoration(
-                            labelText: 'البريد الشخصي',
+                            labelText: 'الإيميل',
                             prefixIcon: Icon(Icons.email_outlined),
                           ),
                           validator: (value) {
                             final text = value?.trim() ?? '';
-                            if (text.isEmpty) return 'أدخل البريد الشخصي أولًا';
-                            if (!_isValidEmail(text)) return 'أدخل بريدًا صحيحًا';
+                            if (text.isEmpty) return 'أدخل الإيميل أولًا';
+                            if (!_isValidEmail(text)) return 'أدخل إيميل صحيح';
                             return null;
                           },
                         ),
-                        const SizedBox(height: 18),
+                        const SizedBox(height: 12),
+                        TextFormField(
+                          controller: _passwordController,
+                          obscureText: _obscurePassword,
+                          decoration: InputDecoration(
+                            labelText: 'كلمة المرور',
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            suffixIcon: IconButton(
+                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                              icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
+                            ),
+                          ),
+                          validator: (value) {
+                            final text = value ?? '';
+                            if (text.isEmpty) return 'أدخل كلمة المرور';
+                            if (text.length < 6) return 'كلمة المرور يجب أن تكون 6 أحرف على الأقل';
+                            return null;
+                          },
+                        ),
+                        if (_registerMode) ...[
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            controller: _confirmPasswordController,
+                            obscureText: _obscureConfirmPassword,
+                            decoration: InputDecoration(
+                              labelText: 'تأكيد كلمة المرور',
+                              prefixIcon: const Icon(Icons.verified_user_outlined),
+                              suffixIcon: IconButton(
+                                onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                                icon: Icon(_obscureConfirmPassword ? Icons.visibility : Icons.visibility_off),
+                              ),
+                            ),
+                            validator: (value) {
+                              if (!_registerMode) return null;
+                              if ((value ?? '').isEmpty) return 'أكد كلمة المرور';
+                              if (value != _passwordController.text) return 'كلمتا المرور غير متطابقتين';
+                              return null;
+                            },
+                          ),
+                        ],
+                        const SizedBox(height: 16),
                         SizedBox(
                           width: double.infinity,
                           child: FilledButton.icon(
@@ -845,8 +1724,8 @@ class _EmailSetupGateState extends State<EmailSetupGate> {
                                     height: 18,
                                     child: CircularProgressIndicator(strokeWidth: 2),
                                   )
-                                : const Icon(Icons.arrow_forward),
-                            label: const Text('حفظ البريد وفتح البرنامج'),
+                                : Icon(_registerMode ? Icons.person_add_alt_1 : Icons.lock_open),
+                            label: Text(_registerMode ? 'إنشاء الحساب وفتح البرنامج' : 'تسجيل الدخول وفتح البرنامج'),
                           ),
                         ),
                       ],
@@ -865,15 +1744,13 @@ class _EmailSetupGateState extends State<EmailSetupGate> {
 class ProfitHomePage extends StatefulWidget {
   final String userEmail;
   final String? startupMessage;
-  final Future<void> Function(String newEmail) onEmailUpdated;
-  final Future<void> Function() onResetProfile;
+  final Future<void> Function() onSignOut;
 
   const ProfitHomePage({
     super.key,
     required this.userEmail,
     required this.startupMessage,
-    required this.onEmailUpdated,
-    required this.onResetProfile,
+    required this.onSignOut,
   });
 
   @override
@@ -892,6 +1769,7 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
   bool _loading = true;
   bool _saving = false;
   bool _sharingBackup = false;
+  bool _cloudSyncing = false;
   bool _marketLoading = true;
   bool _marketRefreshing = false;
   int _selectedIndex = 0;
@@ -899,10 +1777,19 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
   DateTime _reportDate = DateTime.now();
   ProfitEntry? _editingEntry;
   Timer? _marketTimer;
+  Timer? _clockTimer;
   String _userEmail = '';
   String? _marketError;
+  String? _locationWeatherError;
   MarketSnapshot? _marketSnapshot;
+  LocationWeatherSnapshot? _locationWeatherSnapshot;
   BackupSnapshotInfo _backupInfo = const BackupSnapshotInfo(exists: false);
+  CloudBackupSnapshotInfo _cloudBackupInfo = const CloudBackupSnapshotInfo(exists: false);
+  final MarketSettingsStore _marketSettingsStore = MarketSettingsStore();
+  final LocationWeatherStore _locationWeatherStore = LocationWeatherStore();
+  ManualMarketSettings _manualMarketSettings = const ManualMarketSettings();
+  bool _locationWeatherLoading = true;
+  bool _locationWeatherRefreshing = false;
 
   @override
   void initState() {
@@ -910,10 +1797,19 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
     _userEmail = widget.userEmail;
     _searchController.addListener(_handleSearchChanged);
     _loadEntries(showStartupMessage: true);
-    unawaited(_refreshMarketData(initialLoad: true));
+    unawaited(_prepareMarket());
+    unawaited(_prepareLocationWeather());
+    _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) {
+        setState(() {});
+      }
+    });
     _marketTimer = Timer.periodic(
       const Duration(minutes: 5),
-      (_) => unawaited(_refreshMarketData()),
+      (_) {
+        unawaited(_refreshMarketData());
+        unawaited(_refreshLocationWeather());
+      },
     );
   }
 
@@ -924,6 +1820,7 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
     _expensesController.dispose();
     _notesController.dispose();
     _marketTimer?.cancel();
+    _clockTimer?.cancel();
     _searchController
       ..removeListener(_handleSearchChanged)
       ..dispose();
@@ -934,6 +1831,19 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
     if (mounted) setState(() {});
   }
 
+  Future<void> _prepareMarket() async {
+    final manual = await _marketSettingsStore.loadManual();
+    final cached = await _marketSettingsStore.loadCachedSnapshot();
+    if (!mounted) return;
+    setState(() {
+      _manualMarketSettings = manual;
+      if (cached != null) {
+        _marketSnapshot = cached;
+        _marketLoading = false;
+      }
+    });
+    await _refreshMarketData(initialLoad: cached == null);
+  }
 
   Future<void> _refreshMarketData({bool initialLoad = false}) async {
     if (_marketRefreshing) return;
@@ -941,7 +1851,7 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
     if (mounted) {
       setState(() {
         _marketRefreshing = true;
-        if (initialLoad) {
+        if (initialLoad && _marketSnapshot == null) {
           _marketLoading = true;
         }
       });
@@ -949,6 +1859,7 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
 
     try {
       final snapshot = await MarketService.fetchSnapshot();
+      await _marketSettingsStore.saveCachedSnapshot(snapshot);
       if (!mounted) return;
       setState(() {
         _marketSnapshot = snapshot;
@@ -957,9 +1868,18 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
         _marketRefreshing = false;
       });
     } catch (e) {
+      final cached = await _marketSettingsStore.loadCachedSnapshot();
       if (!mounted) return;
       setState(() {
-        _marketError = 'تعذّر جلب مؤشرات السوق عبر الإنترنت.';
+        if (cached != null) {
+          _marketSnapshot = cached;
+          _marketError = 'تعذّر التحديث عبر الإنترنت، ويجري الآن عرض آخر بيانات ناجحة محفوظة.';
+        } else if (_manualMarketSettings.isComplete) {
+          _marketSnapshot = _manualMarketSettings.toSnapshot();
+          _marketError = 'تعذّر التحديث عبر الإنترنت، ويجري الآن عرض القيم اليدوية المحفوظة.';
+        } else {
+          _marketError = 'تعذّر جلب مؤشرات السوق عبر الإنترنت. يمكنك إدخال قيم يدوية من الإعدادات.';
+        }
         _marketLoading = false;
         _marketRefreshing = false;
       });
@@ -967,15 +1887,292 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
   }
 
 
+  Future<void> _prepareLocationWeather() async {
+    final cached = await _locationWeatherStore.loadCachedSnapshot();
+    if (!mounted) return;
+    setState(() {
+      if (cached != null) {
+        _locationWeatherSnapshot = cached;
+        _locationWeatherLoading = false;
+      }
+    });
+    await _refreshLocationWeather(initialLoad: cached == null);
+  }
+
+  Future<void> _refreshLocationWeather({bool initialLoad = false}) async {
+    if (_locationWeatherRefreshing) return;
+
+    if (mounted) {
+      setState(() {
+        _locationWeatherRefreshing = true;
+        if (initialLoad && _locationWeatherSnapshot == null) {
+          _locationWeatherLoading = true;
+        }
+      });
+    }
+
+    try {
+      final snapshot = await DeviceLocationWeatherService.fetchSnapshot();
+      await _locationWeatherStore.saveCachedSnapshot(snapshot);
+      if (!mounted) return;
+      setState(() {
+        _locationWeatherSnapshot = snapshot;
+        _locationWeatherError = null;
+        _locationWeatherLoading = false;
+        _locationWeatherRefreshing = false;
+      });
+    } catch (e) {
+      final cached = await _locationWeatherStore.loadCachedSnapshot();
+      if (!mounted) return;
+      setState(() {
+        if (cached != null) {
+          _locationWeatherSnapshot = cached;
+          _locationWeatherError =
+              'تعذّر تحديث التاريخ والطقس من الموقع الآن، ويجري عرض آخر بيانات ناجحة محفوظة.';
+        } else {
+          _locationWeatherError = e.toString();
+        }
+        _locationWeatherLoading = false;
+        _locationWeatherRefreshing = false;
+      });
+    }
+  }
+
+  DateTime get _locationAwareNow {
+    final snapshot = _locationWeatherSnapshot;
+    if (snapshot == null) return DateTime.now();
+    return DateTime.now().toUtc().add(Duration(seconds: snapshot.utcOffsetSeconds));
+  }
+
+  String _timeText(DateTime value) {
+    return DateFormat('HH:mm:ss', 'ar').format(value);
+  }
+
+  String _fullDateText(DateTime value) {
+    return DateFormat('EEEE، d MMMM yyyy', 'ar').format(value);
+  }
+
+  String _coordinatesText(LocationWeatherSnapshot snapshot) {
+    final lat = snapshot.latitude.toStringAsFixed(3);
+    final lon = snapshot.longitude.toStringAsFixed(3);
+    return '$lat°, $lon°';
+  }
+
+  IconData _weatherIcon(LocationWeatherSnapshot snapshot) {
+    final code = snapshot.weatherCode;
+    if (code == 0) {
+      return snapshot.isDay ? Icons.wb_sunny_rounded : Icons.nightlight_round;
+    }
+    if (code == 1 || code == 2) return Icons.cloud_queue;
+    if (code == 3) return Icons.cloud_outlined;
+    if (code == 45 || code == 48) return Icons.blur_on;
+    if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].contains(code)) {
+      return Icons.grain;
+    }
+    if ([71, 73, 75, 77, 85, 86].contains(code)) return Icons.ac_unit;
+    if ([95, 96, 99].contains(code)) return Icons.flash_on;
+    return Icons.cloud_queue;
+  }
+
+  Widget _buildLocationWeatherSection() {
+    if (_locationWeatherLoading) {
+      return const Card(
+        child: Padding(
+          padding: EdgeInsets.all(22),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2.5),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text('جارٍ تحديد موقع الجهاز وجلب التاريخ والساعة والطقس الحالي...'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final snapshot = _locationWeatherSnapshot;
+    if (snapshot == null) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'تعذّر عرض التاريخ والساعة والطقس حسب الموقع',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _locationWeatherError ?? 'تعذّر تحديد موقع الجهاز أو جلب الطقس الحالي.',
+                style: const TextStyle(height: 1.5, color: Colors.black54),
+              ),
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                onPressed: _refreshLocationWeather,
+                icon: const Icon(Icons.my_location),
+                label: const Text('إعادة المحاولة'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final now = _locationAwareNow;
+    final weatherColor = snapshot.isDay ? const Color(0xFF1F6FEB) : const Color(0xFF6E56CF);
+
+    return Column(
+      children: [
+        if (_locationWeatherError != null) ...[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.orange.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Text(
+              _locationWeatherError!,
+              style: const TextStyle(height: 1.5, color: Colors.black87),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    CircleAvatar(
+                      radius: 26,
+                      backgroundColor: weatherColor.withValues(alpha: 0.12),
+                      child: Icon(_weatherIcon(snapshot), color: weatherColor),
+                    ),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(minWidth: 220, maxWidth: 560),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'التاريخ والساعة والطقس حسب موقع الجهاز',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'المنطقة الزمنية: ${snapshot.timezoneAbbreviation} • الإحداثيات: ${_coordinatesText(snapshot)}',
+                            style: const TextStyle(color: Colors.black54, height: 1.5),
+                          ),
+                        ],
+                      ),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: _locationWeatherRefreshing ? null : _refreshLocationWeather,
+                      icon: _locationWeatherRefreshing
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.my_location),
+                      label: Text(_locationWeatherRefreshing ? 'جارٍ التحديث' : 'تحديث الموقع والطقس'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  _timeText(now),
+                  style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  _fullDateText(now),
+                  style: const TextStyle(fontSize: 15, color: Colors.black54, height: 1.5),
+                ),
+                const SizedBox(height: 14),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: weatherColor.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(_weatherIcon(snapshot), color: weatherColor),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          snapshot.description,
+                          style: TextStyle(
+                            color: weatherColor,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'آخر وقت طقس من الخدمة: ${_dateTimeText(snapshot.weatherTime)}',
+                  style: const TextStyle(fontSize: 12.5, color: Colors.black54),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        _statsWrap([
+          _statCard(
+            title: 'الحرارة الحالية',
+            value: '${snapshot.temperatureC.toStringAsFixed(1)}°',
+            icon: Icons.thermostat_outlined,
+            color: Colors.deepOrange,
+            footer: 'حسب موقع الجهاز',
+          ),
+          _statCard(
+            title: 'المحسوسة',
+            value: '${snapshot.apparentTemperatureC.toStringAsFixed(1)}°',
+            icon: Icons.device_thermostat,
+            color: Colors.orange,
+            footer: 'الحالة: ${snapshot.description}',
+          ),
+          _statCard(
+            title: 'سرعة الرياح',
+            value: '${snapshot.windSpeedKmH.toStringAsFixed(1)} كم/س',
+            icon: Icons.air,
+            color: Colors.blue,
+            footer: 'آخر جلب: ${_compactDateTimeText(snapshot.fetchedAt)}',
+          ),
+        ]),
+      ],
+    );
+  }
+
   Future<void> _loadEntries({bool showStartupMessage = false}) async {
     setState(() => _loading = true);
     try {
       final data = await DatabaseHelper.instance.getAllEntries();
       final backupInfo = await BackupService.instance.readInfo(_userEmail);
+      final cloudInfo = await CloudBackupService.instance.readInfo(_userEmail);
       if (!mounted) return;
       setState(() {
         _entries = data;
         _backupInfo = backupInfo;
+        _cloudBackupInfo = cloudInfo;
         _loading = false;
       });
       if (showStartupMessage && widget.startupMessage != null) {
@@ -996,28 +2193,42 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
   }
 
   Future<void> _writeBackup({bool showMessage = false}) async {
+    if (_cloudSyncing) return;
     try {
+      setState(() => _cloudSyncing = true);
       final data = await DatabaseHelper.instance.getAllEntries();
-      final saved = await BackupService.instance.writeBackup(
+      final localSaved = await BackupService.instance.writeBackup(
+        email: _userEmail,
+        entries: data,
+      );
+      final cloudSaved = await CloudBackupService.instance.writeBackup(
         email: _userEmail,
         entries: data,
       );
       final backupInfo = await BackupService.instance.readInfo(_userEmail);
+      final cloudInfo = await CloudBackupService.instance.readInfo(_userEmail);
       if (!mounted) return;
       setState(() {
         _backupInfo = backupInfo;
+        _cloudBackupInfo = cloudInfo;
+        _cloudSyncing = false;
       });
       if (showMessage) {
-        if (saved) {
-          _showMessage('تم تحديث النسخة الاحتياطية المحلية بنجاح.');
+        if (localSaved && cloudSaved) {
+          _showMessage('تم تحديث النسخة المحلية والسحابية بنجاح.');
+        } else if (localSaved) {
+          _showMessage(
+            'تم تحديث النسخة المحلية، لكن تعذّرت المزامنة السحابية${CloudBackupService.instance.lastError == null ? '' : ': ${CloudBackupService.instance.lastError}'}',
+          );
         } else {
           _showMessage(
-            'تعذّر تحديث النسخة الاحتياطية المحلية${BackupService.instance.lastError == null ? '' : ': ${BackupService.instance.lastError}'}',
+            'تعذّر تحديث النسخة المحلية${BackupService.instance.lastError == null ? '' : ': ${BackupService.instance.lastError}'}',
           );
         }
       }
     } catch (e) {
       if (!mounted) return;
+      setState(() => _cloudSyncing = false);
       _showMessage('تعذّر إنشاء النسخة الاحتياطية: $e');
     }
   }
@@ -1029,6 +2240,7 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
       final data = await DatabaseHelper.instance.getAllEntries();
       final file = await BackupService.instance.exportFile(email: _userEmail, entries: data);
       final backupInfo = await BackupService.instance.readInfo(_userEmail);
+      final cloudInfo = await CloudBackupService.instance.readInfo(_userEmail);
       if (!mounted) return;
       setState(() {
         _backupInfo = backupInfo;
@@ -1040,7 +2252,7 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
 
       await Share.shareXFiles(
         [XFile(file.path)],
-        subject: 'نسخة احتياطية - برنامج تتبع الأرباح',
+        subject: 'نسخة احتياطية - Maen Accountings',
         text: 'هذه نسخة احتياطية مرتبطة بالبريد الشخصي: $_userEmail\n\nاختر تطبيق البريد الإلكتروني وأرسل الملف إلى بريدك الشخصي للاحتفاظ بنسخة خارج الجهاز.',
       );
     } catch (e) {
@@ -1051,71 +2263,53 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
     }
   }
 
-  Future<void> _changeEmail() async {
-    final controller = TextEditingController(text: _userEmail);
-    final formKey = GlobalKey<FormState>();
-
-    final newEmail = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('تغيير البريد الشخصي'),
-        content: Form(
-          key: formKey,
-          child: TextFormField(
-            controller: controller,
-            keyboardType: TextInputType.emailAddress,
-            decoration: const InputDecoration(
-              labelText: 'البريد الشخصي الجديد',
-              prefixIcon: Icon(Icons.alternate_email),
-            ),
-            validator: (value) {
-              final text = value?.trim() ?? '';
-              final emailRegExp = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
-              if (text.isEmpty) return 'أدخل البريد الجديد';
-              if (!emailRegExp.hasMatch(text)) return 'أدخل بريدًا صحيحًا';
-              return null;
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('إلغاء'),
-          ),
-          FilledButton(
-            onPressed: () {
-              if (!formKey.currentState!.validate()) return;
-              Navigator.pop(context, controller.text.trim());
-            },
-            child: const Text('حفظ'),
-          ),
-        ],
-      ),
+  Future<void> _editManualMarketSettings() async {
+    final goldController = TextEditingController(
+      text: _manualMarketSettings.gold?.toStringAsFixed(2) ?? '',
+    );
+    final silverController = TextEditingController(
+      text: _manualMarketSettings.silver?.toStringAsFixed(2) ?? '',
+    );
+    final eurUsdController = TextEditingController(
+      text: _manualMarketSettings.eurUsd?.toStringAsFixed(4) ?? '',
     );
 
-    controller.dispose();
-
-    if (newEmail == null) return;
-    final normalized = newEmail.trim().toLowerCase();
-    final currentEntries = await DatabaseHelper.instance.getAllEntries();
-    await widget.onEmailUpdated(normalized);
-    await BackupService.instance.writeBackup(email: normalized, entries: currentEntries);
-
-    if (!mounted) return;
-    setState(() {
-      _userEmail = normalized;
-    });
-    await _loadEntries();
-    _showMessage('تم تحديث البريد وربط النسخة الاحتياطية به.');
-  }
-
-  Future<void> _resetInitialSetup() async {
-    final approved = await showDialog<bool>(
+    final saved = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('إعادة الإعداد الأولي'),
-        content: const Text(
-          'سيتم حذف البريد الشخصي المحفوظ فقط، وستبقى بياناتك داخل الجهاز وملف النسخة الاحتياطية المحلي كما هي. هل تريد المتابعة؟',
+        title: const Text('إعداد قيم السوق اليدوية'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: goldController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                  labelText: 'الذهب (دولار / أونصة)',
+                  prefixIcon: Icon(Icons.workspace_premium_outlined),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: silverController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                  labelText: 'الفضة (دولار / أونصة)',
+                  prefixIcon: Icon(Icons.brightness_5_outlined),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: eurUsdController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                  labelText: 'اليورو مقابل الدولار',
+                  prefixIcon: Icon(Icons.currency_exchange),
+                ),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -1124,14 +2318,61 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('متابعة'),
+            child: const Text('حفظ'),
+          ),
+        ],
+      ),
+    );
+
+    if (saved != true) return;
+
+    double? parseManual(String value) {
+      final cleaned = value.trim();
+      if (cleaned.isEmpty) return null;
+      return double.tryParse(cleaned.replaceAll(',', '.'));
+    }
+
+    final manual = ManualMarketSettings(
+      gold: parseManual(goldController.text),
+      silver: parseManual(silverController.text),
+      eurUsd: parseManual(eurUsdController.text),
+    );
+
+    await _marketSettingsStore.saveManual(manual);
+    if (!mounted) return;
+    setState(() {
+      _manualMarketSettings = manual;
+      if ((_marketSnapshot == null || _marketError != null) && manual.isComplete) {
+        _marketSnapshot = manual.toSnapshot();
+      }
+    });
+    _showMessage('تم حفظ القيم اليدوية لمؤشرات السوق.');
+    unawaited(_refreshMarketData());
+  }
+
+  Future<void> _confirmSignOut() async {
+    final approved = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('تسجيل الخروج'),
+        content: const Text(
+          'سيبقى كل شيء محفوظًا داخل الجهاز، كما ستبقى آخر نسخة محلية وسحابية محفوظة. هل تريد تسجيل الخروج الآن؟',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('تسجيل الخروج'),
           ),
         ],
       ),
     );
 
     if (approved != true) return;
-    await widget.onResetProfile();
+    await widget.onSignOut();
   }
 
   void _showMessage(String message) {
@@ -1309,8 +2550,8 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
       _clearForm();
       _showMessage(
         wasEditing
-            ? 'تم تحديث السجل وتحديث النسخة المحلية.'
-            : 'تم حفظ السجل وتحديث النسخة المحلية.',
+            ? 'تم تحديث السجل وتحديث النسخة المحلية والسحابية.'
+            : 'تم حفظ السجل وتحديث النسخة المحلية والسحابية.',
       );
     } catch (e) {
       if (!mounted) return;
@@ -1354,7 +2595,7 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
       await _loadEntries();
       await _writeBackup();
       if (!mounted) return;
-      _showMessage('تم حذف السجل وتحديث النسخة المحلية.');
+      _showMessage('تم حذف السجل وتحديث النسخة المحلية والسحابية.');
     } catch (e) {
       if (!mounted) return;
       _showMessage('تعذّر حذف السجل: $e');
@@ -1460,9 +2701,11 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('المبيعات: ${_currency(entry.sales)}'),
-              Text('الربح قبل المصاريف: ${_currency(entry.grossProfit)}'),
+              Text('المشتريات (تكلفة البضاعة): ${_currency(entry.cost)}'),
+              Text('المصاريف التشغيلية: ${_currency(entry.expenses)}'),
+              Text('الربح قبل المصاريف التشغيلية: ${_currency(entry.grossProfit)}'),
               Text(
-                'صافي الربح: ${_currency(entry.netProfit)}',
+                'صافي الربح بعد المصاريف: ${_currency(entry.netProfit)}',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   color: entry.netProfit >= 0 ? Colors.green : Colors.red,
@@ -1730,13 +2973,18 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                     ),
                     _outlineActionButton(
                       icon: Icons.backup_outlined,
-                      label: 'نسخة احتياطية',
+                      label: 'مزامنة الآن',
                       onPressed: () => _writeBackup(showMessage: true),
                     ),
                     _outlineActionButton(
                       icon: Icons.forward_to_inbox_outlined,
                       label: 'إرسال إلى البريد',
                       onPressed: _sharingBackup ? null : _shareBackupToEmail,
+                    ),
+                    _outlineActionButton(
+                      icon: Icons.tune,
+                      label: 'قيم السوق اليدوية',
+                      onPressed: _editManualMarketSettings,
                     ),
                   ],
                 ),
@@ -1768,13 +3016,20 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
             footer: 'متوسط السجل: ${_currency(_averageNet(_currentYearEntries))}',
           ),
           _statCard(
-            title: 'إجمالي المصاريف',
+            title: 'إجمالي المصاريف التشغيلية',
             value: _currency(_expensesTotal(_entries)),
             icon: Icons.payments_outlined,
             color: Colors.orange,
             footer: 'إجمالي السجلات: ${_entries.length}',
           ),
         ]),
+        const SizedBox(height: 20),
+        _sectionHeader(
+          'التاريخ والساعة والطقس حسب موقع الجهاز',
+          subtitle: 'يعرض الوقت المحلي والطقس الحالي بالاعتماد على موقع الجهاز بعد منح إذن الموقع.',
+        ),
+        const SizedBox(height: 10),
+        _buildLocationWeatherSection(),
         const SizedBox(height: 20),
         _sectionHeader(
           'مؤشرات السوق المتصلة بالإنترنت',
@@ -1814,6 +3069,39 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
         ),
         const SizedBox(height: 12),
         Card(
+          color: Colors.blueGrey.withValues(alpha: 0.05),
+          child: const Padding(
+            padding: EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.info_outline),
+                    SizedBox(width: 8),
+                    Text(
+                      'توضيح طريقة الحساب',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 10),
+                Text('1) المبيعات اليومية: مجموع ما تم بيعه خلال اليوم.'),
+                SizedBox(height: 4),
+                Text('2) المشتريات / تكلفة البضاعة: تكلفة الأصناف التي تم بيعها.'),
+                SizedBox(height: 4),
+                Text('3) المصاريف التشغيلية: مثل النقل والإيجار والعمالة والمصاريف اليومية الأخرى.'),
+                SizedBox(height: 8),
+                Text(
+                  'المعادلة: صافي الربح = المبيعات - المشتريات - المصاريف التشغيلية',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Card(
           child: Padding(
             padding: const EdgeInsets.all(18),
             child: Form(
@@ -1832,7 +3120,7 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
                     decoration: const InputDecoration(
-                      labelText: 'مبلغ البيع اليومي',
+                      labelText: 'إجمالي المبيعات اليومية',
                       prefixIcon: Icon(Icons.sell_outlined),
                     ),
                     onChanged: (_) => setState(() {}),
@@ -1848,13 +3136,13 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
                     decoration: const InputDecoration(
-                      labelText: 'مبلغ الكوست اليومي',
+                      labelText: 'إجمالي المشتريات اليومية (تكلفة البضاعة)',
                       prefixIcon: Icon(Icons.inventory_2_outlined),
                     ),
                     onChanged: (_) => setState(() {}),
                     validator: (value) {
                       final number = _parseNumber(value ?? '');
-                      if (number < 0) return 'أدخل كوست صحيح';
+                      if (number < 0) return 'أدخل قيمة مشتريات صحيحة';
                       return null;
                     },
                   ),
@@ -1864,13 +3152,13 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
                     decoration: const InputDecoration(
-                      labelText: 'المصاريف اليومية',
+                      labelText: 'المصاريف التشغيلية اليومية',
                       prefixIcon: Icon(Icons.money_off_csred_outlined),
                     ),
                     onChanged: (_) => setState(() {}),
                     validator: (value) {
                       final number = _parseNumber(value ?? '');
-                      if (number < 0) return 'أدخل مصاريف صحيحة';
+                      if (number < 0) return 'أدخل مصاريف تشغيلية صحيحة';
                       return null;
                     },
                   ),
@@ -1888,7 +3176,7 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                   const SizedBox(height: 16),
                   _statsWrap([
                     _statCard(
-                      title: 'الربح قبل المصاريف',
+                      title: 'الربح قبل المصاريف التشغيلية',
                       value: _currency(_previewGross),
                       icon: Icons.trending_up,
                       color: Colors.blue,
@@ -1974,7 +3262,7 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
             value: _currency(_expensesTotal(monthlyEntries)),
             icon: Icons.money_off,
             color: Colors.orange,
-            footer: 'الربح قبل المصاريف: ${_currency(_grossTotal(monthlyEntries))}',
+            footer: 'الربح قبل المصاريف التشغيلية: ${_currency(_grossTotal(monthlyEntries))}',
           ),
           _statCard(
             title: 'صافي سنة ${_reportDate.year}',
@@ -2097,7 +3385,7 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 14),
-                _infoRow('البريد الشخصي', _userEmail),
+                _infoRow('الحساب الحالي', _userEmail),
                 _infoRow(
                   'النسخة المحلية',
                   _backupInfo.exists
@@ -2106,12 +3394,41 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                   valueColor: _backupInfo.exists ? Colors.green.shade700 : Colors.orange.shade900,
                 ),
                 _infoRow(
-                  'آخر تحديث',
+                  'آخر تحديث محلي',
                   _backupInfo.updatedAt == null ? '—' : _dateTimeText(_backupInfo.updatedAt!),
                 ),
                 _infoRow(
-                  'مسار الملف',
+                  'النسخة السحابية',
+                  _cloudBackupInfo.exists
+                      ? 'متوفرة (${_cloudBackupInfo.entriesCount} سجل)'
+                      : 'غير متوفرة بعد',
+                  valueColor: _cloudBackupInfo.exists ? Colors.green.shade700 : Colors.orange.shade900,
+                ),
+                _infoRow(
+                  'آخر تحديث سحابي',
+                  _cloudBackupInfo.updatedAt == null ? '—' : _dateTimeText(_cloudBackupInfo.updatedAt!),
+                ),
+                _infoRow(
+                  'مسار الملف المحلي',
                   _backupInfo.filePath ?? 'سيظهر بعد إنشاء أول نسخة احتياطية',
+                ),
+                _infoRow(
+                  'آخر تحديث للطقس',
+                  _locationWeatherSnapshot == null
+                      ? '—'
+                      : _dateTimeText(_locationWeatherSnapshot!.fetchedAt),
+                ),
+                _infoRow(
+                  'المنطقة الزمنية الحالية',
+                  _locationWeatherSnapshot == null
+                      ? '—'
+                      : '${_locationWeatherSnapshot!.timezone} (${_locationWeatherSnapshot!.timezoneAbbreviation})',
+                ),
+                _infoRow(
+                  'إحداثيات الموقع الحالي',
+                  _locationWeatherSnapshot == null
+                      ? '—'
+                      : _coordinatesText(_locationWeatherSnapshot!),
                 ),
                 const SizedBox(height: 10),
                 Wrap(
@@ -2119,9 +3436,15 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                   runSpacing: 10,
                   children: [
                     FilledButton.icon(
-                      onPressed: () => _writeBackup(showMessage: true),
-                      icon: const Icon(Icons.backup_outlined),
-                      label: const Text('نسخة احتياطية الآن'),
+                      onPressed: _cloudSyncing ? null : () => _writeBackup(showMessage: true),
+                      icon: _cloudSyncing
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.cloud_upload_outlined),
+                      label: const Text('مزامنة محلية وسحابية الآن'),
                     ),
                     OutlinedButton.icon(
                       onPressed: _sharingBackup ? null : _shareBackupToEmail,
@@ -2132,12 +3455,79 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.forward_to_inbox_outlined),
-                      label: const Text('مشاركة النسخة إلى البريد'),
+                      label: const Text('إرسال نسخة إلى البريد'),
                     ),
                     OutlinedButton.icon(
-                      onPressed: _changeEmail,
-                      icon: const Icon(Icons.edit_outlined),
-                      label: const Text('تغيير البريد'),
+                      onPressed: _locationWeatherRefreshing ? null : _refreshLocationWeather,
+                      icon: _locationWeatherRefreshing
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.my_location),
+                      label: const Text('تحديث الموقع والطقس'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: _editManualMarketSettings,
+                      icon: const Icon(Icons.tune),
+                      label: const Text('قيم السوق اليدوية'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: _confirmSignOut,
+                      icon: const Icon(Icons.logout),
+                      label: const Text('تسجيل الخروج'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'مصادر السوق والبدائل',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 14),
+                _infoRow(
+                  'الوضع الحالي',
+                  _marketError == null
+                      ? 'الأسعار المباشرة تعمل عبر الإنترنت'
+                      : 'يوجد تعذر في الاتصال ويجري استخدام بيانات احتياطية عند توفرها',
+                  valueColor: _marketError == null ? Colors.green.shade700 : Colors.orange.shade900,
+                ),
+                _infoRow(
+                  'القيم اليدوية',
+                  _manualMarketSettings.isComplete
+                      ? 'مكتملة'
+                      : (_manualMarketSettings.hasAny ? 'موجودة جزئيًا' : 'غير مضبوطة'),
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  'إذا تعذّر جلب سعر الذهب أو الفضة أو اليورو/الدولار من الإنترنت، يستطيع التطبيق عرض آخر بيانات ناجحة محفوظة أو القيم اليدوية التي تدخلها هنا.',
+                  style: TextStyle(height: 1.6),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    FilledButton.icon(
+                      onPressed: _editManualMarketSettings,
+                      icon: const Icon(Icons.tune),
+                      label: const Text('تعديل القيم اليدوية'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: _marketRefreshing ? null : _refreshMarketData,
+                      icon: const Icon(Icons.wifi_tethering_outlined),
+                      label: const Text('إعادة جلب الأسعار'),
                     ),
                   ],
                 ),
@@ -2160,8 +3550,9 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                 _launchCheckItem('واجهة موحّدة ومنظمة مع تنقل واضح بين الرئيسية والإدخال والتقارير والإعدادات.', true),
                 _launchCheckItem('هوية المستخدم محفوظة قبل فتح البرنامج.', _userEmail.trim().isNotEmpty),
                 _launchCheckItem('كل السجلات تحفظ داخل الجهاز في قاعدة بيانات SQLite.', true),
-                _launchCheckItem('يوجد ملف نسخة احتياطية محلي مرتبط بالبريد الشخصي.', _backupInfo.exists),
-                _launchCheckItem('يمكن إرسال النسخة الاحتياطية إلى البريد الشخصي عبر تطبيق البريد في الجهاز.', true),
+                _launchCheckItem('يوجد ملف نسخة احتياطية محلي مرتبط بالحساب الحالي.', _backupInfo.exists),
+                _launchCheckItem('توجد نسخة سحابية يمكن استعادتها على جهاز آخر بعد تسجيل الدخول.', _cloudBackupInfo.exists),
+                _launchCheckItem('يمكن إرسال نسخة إضافية إلى البريد الشخصي عبر تطبيق البريد في الجهاز.', true),
                 _launchCheckItem('تقارير شهرية وسنوية وسجل كامل مع بحث وتعديل وحذف.', true),
                 _launchCheckItem('يوجد على الأقل سجل واحد صالح داخل البرنامج.', _entries.isNotEmpty),
               ],
@@ -2181,14 +3572,14 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                 ),
                 const SizedBox(height: 10),
                 const Text(
-                  'حفظ البيانات داخل الجهاز يعمل تلقائيًا. أما الحفظ داخل البريد الشخصي فلا يتم بصمت من دون خدمة بريد خارجية؛ لذلك أضفنا زر مشاركة مباشر يجهّز ملف النسخة الاحتياطية ويرسله إلى تطبيق البريد على هاتفك.',
+                  'حفظ البيانات داخل الجهاز يعمل تلقائيًا، كما تتم مزامنتها تلقائيًا على السحابة بعد تسجيل الدخول. ويمكنك أيضًا إرسال نسخة إضافية إلى بريدك الشخصي يدويًا كإجراء احتياطي خارجي.',
                   style: TextStyle(height: 1.6),
                 ),
                 const SizedBox(height: 14),
                 OutlinedButton.icon(
-                  onPressed: _resetInitialSetup,
-                  icon: const Icon(Icons.restart_alt),
-                  label: const Text('إعادة الإعداد الأولي'),
+                  onPressed: _confirmSignOut,
+                  icon: const Icon(Icons.logout),
+                  label: const Text('تسجيل الخروج'),
                 ),
               ],
             ),
@@ -2221,7 +3612,7 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('برنامج تتبع الأرباح'),
+        title: const Text('Maen Accountings'),
         actions: [
           IconButton(
             tooltip: 'نسخة احتياطية الآن',
