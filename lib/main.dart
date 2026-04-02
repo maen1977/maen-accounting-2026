@@ -1292,6 +1292,8 @@ class AppStartupGate extends StatefulWidget {
 }
 
 class _AppStartupGateState extends State<AppStartupGate> {
+  static const Duration _startupTimeout = Duration(seconds: 5);
+
   final ProfileStore _profileStore = ProfileStore();
   bool _loading = true;
   bool _firebaseAvailable = false;
@@ -1308,22 +1310,41 @@ class _AppStartupGateState extends State<AppStartupGate> {
 
   Future<void> _initialize() async {
     final profile = await _profileStore.load();
-    await AuthService.instance.init();
-
-    final signedInEmail = AuthService.instance.currentUserEmail?.trim().toLowerCase();
+    String? signedInEmail = profile?.email;
     String? message;
 
+    try {
+      await AuthService.instance.init().timeout(_startupTimeout);
+    } catch (e) {
+      _firebaseError = 'تعذر تهيئة Firebase الآن: $e';
+    }
+
+    if (AuthService.instance.isAvailable) {
+      final firebaseEmail = AuthService.instance.currentUserEmail?.trim().toLowerCase();
+      if (firebaseEmail != null && firebaseEmail.isNotEmpty) {
+        signedInEmail = firebaseEmail;
+      }
+    }
+
     if (signedInEmail != null && signedInEmail.isNotEmpty) {
-      final restoredLocal = await BackupService.instance.restoreIfDatabaseEmpty(signedInEmail);
-      if (restoredLocal) {
-        message = 'تمت استعادة النسخة الاحتياطية المحلية تلقائيًا.';
-      } else {
-        final restoredCloud = await CloudBackupService.instance.restoreIfDatabaseEmpty(signedInEmail);
-        if (restoredCloud) {
-          final entries = await DatabaseHelper.instance.getAllEntries();
-          await BackupService.instance.writeBackup(email: signedInEmail, entries: entries);
-          message = 'تمت استعادة النسخة السحابية تلقائيًا.';
+      try {
+        final restoredLocal = await BackupService.instance
+            .restoreIfDatabaseEmpty(signedInEmail)
+            .timeout(_startupTimeout, onTimeout: () => false);
+        if (restoredLocal) {
+          message = 'تمت استعادة النسخة الاحتياطية المحلية تلقائيًا.';
+        } else if (AuthService.instance.isAvailable) {
+          final restoredCloud = await CloudBackupService.instance
+              .restoreIfDatabaseEmpty(signedInEmail)
+              .timeout(_startupTimeout, onTimeout: () => false);
+          if (restoredCloud) {
+            final entries = await DatabaseHelper.instance.getAllEntries();
+            await BackupService.instance.writeBackup(email: signedInEmail, entries: entries);
+            message = 'تمت استعادة النسخة السحابية تلقائيًا.';
+          }
         }
+      } catch (_) {
+        message ??= 'تم فتح البرنامج بالوضع المحلي، ويمكن إكمال المزامنة لاحقًا.';
       }
       await _profileStore.saveEmail(signedInEmail);
     }
@@ -1331,11 +1352,28 @@ class _AppStartupGateState extends State<AppStartupGate> {
     if (!mounted) return;
     setState(() {
       _firebaseAvailable = AuthService.instance.isAvailable;
-      _firebaseError = AuthService.instance.lastError;
+      _firebaseError = _firebaseError ?? AuthService.instance.lastError;
       _userEmail = signedInEmail;
       _prefillEmail = profile?.email ?? signedInEmail;
-      _startupMessage = message;
+      _startupMessage = message ??
+          (!AuthService.instance.isAvailable && signedInEmail != null && signedInEmail.isNotEmpty
+              ? 'تم فتح البرنامج بالوضع المحلي. فعّل Firebase لاحقًا للمزامنة التلقائية بين الأجهزة.'
+              : null);
       _loading = false;
+    });
+  }
+
+  Future<void> _continueLocally(String email) async {
+    final normalized = email.trim().toLowerCase();
+    await _profileStore.saveEmail(normalized);
+    final restoredLocal = await BackupService.instance.restoreIfDatabaseEmpty(normalized);
+    if (!mounted) return;
+    setState(() {
+      _userEmail = normalized;
+      _prefillEmail = normalized;
+      _startupMessage = restoredLocal
+          ? 'تم فتح البرنامج واستعادة النسخة المحلية تلقائيًا.'
+          : 'تم فتح البرنامج بالوضع المحلي على هذا الجهاز.';
     });
   }
 
@@ -1415,14 +1453,17 @@ class _AppStartupGateState extends State<AppStartupGate> {
   Widget build(BuildContext context) {
     if (_loading) return const SplashLoadingScreen();
 
-    if (!_firebaseAvailable) {
-      return FirebaseSetupRequiredScreen(errorMessage: _firebaseError);
-    }
-
     if (_userEmail == null || _userEmail!.isEmpty) {
-      return BackupAuthGate(
+      if (_firebaseAvailable) {
+        return BackupAuthGate(
+          initialEmail: _prefillEmail,
+          onAuthenticate: _authenticate,
+        );
+      }
+      return LocalEmailGate(
         initialEmail: _prefillEmail,
-        onAuthenticate: _authenticate,
+        errorMessage: _firebaseError,
+        onContinue: _continueLocally,
       );
     }
 
@@ -1462,6 +1503,138 @@ class SplashLoadingScreen extends StatelessWidget {
               child: CircularProgressIndicator(strokeWidth: 3),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+
+class LocalEmailGate extends StatefulWidget {
+  final String? initialEmail;
+  final String? errorMessage;
+  final Future<void> Function(String email) onContinue;
+
+  const LocalEmailGate({
+    super.key,
+    required this.onContinue,
+    this.initialEmail,
+    this.errorMessage,
+  });
+
+  @override
+  State<LocalEmailGate> createState() => _LocalEmailGateState();
+}
+
+class _LocalEmailGateState extends State<LocalEmailGate> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  late final TextEditingController _emailController;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController = TextEditingController(text: widget.initialEmail ?? '');
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _saving = true);
+    await widget.onContinue(_emailController.text);
+    if (!mounted) return;
+    setState(() => _saving = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              scheme.primary.withValues(alpha: 0.08),
+              Theme.of(context).scaffoldBackgroundColor,
+            ],
+          ),
+        ),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 560),
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(22),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircleAvatar(
+                          radius: 28,
+                          backgroundColor: scheme.primary.withValues(alpha: 0.12),
+                          child: Icon(Icons.phone_android, size: 30, color: scheme.primary),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'فتح محلي على هذا الجهاز',
+                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          widget.errorMessage == null || widget.errorMessage!.isEmpty
+                              ? 'المزامنة السحابية غير متاحة الآن. أدخل الإيميل للمتابعة محليًا، وسيتم حفظ بياناتك داخل هذا الجهاز إلى أن تكتمل المزامنة لاحقًا.'
+                              : 'تعذر تهيئة المزامنة السحابية الآن. أدخل الإيميل للمتابعة محليًا على هذا الجهاز.\n\nالسبب: ${widget.errorMessage}',
+                          style: const TextStyle(height: 1.6),
+                        ),
+                        const SizedBox(height: 18),
+                        TextFormField(
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: const InputDecoration(
+                            labelText: 'الإيميل',
+                            prefixIcon: Icon(Icons.email_outlined),
+                          ),
+                          validator: (value) {
+                            final text = value?.trim() ?? '';
+                            if (text.isEmpty) return 'أدخل الإيميل أولًا';
+                            final emailRegExp = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+                            if (!emailRegExp.hasMatch(text)) return 'أدخل إيميل صحيح';
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton.icon(
+                            onPressed: _saving ? null : _submit,
+                            icon: _saving
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : const Icon(Icons.arrow_forward),
+                            label: const Text('متابعة وفتح البرنامج'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
