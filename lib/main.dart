@@ -1346,7 +1346,7 @@ class _AppStartupGateState extends State<AppStartupGate> {
 
   Future<void> _initialize() async {
     final profile = await _profileStore.load();
-    String? signedInEmail = profile?.email;
+    String? signedInEmail;
     String? message;
 
     try {
@@ -1355,11 +1355,18 @@ class _AppStartupGateState extends State<AppStartupGate> {
       _firebaseError = 'تعذر تهيئة Firebase الآن: $e';
     }
 
+    final firebaseEmail = AuthService.instance.currentUserEmail?.trim().toLowerCase();
     if (AuthService.instance.isAvailable) {
-      final firebaseEmail = AuthService.instance.currentUserEmail?.trim().toLowerCase();
       if (firebaseEmail != null && firebaseEmail.isNotEmpty) {
         signedInEmail = firebaseEmail;
+      } else {
+        signedInEmail = null;
+        if ((profile?.email ?? '').isNotEmpty) {
+          message = 'يرجى تسجيل الدخول بنفس الإيميل لتفعيل النسخة السحابية والاسترجاع على أي جهاز.';
+        }
       }
+    } else {
+      signedInEmail = profile?.email;
     }
 
     if (signedInEmail != null && signedInEmail.isNotEmpty) {
@@ -1390,7 +1397,7 @@ class _AppStartupGateState extends State<AppStartupGate> {
       _firebaseAvailable = AuthService.instance.isAvailable;
       _firebaseError = _firebaseError ?? AuthService.instance.lastError;
       _userEmail = signedInEmail;
-      _prefillEmail = profile?.email ?? signedInEmail;
+      _prefillEmail = profile?.email ?? firebaseEmail;
       _startupMessage = message ??
           (!AuthService.instance.isAvailable && signedInEmail != null && signedInEmail.isNotEmpty
               ? 'تم فتح البرنامج بالوضع المحلي. فعّل Firebase لاحقًا للمزامنة التلقائية بين الأجهزة.'
@@ -2390,12 +2397,18 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
         email: _userEmail,
         entries: data,
       );
-      final cloudSaved = await CloudBackupService.instance.writeBackup(
-        email: _userEmail,
-        entries: data,
-      );
+      final authenticatedEmail = AuthService.instance.currentUserEmail?.trim().toLowerCase();
+      final canCloudSync = AuthService.instance.isAvailable && authenticatedEmail == _userEmail.trim().toLowerCase();
+      final cloudSaved = canCloudSync
+          ? await CloudBackupService.instance.writeBackup(
+              email: _userEmail,
+              entries: data,
+            )
+          : false;
       final backupInfo = await BackupService.instance.readInfo(_userEmail);
-      final cloudInfo = await CloudBackupService.instance.readInfo(_userEmail);
+      final cloudInfo = canCloudSync
+          ? await CloudBackupService.instance.readInfo(_userEmail)
+          : const CloudBackupSnapshotInfo(exists: false);
       if (!mounted) return;
       setState(() {
         _backupInfo = backupInfo;
@@ -2405,6 +2418,8 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
       if (showMessage) {
         if (localSaved && cloudSaved) {
           _showMessage('تم تحديث النسخة المحلية والسحابية بنجاح.');
+        } else if (localSaved && !canCloudSync) {
+          _showMessage('تم تحديث النسخة المحلية. سجّل الدخول من شاشة البداية بنفس الإيميل لتفعيل النسخة السحابية.');
         } else if (localSaved) {
           _showMessage(
             'تم تحديث النسخة المحلية، لكن تعذّرت المزامنة السحابية${CloudBackupService.instance.lastError == null ? '' : ': ${CloudBackupService.instance.lastError}'}',
