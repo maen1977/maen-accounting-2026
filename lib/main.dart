@@ -1328,9 +1328,10 @@ class AppStartupGate extends StatefulWidget {
 }
 
 class _AppStartupGateState extends State<AppStartupGate> {
-  static const Duration _startupTimeout = Duration(seconds: 5);
+  static const Duration _startupTimeout = Duration(seconds: 3);
 
   final ProfileStore _profileStore = ProfileStore();
+  Timer? _forceOpenTimer;
   bool _loading = true;
   bool _firebaseAvailable = false;
   String? _firebaseError;
@@ -1341,13 +1342,32 @@ class _AppStartupGateState extends State<AppStartupGate> {
   @override
   void initState() {
     super.initState();
+    _forceOpenTimer = Timer(const Duration(seconds: 3), _openAnyway);
     _initialize();
   }
 
+  void _openAnyway() {
+    if (!mounted || !_loading) return;
+    setState(() {
+      _firebaseAvailable = AuthService.instance.isAvailable;
+      _firebaseError = _firebaseError ?? AuthService.instance.lastError;
+      _loading = false;
+    });
+  }
+
   Future<void> _initialize() async {
-    final profile = await _profileStore.load();
+    UserProfile? profile;
     String? signedInEmail;
     String? message;
+
+    try {
+      profile = await _profileStore.load().timeout(
+        const Duration(seconds: 1),
+        onTimeout: () => null,
+      );
+    } catch (_) {
+      profile = null;
+    }
 
     try {
       await AuthService.instance.init().timeout(_startupTimeout);
@@ -1356,51 +1376,43 @@ class _AppStartupGateState extends State<AppStartupGate> {
     }
 
     final firebaseEmail = AuthService.instance.currentUserEmail?.trim().toLowerCase();
+    final savedEmail = profile?.email?.trim().toLowerCase();
+
     if (AuthService.instance.isAvailable) {
       if (firebaseEmail != null && firebaseEmail.isNotEmpty) {
         signedInEmail = firebaseEmail;
       } else {
         signedInEmail = null;
-        if ((profile?.email ?? '').isNotEmpty) {
-          message = 'يرجى تسجيل الدخول بنفس الإيميل لتفعيل النسخة السحابية والاسترجاع على أي جهاز.';
+        if (savedEmail != null && savedEmail.isNotEmpty) {
+          message = 'يرجى تسجيل الدخول بنفس الإيميل لتفعيل النسخة السحابية.';
         }
       }
     } else {
-      signedInEmail = profile?.email;
+      signedInEmail = savedEmail;
+      if (signedInEmail != null && signedInEmail.isNotEmpty) {
+        message = 'تم فتح البرنامج بالوضع المحلي.';
+      }
     }
 
     if (signedInEmail != null && signedInEmail.isNotEmpty) {
       try {
-        final restoredLocal = await BackupService.instance
-            .restoreIfDatabaseEmpty(signedInEmail)
-            .timeout(_startupTimeout, onTimeout: () => false);
-        if (restoredLocal) {
-          message = 'تمت استعادة النسخة الاحتياطية المحلية تلقائيًا.';
-        } else if (AuthService.instance.isAvailable) {
-          final restoredCloud = await CloudBackupService.instance
-              .restoreIfDatabaseEmpty(signedInEmail)
-              .timeout(_startupTimeout, onTimeout: () => false);
-          if (restoredCloud) {
-            final entries = await DatabaseHelper.instance.getAllEntries();
-            await BackupService.instance.writeBackup(email: signedInEmail, entries: entries);
-            message = 'تمت استعادة النسخة السحابية تلقائيًا.';
-          }
-        }
-      } catch (_) {
-        message ??= 'تم فتح البرنامج بالوضع المحلي، ويمكن إكمال المزامنة لاحقًا.';
-      }
-      await _profileStore.saveEmail(signedInEmail);
+        await _profileStore.saveEmail(signedInEmail).timeout(
+          const Duration(seconds: 1),
+          onTimeout: () {},
+        );
+      } catch (_) {}
     }
 
     if (!mounted) return;
+    _forceOpenTimer?.cancel();
     setState(() {
       _firebaseAvailable = AuthService.instance.isAvailable;
       _firebaseError = _firebaseError ?? AuthService.instance.lastError;
       _userEmail = signedInEmail;
-      _prefillEmail = profile?.email ?? firebaseEmail;
+      _prefillEmail = savedEmail ?? firebaseEmail;
       _startupMessage = message ??
           (!AuthService.instance.isAvailable && signedInEmail != null && signedInEmail.isNotEmpty
-              ? 'تم فتح البرنامج بالوضع المحلي. فعّل Firebase لاحقًا للمزامنة التلقائية بين الأجهزة.'
+              ? 'تم فتح البرنامج بالوضع المحلي.'
               : null);
       _loading = false;
     });
@@ -1490,6 +1502,12 @@ class _AppStartupGateState extends State<AppStartupGate> {
       _userEmail = null;
       _startupMessage = null;
     });
+  }
+
+  @override
+  void dispose() {
+    _forceOpenTimer?.cancel();
+    super.dispose();
   }
 
   @override
