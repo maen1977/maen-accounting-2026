@@ -1375,8 +1375,16 @@ class _AppStartupGateState extends State<AppStartupGate> {
       _firebaseError = 'تعذر تهيئة Firebase الآن: $e';
     }
 
-    final firebaseEmail = AuthService.instance.currentUserEmail?.trim().toLowerCase();
-    final savedEmail = profile?.email?.trim().toLowerCase();
+    String? firebaseEmail;
+    final currentUserEmail = AuthService.instance.currentUserEmail;
+    if (currentUserEmail != null) {
+      firebaseEmail = currentUserEmail.trim().toLowerCase();
+    }
+
+    String? savedEmail;
+    if (profile != null) {
+      savedEmail = profile.email.trim().toLowerCase();
+    }
 
     if (AuthService.instance.isAvailable) {
       if (firebaseEmail != null && firebaseEmail.isNotEmpty) {
