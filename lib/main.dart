@@ -5,6 +5,8 @@ import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
@@ -276,23 +278,51 @@ class FirebaseBootstrap {
   static bool get isAvailable => _available;
   static String? get lastError => _lastError;
 
-  static Future<void> ensureInitialized() {
-    if (_available) return Future.value();
+  static Future<void> ensureInitialized({bool forceRetry = false}) {
+    if (forceRetry) {
+      _initFuture = null;
+      _available = false;
+      _lastError = null;
+    }
     return _initFuture ??= _initializeInternal();
   }
 
   static Future<void> _initializeInternal() async {
     try {
       if (Firebase.apps.isEmpty) {
-        await Firebase.initializeApp();
+        await _initializeAppWithBestAvailableOptions();
       }
       _available = true;
       _lastError = null;
     } catch (e) {
       _available = false;
       _lastError = e.toString();
-      _initFuture = null;
       rethrow;
+    }
+  }
+
+  static Future<void> _initializeAppWithBestAvailableOptions() async {
+    if (kIsWeb) {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+      return;
+    }
+
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+        return;
+      case TargetPlatform.iOS:
+      case TargetPlatform.macOS:
+      case TargetPlatform.windows:
+      case TargetPlatform.linux:
+        await Firebase.initializeApp();
+        return;
+      case TargetPlatform.fuchsia:
+        throw UnsupportedError('Firebase غير مضبوط على منصة Fuchsia.');
     }
   }
 }
@@ -320,26 +350,16 @@ class AuthService {
   String? get lastError => FirebaseBootstrap.lastError;
   bool get isSignedIn {
     if (!FirebaseBootstrap.isAvailable || Firebase.apps.isEmpty) return false;
-    try {
-      return FirebaseAuth.instance.currentUser != null;
-    } catch (_) {
-      return false;
-    }
+    return FirebaseAuth.instance.currentUser != null;
   }
 
   String? get currentUserEmail {
     if (!FirebaseBootstrap.isAvailable || Firebase.apps.isEmpty) return null;
-    try {
-      return FirebaseAuth.instance.currentUser?.email;
-    } catch (_) {
-      return null;
-    }
+    return FirebaseAuth.instance.currentUser?.email;
   }
 
-  Future<void> init() async {
-    try {
-      await FirebaseBootstrap.ensureInitialized();
-    } catch (_) {}
+  Future<void> init({bool forceRetry = false}) async {
+    await FirebaseBootstrap.ensureInitialized(forceRetry: forceRetry);
   }
 
   Future<AuthResult> signIn({
@@ -1374,7 +1394,6 @@ class _AppStartupGateState extends State<AppStartupGate> {
     UserProfile? profile;
     String? signedInEmail;
     String? message;
-    String? firebaseError;
 
     try {
       profile = await _profileStore.load().timeout(
@@ -1388,7 +1407,7 @@ class _AppStartupGateState extends State<AppStartupGate> {
     try {
       await AuthService.instance.init().timeout(_startupTimeout);
     } catch (e) {
-      firebaseError = 'تعذر تهيئة Firebase الآن: $e';
+      _firebaseError = 'تعذر تهيئة Firebase الآن: $e';
     }
 
     String? firebaseEmail;
@@ -1412,9 +1431,9 @@ class _AppStartupGateState extends State<AppStartupGate> {
         }
       }
     } else {
-      signedInEmail = savedEmail;
-      if (signedInEmail != null && signedInEmail.isNotEmpty) {
-        message = 'تم فتح البرنامج بالوضع المحلي.';
+      signedInEmail = null;
+      if (savedEmail != null && savedEmail.isNotEmpty) {
+        message = 'تعذر تهيئة Firebase الآن. يمكنك إعادة المحاولة أو المتابعة محليًا بنفس الإيميل المحفوظ.';
       }
     }
 
@@ -1430,7 +1449,7 @@ class _AppStartupGateState extends State<AppStartupGate> {
     if (!mounted) return;
     setState(() {
       _firebaseAvailable = AuthService.instance.isAvailable;
-      _firebaseError = firebaseError ?? AuthService.instance.lastError;
+      _firebaseError = _firebaseError ?? AuthService.instance.lastError;
       _userEmail = signedInEmail;
       _prefillEmail = savedEmail ?? firebaseEmail;
       _startupMessage = message ??
@@ -1439,16 +1458,6 @@ class _AppStartupGateState extends State<AppStartupGate> {
               : null);
       _loading = false;
     });
-  }
-
-  Future<void> _retryFirebaseInitialization() async {
-    if (!mounted) return;
-    setState(() {
-      _loading = true;
-      _firebaseError = null;
-      _startupMessage = null;
-    });
-    await _initialize();
   }
 
   Future<void> _continueLocally(String email) async {
@@ -1463,6 +1472,20 @@ class _AppStartupGateState extends State<AppStartupGate> {
           ? 'تم فتح البرنامج واستعادة النسخة المحلية تلقائيًا.'
           : 'تم فتح البرنامج بالوضع المحلي على هذا الجهاز.';
     });
+  }
+
+  Future<void> _retryInitializeFirebase() async {
+    if (!mounted) return;
+    setState(() {
+      _loading = true;
+      _firebaseError = null;
+    });
+    try {
+      await AuthService.instance.init(forceRetry: true).timeout(_startupTimeout);
+    } catch (e) {
+      _firebaseError = 'تعذر تهيئة Firebase الآن: $e';
+    }
+    await _initialize();
   }
 
   Future<AuthResult> _authenticate({
@@ -1557,7 +1580,7 @@ class _AppStartupGateState extends State<AppStartupGate> {
         initialEmail: _prefillEmail,
         errorMessage: _firebaseError,
         onContinue: _continueLocally,
-        onRetryFirebase: _retryFirebaseInitialization,
+        onRetry: _retryInitializeFirebase,
       );
     }
 
@@ -1608,14 +1631,14 @@ class LocalEmailGate extends StatefulWidget {
   final String? initialEmail;
   final String? errorMessage;
   final Future<void> Function(String email) onContinue;
-  final Future<void> Function()? onRetryFirebase;
+  final Future<void> Function() onRetry;
 
   const LocalEmailGate({
     super.key,
     required this.onContinue,
+    required this.onRetry,
     this.initialEmail,
     this.errorMessage,
-    this.onRetryFirebase,
   });
 
   @override
@@ -1626,7 +1649,8 @@ class _LocalEmailGateState extends State<LocalEmailGate> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   late final TextEditingController _emailController;
   bool _saving = false;
-  bool _retryingFirebase = false;
+  bool _retrying = false;
+  bool _showLocalForm = false;
 
   @override
   void initState() {
@@ -1649,12 +1673,10 @@ class _LocalEmailGateState extends State<LocalEmailGate> {
   }
 
   Future<void> _retryFirebase() async {
-    final retry = widget.onRetryFirebase;
-    if (retry == null) return;
-    setState(() => _retryingFirebase = true);
-    await retry();
+    setState(() => _retrying = true);
+    await widget.onRetry();
     if (!mounted) return;
-    setState(() => _retryingFirebase = false);
+    setState(() => _retrying = false);
   }
 
   @override
@@ -1689,65 +1711,87 @@ class _LocalEmailGateState extends State<LocalEmailGate> {
                         CircleAvatar(
                           radius: 28,
                           backgroundColor: scheme.primary.withValues(alpha: 0.12),
-                          child: Icon(Icons.phone_android, size: 30, color: scheme.primary),
+                          child: Icon(Icons.cloud_off_outlined, size: 30, color: scheme.primary),
                         ),
                         const SizedBox(height: 16),
                         const Text(
-                          'فتح محلي على هذا الجهاز',
+                          'تعذّر تشغيل الدخول السحابي',
                           style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 10),
                         Text(
                           widget.errorMessage == null || widget.errorMessage!.isEmpty
-                              ? 'المزامنة السحابية غير متاحة الآن. أدخل الإيميل للمتابعة محليًا، وسيتم حفظ بياناتك داخل هذا الجهاز إلى أن تكتمل المزامنة لاحقًا.'
-                              : 'تعذر تهيئة المزامنة السحابية الآن. أدخل الإيميل للمتابعة محليًا على هذا الجهاز.\n\nالسبب: ${widget.errorMessage}',
+                              ? 'المفترض أن تظهر هنا شاشة الإيميل وكلمة المرور. ظهور هذه الشاشة يعني أن Firebase لم يتهيأ بعد، لذلك لا يمكن تشغيل النسخة السحابية حاليًا.'
+                              : 'المفترض أن تظهر هنا شاشة الإيميل وكلمة المرور، لكن Firebase لم يتهيأ بعد، لذلك لا يمكن تشغيل النسخة السحابية حاليًا.\n\nالسبب: ${widget.errorMessage}',
                           style: const TextStyle(height: 1.6),
                         ),
-                        const SizedBox(height: 18),
-                        TextFormField(
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          decoration: const InputDecoration(
-                            labelText: 'الإيميل',
-                            prefixIcon: Icon(Icons.email_outlined),
+                        const SizedBox(height: 14),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.orange.withValues(alpha: 0.25)),
                           ),
-                          validator: (value) {
-                            final text = value?.trim() ?? '';
-                            if (text.isEmpty) return 'أدخل الإيميل أولًا';
-                            final emailRegExp = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
-                            if (!emailRegExp.hasMatch(text)) return 'أدخل إيميل صحيح';
-                            return null;
-                          },
+                          child: const Text(
+                            'الترتيب الصحيح: 1) تهيئة Firebase بنجاح. 2) ظهور شاشة الإيميل وكلمة المرور. 3) تسجيل الدخول. 4) إنشاء المستند السحابي تلقائيًا داخل Firestore.',
+                            style: TextStyle(height: 1.6),
+                          ),
                         ),
                         const SizedBox(height: 16),
-                        SizedBox(
-                          width: double.infinity,
-                          child: FilledButton.icon(
-                            onPressed: _saving ? null : _submit,
-                            icon: _saving
-                                ? const SizedBox(
-                                    width: 18,
-                                    height: 18,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
-                                  )
-                                : const Icon(Icons.arrow_forward),
-                            label: const Text('متابعة وفتح البرنامج'),
-                          ),
-                        ),
-                        if (widget.onRetryFirebase != null) ...[
-                          const SizedBox(height: 10),
-                          SizedBox(
-                            width: double.infinity,
-                            child: OutlinedButton.icon(
-                              onPressed: (_saving || _retryingFirebase) ? null : _retryFirebase,
-                              icon: _retryingFirebase
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: [
+                            FilledButton.icon(
+                              onPressed: _retrying ? null : _retryFirebase,
+                              icon: _retrying
                                   ? const SizedBox(
                                       width: 18,
                                       height: 18,
                                       child: CircularProgressIndicator(strokeWidth: 2),
                                     )
                                   : const Icon(Icons.refresh),
-                              label: const Text('إعادة محاولة تهيئة السحابة'),
+                              label: const Text('إعادة فحص Firebase'),
+                            ),
+                            OutlinedButton.icon(
+                              onPressed: () => setState(() => _showLocalForm = !_showLocalForm),
+                              icon: const Icon(Icons.phone_android),
+                              label: Text(_showLocalForm ? 'إخفاء الوضع المحلي' : 'فتح الوضع المحلي فقط'),
+                            ),
+                          ],
+                        ),
+                        if (_showLocalForm) ...[
+                          const SizedBox(height: 18),
+                          TextFormField(
+                            controller: _emailController,
+                            keyboardType: TextInputType.emailAddress,
+                            decoration: const InputDecoration(
+                              labelText: 'الإيميل للوضع المحلي فقط',
+                              prefixIcon: Icon(Icons.email_outlined),
+                            ),
+                            validator: (value) {
+                              final text = value?.trim() ?? '';
+                              if (text.isEmpty) return 'أدخل الإيميل أولًا';
+                              final emailRegExp = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+                              if (!emailRegExp.hasMatch(text)) return 'أدخل إيميل صحيح';
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          SizedBox(
+                            width: double.infinity,
+                            child: FilledButton.icon(
+                              onPressed: _saving ? null : _submit,
+                              icon: _saving
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    )
+                                  : const Icon(Icons.arrow_forward),
+                              label: const Text('متابعة محليًا وفتح البرنامج'),
                             ),
                           ),
                         ],
@@ -2080,6 +2124,7 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
   LocationWeatherSnapshot? _locationWeatherSnapshot;
   BackupSnapshotInfo _backupInfo = const BackupSnapshotInfo(exists: false);
   CloudBackupSnapshotInfo _cloudBackupInfo = const CloudBackupSnapshotInfo(exists: false);
+  String? _cloudStatusMessage;
   final MarketSettingsStore _marketSettingsStore = MarketSettingsStore();
   final LocationWeatherStore _locationWeatherStore = LocationWeatherStore();
   ManualMarketSettings _manualMarketSettings = const ManualMarketSettings();
@@ -2106,13 +2151,6 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
         unawaited(_refreshLocationWeather());
       },
     );
-  }
-
-  bool get _canCloudSyncForCurrentUser {
-    final authenticatedEmail = AuthService.instance.currentUserEmail?.trim().toLowerCase();
-    return AuthService.instance.isAvailable &&
-        authenticatedEmail != null &&
-        authenticatedEmail == _userEmail.trim().toLowerCase();
   }
 
   @override
@@ -2445,14 +2483,65 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
     );
   }
 
+  String get _normalizedUserEmail => _userEmail.trim().toLowerCase();
+
+  String get _expectedCloudDocPath => 'profit_tracker_backups/$_normalizedUserEmail';
+
+  Future<void> _runCloudConnectionTest() async {
+    if (_cloudSyncing) return;
+    setState(() => _cloudSyncing = true);
+    try {
+      await AuthService.instance.init(forceRetry: true);
+      final firebaseAvailable = AuthService.instance.isAvailable;
+      final firebaseEmail = AuthService.instance.currentUserEmail?.trim().toLowerCase();
+      final entries = await DatabaseHelper.instance.getAllEntries();
+      String message;
+      if (!firebaseAvailable) {
+        message = 'فشل اختبار السحابة: Firebase غير مهيأ بعد.';
+      } else if (firebaseEmail == null || firebaseEmail.isEmpty) {
+        message = 'فشل اختبار السحابة: لا توجد جلسة تسجيل دخول Firebase حالية.';
+      } else if (firebaseEmail != _normalizedUserEmail) {
+        message = 'فشل اختبار السحابة: بريد Firebase الحالي ($firebaseEmail) لا يطابق حساب التطبيق ($_normalizedUserEmail).';
+      } else {
+        final localSaved = await BackupService.instance.writeBackup(email: _normalizedUserEmail, entries: entries);
+        final cloudSaved = await CloudBackupService.instance.writeBackup(email: _normalizedUserEmail, entries: entries);
+        final backupInfo = await BackupService.instance.readInfo(_normalizedUserEmail);
+        final cloudInfo = await CloudBackupService.instance.readInfo(_normalizedUserEmail);
+        if (!mounted) return;
+        setState(() {
+          _backupInfo = backupInfo;
+          _cloudBackupInfo = cloudInfo;
+        });
+        if (localSaved && cloudSaved) {
+          message = 'نجح اختبار السحابة. تم تأكيد الكتابة إلى $_expectedCloudDocPath.';
+        } else if (localSaved) {
+          message = 'نجحت الكتابة المحلية، لكن اختبار السحابة فشل${CloudBackupService.instance.lastError == null ? '' : ': ${CloudBackupService.instance.lastError}'}';
+        } else {
+          message = 'فشل إنشاء النسخة المحلية أثناء الاختبار${BackupService.instance.lastError == null ? '' : ': ${BackupService.instance.lastError}'}';
+        }
+      }
+      if (!mounted) return;
+      setState(() {
+        _cloudStatusMessage = message;
+        _cloudSyncing = false;
+      });
+      _showMessage(message);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _cloudStatusMessage = 'تعذر تنفيذ اختبار الاتصال السحابي: $e';
+        _cloudSyncing = false;
+      });
+      _showMessage(_cloudStatusMessage!);
+    }
+  }
+
   Future<void> _loadEntries({bool showStartupMessage = false}) async {
     setState(() => _loading = true);
     try {
       final data = await DatabaseHelper.instance.getAllEntries();
       final backupInfo = await BackupService.instance.readInfo(_userEmail);
-      final cloudInfo = _canCloudSyncForCurrentUser
-          ? await CloudBackupService.instance.readInfo(_userEmail)
-          : const CloudBackupSnapshotInfo(exists: false);
+      final cloudInfo = await CloudBackupService.instance.readInfo(_userEmail);
       if (!mounted) return;
       setState(() {
         _entries = data;
@@ -2486,7 +2575,8 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
         email: _userEmail,
         entries: data,
       );
-      final canCloudSync = _canCloudSyncForCurrentUser;
+      final authenticatedEmail = AuthService.instance.currentUserEmail?.trim().toLowerCase();
+      final canCloudSync = AuthService.instance.isAvailable && authenticatedEmail == _userEmail.trim().toLowerCase();
       final cloudSaved = canCloudSync
           ? await CloudBackupService.instance.writeBackup(
               email: _userEmail,
@@ -3674,6 +3764,24 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                 const SizedBox(height: 14),
                 _infoRow('الحساب الحالي', _userEmail),
                 _infoRow(
+                  'جاهزية Firebase',
+                  AuthService.instance.isAvailable ? 'مهيأ ويعمل' : 'غير مهيأ',
+                  valueColor: AuthService.instance.isAvailable ? Colors.green.shade700 : Colors.red.shade700,
+                ),
+                _infoRow(
+                  'جلسة Firebase الحالية',
+                  AuthService.instance.isSignedIn ? 'مسجلة' : 'غير مسجلة',
+                  valueColor: AuthService.instance.isSignedIn ? Colors.green.shade700 : Colors.orange.shade900,
+                ),
+                _infoRow(
+                  'بريد Firebase الحالي',
+                  AuthService.instance.currentUserEmail?.trim().toLowerCase() ?? 'لا يوجد',
+                ),
+                _infoRow(
+                  'مسار المستند السحابي المتوقع',
+                  _expectedCloudDocPath,
+                ),
+                _infoRow(
                   'النسخة المحلية',
                   _backupInfo.exists
                       ? 'متوفرة (${_backupInfo.entriesCount} سجل)'
@@ -3694,6 +3802,20 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                 _infoRow(
                   'آخر تحديث سحابي',
                   _cloudBackupInfo.updatedAt == null ? '—' : _dateTimeText(_cloudBackupInfo.updatedAt!),
+                ),
+                _infoRow(
+                  'آخر خطأ Firebase',
+                  FirebaseBootstrap.lastError ?? 'لا يوجد',
+                  valueColor: FirebaseBootstrap.lastError == null ? Colors.green.shade700 : Colors.red.shade700,
+                ),
+                _infoRow(
+                  'آخر خطأ سحابي',
+                  CloudBackupService.instance.lastError ?? 'لا يوجد',
+                  valueColor: CloudBackupService.instance.lastError == null ? Colors.green.shade700 : Colors.red.shade700,
+                ),
+                _infoRow(
+                  'آخر نتيجة لاختبار السحابة',
+                  _cloudStatusMessage ?? 'لم يتم تشغيل الاختبار بعد',
                 ),
                 _infoRow(
                   'مسار الملف المحلي',
@@ -3732,6 +3854,11 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                             )
                           : const Icon(Icons.cloud_upload_outlined),
                       label: const Text('مزامنة محلية وسحابية الآن'),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: _cloudSyncing ? null : _runCloudConnectionTest,
+                      icon: const Icon(Icons.fact_check_outlined),
+                      label: const Text('اختبار الاتصال السحابي'),
                     ),
                     OutlinedButton.icon(
                       onPressed: _sharingBackup ? null : _shareBackupToEmail,

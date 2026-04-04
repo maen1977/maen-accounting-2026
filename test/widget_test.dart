@@ -1,12 +1,11 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:profit_tracker/main.dart';
 
 void main() {
-  testWidgets('splash screen renders', (tester) async {
-    await tester.pumpWidget(const MaterialApp(home: SplashLoadingScreen()));
+  testWidgets('app smoke test', (tester) async {
+    await tester.pumpWidget(const ProfitTrackerApp());
+    await tester.pumpAndSettle();
 
-    expect(find.text('جارٍ تجهيز Maen Accountings'), findsOneWidget);
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.textContaining('Firebase'), findsOneWidget);
   });
 }
