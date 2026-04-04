@@ -2834,6 +2834,10 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
     return list.fold(0, (sum, item) => sum + item.sales);
   }
 
+  double _costTotal(List<ProfitEntry> list) {
+    return list.fold(0, (sum, item) => sum + item.cost);
+  }
+
   double _grossTotal(List<ProfitEntry> list) {
     return list.fold(0, (sum, item) => sum + item.grossProfit);
   }
@@ -3059,14 +3063,15 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
   }
 
   Widget _entryTile(ProfitEntry entry, {bool compact = false}) {
+    final resultColor = entry.netProfit >= 0 ? Colors.green : Colors.red;
     return Card(
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         leading: CircleAvatar(
-          backgroundColor: (entry.netProfit >= 0 ? Colors.green : Colors.red).withValues(alpha: 0.12),
+          backgroundColor: resultColor.withValues(alpha: 0.12),
           child: Icon(
             entry.netProfit >= 0 ? Icons.trending_up : Icons.trending_down,
-            color: entry.netProfit >= 0 ? Colors.green : Colors.red,
+            color: resultColor,
           ),
         ),
         title: Text(
@@ -3078,15 +3083,14 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('المبيعات: ${_currency(entry.sales)}'),
-              Text('المشتريات (تكلفة البضاعة): ${_currency(entry.cost)}'),
-              Text('المصاريف التشغيلية: ${_currency(entry.expenses)}'),
-              Text('الربح قبل المصاريف التشغيلية: ${_currency(entry.grossProfit)}'),
+              Text('${compact ? 'المباع' : 'ثمن البضاعة المباعة'}: ${_currency(entry.sales)}'),
+              Text('${compact ? 'التكلفة' : 'تكلفة البضاعة'}: ${_currency(entry.cost)}'),
+              Text('${compact ? 'المصاريف' : 'المصاريف اليومية'}: ${_currency(entry.expenses)}'),
               Text(
-                'صافي الربح بعد المصاريف: ${_currency(entry.netProfit)}',
+                '${compact ? 'النتيجة' : 'النتيجة النهائية'}: ${_currency(entry.netProfit)}',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: entry.netProfit >= 0 ? Colors.green : Colors.red,
+                  color: resultColor,
                 ),
               ),
               if (!compact && entry.notes.trim().isNotEmpty) ...[
@@ -3113,6 +3117,48 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
     );
   }
 
+  Widget _compactSummaryItem({
+    required String label,
+    required String value,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: color.withValues(alpha: 0.16),
+            child: Icon(icon, color: color, size: 18),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(fontSize: 12.5, color: Colors.black54),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _outlineActionButton({
     required IconData icon,
@@ -3290,17 +3336,20 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
 
   Widget _buildDashboardPage() {
     final today = _todayEntry;
-    final latestEntries = _entries.take(5).toList();
-    final monthNet = _netTotal(_currentMonthEntries);
-    final monthSales = _salesTotal(_currentMonthEntries);
+    final latestEntries = _entries.take(3).toList();
+    final monthEntries = _currentMonthEntries;
+    final todaySales = today?.sales ?? 0;
+    final todayCost = today?.cost ?? 0;
+    final todayExpenses = today?.expenses ?? 0;
+    final todayNet = today?.netProfit ?? 0;
+    final monthSales = _salesTotal(monthEntries);
+    final monthCost = _costTotal(monthEntries);
+    final monthExpenses = _expensesTotal(monthEntries);
+    final monthNet = _netTotal(monthEntries);
 
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        _buildLocationWeatherSection(),
-        const SizedBox(height: 14),
-        _buildMarketSection(),
-        const SizedBox(height: 16),
         Card(
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -3313,11 +3362,11 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     CircleAvatar(
-                      radius: 30,
+                      radius: 28,
                       backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
                       child: Icon(
-                        Icons.account_balance_wallet_outlined,
-                        size: 30,
+                        Icons.space_dashboard_outlined,
+                        size: 28,
                         color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
@@ -3327,27 +3376,27 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'لوحة التحكم الرئيسية',
+                            'الرئيسية',
                             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'البريد الشخصي المرتبط: $_userEmail',
+                            'الحساب المرتبط: $_userEmail',
                             style: const TextStyle(color: Colors.black54),
                           ),
                           const SizedBox(height: 10),
                           Text(
                             today == null
-                                ? 'لا يوجد سجل محفوظ لليوم بعد. ابدأ بإضافة سجل اليوم ليظهر ملخص الربح مباشرة.'
-                                : 'صافي ربح اليوم: ${_currency(today.netProfit)} • مبيعات اليوم: ${_currency(today.sales)}',
-                            style: const TextStyle(fontSize: 16.5, fontWeight: FontWeight.w700, height: 1.5),
+                                ? 'أضف سجل اليوم ليظهر ملخص مختصر وواضح بدون إطالة في الصفحة الرئيسية.'
+                                : 'ملخص اليوم جاهز: مباع ${_currency(todaySales)} • تكلفة ${_currency(todayCost)} • نتيجة ${_currency(todayNet)}',
+                            style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700, height: 1.5),
                           ),
                         ],
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 16),
                 Wrap(
                   spacing: 10,
                   runSpacing: 10,
@@ -3367,16 +3416,6 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                       label: 'مزامنة الآن',
                       onPressed: () => _writeBackup(showMessage: true),
                     ),
-                    _outlineActionButton(
-                      icon: Icons.forward_to_inbox_outlined,
-                      label: 'إرسال إلى البريد',
-                      onPressed: _sharingBackup ? null : _shareBackupToEmail,
-                    ),
-                    _outlineActionButton(
-                      icon: Icons.tune,
-                      label: 'قيم السوق اليدوية',
-                      onPressed: _editManualMarketSettings,
-                    ),
                   ],
                 ),
               ],
@@ -3386,38 +3425,111 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
         const SizedBox(height: 16),
         _statsWrap([
           _statCard(
-            title: 'صافي هذا الشهر',
-            value: _currency(monthNet),
-            icon: Icons.calendar_month_outlined,
-            color: Colors.green,
-            footer: 'عدد الأيام المسجلة: ${_currentMonthEntries.length}',
-          ),
-          _statCard(
-            title: 'مبيعات هذا الشهر',
-            value: _currency(monthSales),
+            title: 'المباع',
+            value: _currency(todaySales),
             icon: Icons.sell_outlined,
             color: Colors.blue,
-            footer: 'صافي اليوم الحالي: ${today == null ? '—' : _currency(today.netProfit)}',
+            footer: 'اليوم',
           ),
           _statCard(
-            title: 'صافي هذه السنة',
-            value: _currency(_netTotal(_currentYearEntries)),
-            icon: Icons.bar_chart_outlined,
-            color: Colors.indigo,
-            footer: 'متوسط السجل: ${_currency(_averageNet(_currentYearEntries))}',
+            title: 'التكلفة',
+            value: _currency(todayCost),
+            icon: Icons.inventory_2_outlined,
+            color: Colors.deepPurple,
+            footer: 'اليوم',
           ),
           _statCard(
-            title: 'إجمالي المصاريف التشغيلية',
-            value: _currency(_expensesTotal(_entries)),
+            title: 'المصاريف',
+            value: _currency(todayExpenses),
             icon: Icons.payments_outlined,
             color: Colors.orange,
-            footer: 'إجمالي السجلات: ${_entries.length}',
+            footer: 'اليوم',
+          ),
+          _statCard(
+            title: 'النتيجة',
+            value: _currency(todayNet),
+            icon: todayNet >= 0 ? Icons.trending_up : Icons.trending_down,
+            color: todayNet >= 0 ? Colors.green : Colors.red,
+            footer: today == null ? 'لا يوجد سجل اليوم' : 'بعد المصاريف',
           ),
         ]),
+        const SizedBox(height: 16),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'ملخص الشهر',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'عدد الأيام المسجلة هذا الشهر: ${monthEntries.length}',
+                  style: const TextStyle(color: Colors.black54),
+                ),
+                const SizedBox(height: 12),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isWide = constraints.maxWidth > 560;
+                    final items = [
+                      _compactSummaryItem(
+                        label: 'مباع الشهر',
+                        value: _currency(monthSales),
+                        icon: Icons.sell_outlined,
+                        color: Colors.blue,
+                      ),
+                      _compactSummaryItem(
+                        label: 'تكلفة الشهر',
+                        value: _currency(monthCost),
+                        icon: Icons.inventory_2_outlined,
+                        color: Colors.deepPurple,
+                      ),
+                      _compactSummaryItem(
+                        label: 'مصاريف الشهر',
+                        value: _currency(monthExpenses),
+                        icon: Icons.payments_outlined,
+                        color: Colors.orange,
+                      ),
+                      _compactSummaryItem(
+                        label: 'نتيجة الشهر',
+                        value: _currency(monthNet),
+                        icon: monthNet >= 0 ? Icons.trending_up : Icons.trending_down,
+                        color: monthNet >= 0 ? Colors.green : Colors.red,
+                      ),
+                    ];
+
+                    if (isWide) {
+                      return GridView.count(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 10,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        childAspectRatio: 3.2,
+                        children: items,
+                      );
+                    }
+
+                    return Column(
+                      children: [
+                        for (int i = 0; i < items.length; i++) ...[
+                          items[i],
+                          if (i != items.length - 1) const SizedBox(height: 10),
+                        ],
+                      ],
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
         const SizedBox(height: 20),
         _sectionHeader(
-          'أحدث السجلات',
-          subtitle: 'آخر 5 سجلات تم إدخالها',
+          'آخر السجلات',
+          subtitle: 'آخر 3 سجلات بشكل مختصر',
           trailing: TextButton(
             onPressed: () => setState(() => _selectedIndex = 2),
             child: const Text('عرض الكل'),
@@ -3428,7 +3540,7 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
           const _EmptyStateCard(
             icon: Icons.inbox_outlined,
             title: 'لا توجد سجلات بعد',
-            subtitle: 'ابدأ بإضافة أول سجل يومي ليظهر هنا الملخص الكامل.',
+            subtitle: 'ابدأ بإضافة أول سجل يومي ليظهر هنا الملخص المختصر.',
           )
         else
           ...latestEntries.map((entry) => _entryTile(entry, compact: true)),
@@ -3442,7 +3554,7 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
       children: [
         _sectionHeader(
           _editingEntry == null ? 'إضافة سجل يومي' : 'تعديل سجل يومي',
-          subtitle: 'أدخل بيانات اليوم وسيتم تحديث التقارير والنسخة المحلية تلقائيًا.',
+          subtitle: 'أدخل بيانات اليوم بشكل مختصر وواضح، وسيتم تحديث التقارير والنسخة المحلية تلقائيًا.',
         ),
         const SizedBox(height: 12),
         Card(
@@ -3463,14 +3575,14 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                   ],
                 ),
                 SizedBox(height: 10),
-                Text('1) المبيعات اليومية: مجموع ما تم بيعه خلال اليوم.'),
+                Text('1) ثمن البضاعة المباعة: مجموع قيمة البيع خلال اليوم.'),
                 SizedBox(height: 4),
-                Text('2) المشتريات / تكلفة البضاعة: تكلفة الأصناف التي تم بيعها.'),
+                Text('2) تكلفة البضاعة: تكلفة الأصناف أو البضاعة المباعة.'),
                 SizedBox(height: 4),
-                Text('3) المصاريف التشغيلية: مثل النقل والإيجار والعمالة والمصاريف اليومية الأخرى.'),
+                Text('3) المصاريف اليومية: مثل النقل والعمالة وأي مصروف يومي آخر.'),
                 SizedBox(height: 8),
                 Text(
-                  'المعادلة: صافي الربح = المبيعات - المشتريات - المصاريف التشغيلية',
+                  'المعادلة: النتيجة = ثمن البضاعة المباعة - تكلفة البضاعة - المصاريف اليومية',
                   style: TextStyle(fontWeight: FontWeight.w600),
                 ),
               ],
@@ -3497,7 +3609,7 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
                     decoration: const InputDecoration(
-                      labelText: 'إجمالي المبيعات اليومية',
+                      labelText: 'ثمن البضاعة المباعة',
                       prefixIcon: Icon(Icons.sell_outlined),
                     ),
                     onChanged: (_) => setState(() {}),
@@ -3513,7 +3625,7 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
                     decoration: const InputDecoration(
-                      labelText: 'إجمالي المشتريات اليومية (تكلفة البضاعة)',
+                      labelText: 'تكلفة البضاعة',
                       prefixIcon: Icon(Icons.inventory_2_outlined),
                     ),
                     onChanged: (_) => setState(() {}),
@@ -3529,7 +3641,7 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
                     decoration: const InputDecoration(
-                      labelText: 'المصاريف التشغيلية اليومية',
+                      labelText: 'مصاريف يومية',
                       prefixIcon: Icon(Icons.money_off_csred_outlined),
                     ),
                     onChanged: (_) => setState(() {}),
@@ -3553,13 +3665,13 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                   const SizedBox(height: 16),
                   _statsWrap([
                     _statCard(
-                      title: 'الربح قبل المصاريف التشغيلية',
+                      title: 'قبل المصاريف',
                       value: _currency(_previewGross),
                       icon: Icons.trending_up,
                       color: Colors.blue,
                     ),
                     _statCard(
-                      title: 'صافي الربح المتوقع',
+                      title: 'النتيجة المتوقعة',
                       value: _currency(_previewNet),
                       icon: Icons.account_balance_wallet_outlined,
                       color: _previewNet >= 0 ? Colors.green : Colors.red,
@@ -3618,7 +3730,7 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
       children: [
         _sectionHeader(
           'التقارير والسجلات',
-          subtitle: 'واجهة موحّدة لمتابعة الأداء الشهري والسنوي ومراجعة كل السجلات من مكان واحد.',
+          subtitle: 'متابعة مختصرة للشهر والسنة مع سجل كامل قابل للبحث والتعديل.',
           trailing: OutlinedButton.icon(
             onPressed: _pickReportMonth,
             icon: const Icon(Icons.date_range),
@@ -3628,21 +3740,21 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
         const SizedBox(height: 12),
         _statsWrap([
           _statCard(
-            title: 'صافي الشهر المحدد',
+            title: 'نتيجة الشهر',
             value: _currency(_netTotal(monthlyEntries)),
             icon: Icons.calendar_view_month,
             color: Colors.teal,
             footer: 'عدد الأيام المسجلة: ${monthlyEntries.length}',
           ),
           _statCard(
-            title: 'إجمالي مصاريف الشهر',
+            title: 'مصاريف الشهر',
             value: _currency(_expensesTotal(monthlyEntries)),
             icon: Icons.money_off,
             color: Colors.orange,
-            footer: 'الربح قبل المصاريف التشغيلية: ${_currency(_grossTotal(monthlyEntries))}',
+            footer: 'قبل المصاريف: ${_currency(_grossTotal(monthlyEntries))}',
           ),
           _statCard(
-            title: 'صافي سنة ${_reportDate.year}',
+            title: 'نتيجة سنة ${_reportDate.year}',
             value: _currency(_netTotal(yearlyEntries)),
             icon: Icons.query_stats,
             color: Colors.indigo,
@@ -4032,17 +4144,6 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
             tooltip: 'نسخة احتياطية الآن',
             onPressed: () => _writeBackup(showMessage: true),
             icon: const Icon(Icons.backup_outlined),
-          ),
-          IconButton(
-            tooltip: 'تحديث مؤشرات السوق',
-            onPressed: _marketRefreshing ? null : _refreshMarketData,
-            icon: _marketRefreshing
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.wifi_tethering_outlined),
           ),
           IconButton(
             tooltip: 'مشاركة النسخة إلى البريد',
