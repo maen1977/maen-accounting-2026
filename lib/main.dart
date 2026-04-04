@@ -2368,7 +2368,7 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
 
     Widget compactItem({required IconData icon, required String value, Color? color}) {
       return Container(
-        constraints: const BoxConstraints(minWidth: 110),
+        constraints: const BoxConstraints(minHeight: 44),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
           color: Colors.grey.shade50,
@@ -2383,7 +2383,7 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
             Flexible(
               child: Text(
                 value,
-                style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
+                style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -2398,39 +2398,47 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
       child: Card(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          child: Row(
+          child: Column(
             children: [
-              Expanded(
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    compactItem(
+              Row(
+                children: [
+                  Expanded(
+                    child: compactItem(
                       icon: Icons.today_outlined,
                       value: _fullDateText(now),
                     ),
-                    compactItem(
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: compactItem(
                       icon: Icons.access_time,
                       value: _timeText(now),
                     ),
-                    compactItem(
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: compactItem(
                       icon: _weatherIcon(snapshot),
                       value: '${snapshot.temperatureC.toStringAsFixed(1)}° • ${snapshot.description}',
                       color: weatherColor,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              IconButton(
-                onPressed: _locationWeatherRefreshing ? null : _refreshLocationWeather,
-                tooltip: 'تحديث',
-                icon: _locationWeatherRefreshing
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.refresh),
+              const SizedBox(height: 6),
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: IconButton(
+                  onPressed: _locationWeatherRefreshing ? null : _refreshLocationWeather,
+                  tooltip: 'تحديث',
+                  icon: _locationWeatherRefreshing
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.refresh),
+                ),
               ),
             ],
           ),
