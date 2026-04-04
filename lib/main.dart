@@ -269,23 +269,30 @@ class ProfileStore {
 class FirebaseBootstrap {
   FirebaseBootstrap._();
 
-  static bool _initialized = false;
   static bool _available = false;
   static String? _lastError;
+  static Future<void>? _initFuture;
 
   static bool get isAvailable => _available;
   static String? get lastError => _lastError;
 
-  static Future<void> ensureInitialized() async {
-    if (_initialized) return;
-    _initialized = true;
+  static Future<void> ensureInitialized() {
+    if (_available) return Future.value();
+    return _initFuture ??= _initializeInternal();
+  }
+
+  static Future<void> _initializeInternal() async {
     try {
-      await Firebase.initializeApp();
+      if (Firebase.apps.isEmpty) {
+        await Firebase.initializeApp();
+      }
       _available = true;
       _lastError = null;
     } catch (e) {
       _available = false;
       _lastError = e.toString();
+      _initFuture = null;
+      rethrow;
     }
   }
 }
@@ -311,11 +318,28 @@ class AuthService {
 
   bool get isAvailable => FirebaseBootstrap.isAvailable;
   String? get lastError => FirebaseBootstrap.lastError;
-  bool get isSignedIn => FirebaseAuth.instance.currentUser != null;
-  String? get currentUserEmail => FirebaseAuth.instance.currentUser?.email;
+  bool get isSignedIn {
+    if (!FirebaseBootstrap.isAvailable || Firebase.apps.isEmpty) return false;
+    try {
+      return FirebaseAuth.instance.currentUser != null;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  String? get currentUserEmail {
+    if (!FirebaseBootstrap.isAvailable || Firebase.apps.isEmpty) return null;
+    try {
+      return FirebaseAuth.instance.currentUser?.email;
+    } catch (_) {
+      return null;
+    }
+  }
 
   Future<void> init() async {
-    await FirebaseBootstrap.ensureInitialized();
+    try {
+      await FirebaseBootstrap.ensureInitialized();
+    } catch (_) {}
   }
 
   Future<AuthResult> signIn({
@@ -564,7 +588,6 @@ class CloudBackupService {
 
   static final CloudBackupService instance = CloudBackupService._();
 
-  bool _initialized = false;
   bool _available = false;
   String? _lastError;
 
@@ -574,11 +597,14 @@ class CloudBackupService {
   String _normalizeEmail(String email) => email.trim().toLowerCase();
 
   Future<void> init() async {
-    if (_initialized) return;
-    _initialized = true;
-    await FirebaseBootstrap.ensureInitialized();
-    _available = FirebaseBootstrap.isAvailable;
-    _lastError = FirebaseBootstrap.lastError;
+    try {
+      await FirebaseBootstrap.ensureInitialized();
+      _available = FirebaseBootstrap.isAvailable;
+      _lastError = FirebaseBootstrap.lastError;
+    } catch (_) {
+      _available = FirebaseBootstrap.isAvailable;
+      _lastError = FirebaseBootstrap.lastError;
+    }
   }
 
   Future<bool> writeBackup({
@@ -1328,10 +1354,9 @@ class AppStartupGate extends StatefulWidget {
 }
 
 class _AppStartupGateState extends State<AppStartupGate> {
-  static const Duration _startupTimeout = Duration(seconds: 3);
+  static const Duration _startupTimeout = Duration(seconds: 8);
 
   final ProfileStore _profileStore = ProfileStore();
-  Timer? _forceOpenTimer;
   bool _loading = true;
   bool _firebaseAvailable = false;
   String? _firebaseError;
@@ -1342,23 +1367,14 @@ class _AppStartupGateState extends State<AppStartupGate> {
   @override
   void initState() {
     super.initState();
-    _forceOpenTimer = Timer(const Duration(seconds: 3), _openAnyway);
     _initialize();
-  }
-
-  void _openAnyway() {
-    if (!mounted || !_loading) return;
-    setState(() {
-      _firebaseAvailable = AuthService.instance.isAvailable;
-      _firebaseError = _firebaseError ?? AuthService.instance.lastError;
-      _loading = false;
-    });
   }
 
   Future<void> _initialize() async {
     UserProfile? profile;
     String? signedInEmail;
     String? message;
+    String? firebaseError;
 
     try {
       profile = await _profileStore.load().timeout(
@@ -1372,7 +1388,7 @@ class _AppStartupGateState extends State<AppStartupGate> {
     try {
       await AuthService.instance.init().timeout(_startupTimeout);
     } catch (e) {
-      _firebaseError = 'تعذر تهيئة Firebase الآن: $e';
+      firebaseError = 'تعذر تهيئة Firebase الآن: $e';
     }
 
     String? firebaseEmail;
@@ -1412,10 +1428,9 @@ class _AppStartupGateState extends State<AppStartupGate> {
     }
 
     if (!mounted) return;
-    _forceOpenTimer?.cancel();
     setState(() {
       _firebaseAvailable = AuthService.instance.isAvailable;
-      _firebaseError = _firebaseError ?? AuthService.instance.lastError;
+      _firebaseError = firebaseError ?? AuthService.instance.lastError;
       _userEmail = signedInEmail;
       _prefillEmail = savedEmail ?? firebaseEmail;
       _startupMessage = message ??
@@ -1424,6 +1439,16 @@ class _AppStartupGateState extends State<AppStartupGate> {
               : null);
       _loading = false;
     });
+  }
+
+  Future<void> _retryFirebaseInitialization() async {
+    if (!mounted) return;
+    setState(() {
+      _loading = true;
+      _firebaseError = null;
+      _startupMessage = null;
+    });
+    await _initialize();
   }
 
   Future<void> _continueLocally(String email) async {
@@ -1514,7 +1539,6 @@ class _AppStartupGateState extends State<AppStartupGate> {
 
   @override
   void dispose() {
-    _forceOpenTimer?.cancel();
     super.dispose();
   }
 
@@ -1533,6 +1557,7 @@ class _AppStartupGateState extends State<AppStartupGate> {
         initialEmail: _prefillEmail,
         errorMessage: _firebaseError,
         onContinue: _continueLocally,
+        onRetryFirebase: _retryFirebaseInitialization,
       );
     }
 
@@ -1583,12 +1608,14 @@ class LocalEmailGate extends StatefulWidget {
   final String? initialEmail;
   final String? errorMessage;
   final Future<void> Function(String email) onContinue;
+  final Future<void> Function()? onRetryFirebase;
 
   const LocalEmailGate({
     super.key,
     required this.onContinue,
     this.initialEmail,
     this.errorMessage,
+    this.onRetryFirebase,
   });
 
   @override
@@ -1599,6 +1626,7 @@ class _LocalEmailGateState extends State<LocalEmailGate> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   late final TextEditingController _emailController;
   bool _saving = false;
+  bool _retryingFirebase = false;
 
   @override
   void initState() {
@@ -1618,6 +1646,15 @@ class _LocalEmailGateState extends State<LocalEmailGate> {
     await widget.onContinue(_emailController.text);
     if (!mounted) return;
     setState(() => _saving = false);
+  }
+
+  Future<void> _retryFirebase() async {
+    final retry = widget.onRetryFirebase;
+    if (retry == null) return;
+    setState(() => _retryingFirebase = true);
+    await retry();
+    if (!mounted) return;
+    setState(() => _retryingFirebase = false);
   }
 
   @override
@@ -1697,6 +1734,23 @@ class _LocalEmailGateState extends State<LocalEmailGate> {
                             label: const Text('متابعة وفتح البرنامج'),
                           ),
                         ),
+                        if (widget.onRetryFirebase != null) ...[
+                          const SizedBox(height: 10),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: (_saving || _retryingFirebase) ? null : _retryFirebase,
+                              icon: _retryingFirebase
+                                  ? const SizedBox(
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    )
+                                  : const Icon(Icons.refresh),
+                              label: const Text('إعادة محاولة تهيئة السحابة'),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -2054,6 +2108,13 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
     );
   }
 
+  bool get _canCloudSyncForCurrentUser {
+    final authenticatedEmail = AuthService.instance.currentUserEmail?.trim().toLowerCase();
+    return AuthService.instance.isAvailable &&
+        authenticatedEmail != null &&
+        authenticatedEmail == _userEmail.trim().toLowerCase();
+  }
+
   @override
   void dispose() {
     _salesController.dispose();
@@ -2389,7 +2450,9 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
     try {
       final data = await DatabaseHelper.instance.getAllEntries();
       final backupInfo = await BackupService.instance.readInfo(_userEmail);
-      final cloudInfo = await CloudBackupService.instance.readInfo(_userEmail);
+      final cloudInfo = _canCloudSyncForCurrentUser
+          ? await CloudBackupService.instance.readInfo(_userEmail)
+          : const CloudBackupSnapshotInfo(exists: false);
       if (!mounted) return;
       setState(() {
         _entries = data;
@@ -2423,8 +2486,7 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
         email: _userEmail,
         entries: data,
       );
-      final authenticatedEmail = AuthService.instance.currentUserEmail?.trim().toLowerCase();
-      final canCloudSync = AuthService.instance.isAvailable && authenticatedEmail == _userEmail.trim().toLowerCase();
+      final canCloudSync = _canCloudSyncForCurrentUser;
       final cloudSaved = canCloudSync
           ? await CloudBackupService.instance.writeBackup(
               email: _userEmail,

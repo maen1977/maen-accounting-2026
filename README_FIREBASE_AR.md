@@ -1,6 +1,7 @@
 ## تم دمج google-services.json
-- هذا الملف تم وضعه داخل `firebase/google-services.json` وسيتم نسخه تلقائيًا إلى `android/app/google-services.json` أثناء البناء في GitHub Actions.
-- يبقى عليك فقط تفعيل Authentication و Firestore من Firebase Console.
+- الملف موجود داخل `firebase/google-services.json`
+- عند التجهيز المحلي أو داخل GitHub Actions يتم نسخه إلى `android/app/google-services.json`
+- لأندرويد فقط، هذا يكفي مع `Firebase.initializeApp()` الحالي طالما كانت ملفات Android مجهزة بشكل صحيح
 
 # إعداد Firebase للمزامنة التلقائية
 
@@ -8,14 +9,16 @@
 - Firebase Authentication (تسجيل الدخول بالإيميل وكلمة المرور)
 - Cloud Firestore (نسخة احتياطية سحابية واسترجاع تلقائي بين الأجهزة)
 
-## الخطوات
-1. ثبت Firebase CLI و FlutterFire CLI.
-2. من داخل المشروع نفّذ:
-   - flutter pub get
-   - flutterfire configure
-3. فعّل Email/Password من Firebase Authentication.
-4. أنشئ Cloud Firestore في وضع الإنتاج أو الاختبار ثم عدّل القواعد.
-5. أعد بناء التطبيق.
+## الخطوات الأساسية لأندرويد
+1. نفّذ:
+   - `python3 tools/prepare_android_local.py`
+2. فعّل Email/Password من Firebase Authentication.
+3. أنشئ Cloud Firestore في وضع مناسب ثم عدّل القواعد عند الحاجة.
+4. أعد تشغيل التطبيق.
+
+## متى تحتاج flutterfire configure؟
+- إذا أردت تشغيل المشروع على منصات أخرى مثل Web أو iOS أو macOS
+- إذا أردت توليد `firebase_options.dart` رسميًا لكل المنصات
 
 ## سلوك البرنامج
 - بعد تسجيل الدخول يتم حفظ البيانات داخل SQLite محليًا.
@@ -23,5 +26,5 @@
 - إذا تم تثبيت التطبيق على جهاز آخر وتسجيل الدخول بنفس الحساب، يحاول البرنامج استعادة البيانات تلقائيًا من السحابة إذا كانت قاعدة البيانات المحلية فارغة.
 
 ## ملاحظات
-- هذه النسخة لا تتضمن firebase_options.dart لأن هذا الملف يجب توليده حسب مشروع Firebase الخاص بك عبر flutterfire configure.
+- هذه النسخة لا تعتمد على `firebase_options.dart` لتشغيل Android الحالي.
 - يمكن إبقاء زر مشاركة النسخة إلى البريد كطبقة أمان إضافية فوق المزامنة السحابية.
