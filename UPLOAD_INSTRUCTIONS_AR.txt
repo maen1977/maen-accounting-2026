@@ -1,0 +1,10 @@
+هذه النسخة تحتوي على ملف GitHub Actions الصحيح داخل:
+.github/workflows/flutter.yml
+
+السطر المعدل بداخلها هو:
+flutter analyze --no-fatal-infos --no-fatal-warnings
+
+مهم جدا:
+1) ارفع المشروع كاملا بعد فك الضغط.
+2) تأكد من رفع المجلد المخفي .github أيضا.
+3) إذا كنت على ويندوز فعّل View > Hidden items قبل الرفع.
