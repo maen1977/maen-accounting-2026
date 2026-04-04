@@ -2137,7 +2137,6 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
     _userEmail = widget.userEmail;
     _searchController.addListener(_handleSearchChanged);
     _loadEntries(showStartupMessage: true);
-    unawaited(_prepareMarket());
     unawaited(_prepareLocationWeather());
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) {
@@ -2147,7 +2146,6 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
     _marketTimer = Timer.periodic(
       const Duration(minutes: 5),
       (_) {
-        unawaited(_refreshMarketData());
         unawaited(_refreshLocationWeather());
       },
     );
@@ -2312,6 +2310,132 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
     if ([71, 73, 75, 77, 85, 86].contains(code)) return Icons.ac_unit;
     if ([95, 96, 99].contains(code)) return Icons.flash_on;
     return Icons.cloud_queue;
+  }
+
+  Widget _buildLocationWeatherSection() {
+    if (_locationWeatherLoading) {
+      return const Padding(
+        padding: EdgeInsets.fromLTRB(16, 12, 16, 8),
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2.2),
+                ),
+                SizedBox(width: 10),
+                Expanded(child: Text('جارٍ تحميل الوقت والتاريخ والطقس...')),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final snapshot = _locationWeatherSnapshot;
+    if (snapshot == null) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _locationWeatherError ?? 'تعذّر تحميل الوقت أو التاريخ أو الطقس الآن.',
+                    style: const TextStyle(height: 1.5, color: Colors.black54),
+                  ),
+                ),
+                IconButton(
+                  onPressed: _refreshLocationWeather,
+                  icon: const Icon(Icons.refresh),
+                  tooltip: 'إعادة المحاولة',
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final now = _locationAwareNow;
+    final weatherColor = snapshot.isDay ? const Color(0xFF1F6FEB) : const Color(0xFF6E56CF);
+
+    Widget compactItem({required IconData icon, required String value, Color? color}) {
+      return Container(
+        constraints: const BoxConstraints(minWidth: 110),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 17, color: color ?? Colors.black87),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                value,
+                style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    compactItem(
+                      icon: Icons.today_outlined,
+                      value: DateFormat('d MMM yyyy', 'ar').format(now),
+                    ),
+                    compactItem(
+                      icon: Icons.access_time,
+                      value: _timeText(now),
+                    ),
+                    compactItem(
+                      icon: _weatherIcon(snapshot),
+                      value: '${snapshot.temperatureC.toStringAsFixed(1)}° • ${snapshot.description}',
+                      color: weatherColor,
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: _locationWeatherRefreshing ? null : _refreshLocationWeather,
+                tooltip: 'تحديث',
+                icon: _locationWeatherRefreshing
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.refresh),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   String get _normalizedUserEmail => _userEmail.trim().toLowerCase();
@@ -2618,10 +2742,6 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
     return DateFormat('MMMM yyyy', 'ar').format(value);
   }
 
-
-
-
-
   List<ProfitEntry> get _currentMonthEntries {
     final now = DateTime.now();
     return _entries.where((entry) {
@@ -2629,7 +2749,10 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
     }).toList();
   }
 
-
+  List<ProfitEntry> get _currentYearEntries {
+    final now = DateTime.now();
+    return _entries.where((entry) => entry.date.year == now.year).toList();
+  }
 
   List<ProfitEntry> get _monthlyEntries {
     return _entries.where((entry) {
@@ -2663,23 +2786,19 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
   }
 
   double _salesTotal(List<ProfitEntry> list) {
-    return list.fold(0, (total, item) => total + item.sales);
-  }
-
-  double _costTotal(List<ProfitEntry> list) {
-    return list.fold(0, (total, item) => total + item.cost);
+    return list.fold(0, (sum, item) => sum + item.sales);
   }
 
   double _grossTotal(List<ProfitEntry> list) {
-    return list.fold(0, (total, item) => total + item.grossProfit);
+    return list.fold(0, (sum, item) => sum + item.grossProfit);
   }
 
   double _expensesTotal(List<ProfitEntry> list) {
-    return list.fold(0, (total, item) => total + item.expenses);
+    return list.fold(0, (sum, item) => sum + item.expenses);
   }
 
   double _netTotal(List<ProfitEntry> list) {
-    return list.fold(0, (total, item) => total + item.netProfit);
+    return list.fold(0, (sum, item) => sum + item.netProfit);
   }
 
   double _averageNet(List<ProfitEntry> list) {
@@ -2880,7 +2999,7 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
       builder: (context, constraints) {
         final maxWidth = constraints.maxWidth;
         final crossAxisCount = maxWidth > 920 ? 4 : maxWidth > 640 ? 2 : 1;
-        const spacing = 12.0;
+        final spacing = 12.0;
         final itemWidth = (maxWidth - spacing * (crossAxisCount - 1)) / crossAxisCount;
 
         return Wrap(
@@ -2895,15 +3014,14 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
   }
 
   Widget _entryTile(ProfitEntry entry, {bool compact = false}) {
-    final resultColor = entry.netProfit >= 0 ? Colors.green : Colors.red;
     return Card(
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         leading: CircleAvatar(
-          backgroundColor: resultColor.withValues(alpha: 0.12),
+          backgroundColor: (entry.netProfit >= 0 ? Colors.green : Colors.red).withValues(alpha: 0.12),
           child: Icon(
             entry.netProfit >= 0 ? Icons.trending_up : Icons.trending_down,
-            color: resultColor,
+            color: entry.netProfit >= 0 ? Colors.green : Colors.red,
           ),
         ),
         title: Text(
@@ -2915,14 +3033,14 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('${compact ? 'المباع' : 'ثمن البضاعة المباعة'}: ${_currency(entry.sales)}'),
-              Text('${compact ? 'التكلفة' : 'تكلفة البضاعة'}: ${_currency(entry.cost)}'),
-              Text('${compact ? 'المصاريف' : 'المصاريف اليومية'}: ${_currency(entry.expenses)}'),
-              Text(
-                '${compact ? 'النتيجة' : 'النتيجة النهائية'}: ${_currency(entry.netProfit)}',
+              Text('السعر الكلي: ${_currency(entry.sales)}'),
+              Text('تكلفة القطع: ${_currency(entry.cost)}'),
+              Text('مشتريات يومية: ${_currency(entry.expenses)}'),
+                            Text(
+                'صافي الربح الكلي: ${_currency(entry.netProfit)}',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: resultColor,
+                  color: entry.netProfit >= 0 ? Colors.green : Colors.red,
                 ),
               ),
               if (!compact && entry.notes.trim().isNotEmpty) ...[
@@ -2949,48 +3067,6 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
     );
   }
 
-  Widget _compactSummaryItem({
-    required String label,
-    required String value,
-    required IconData icon,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: color.withValues(alpha: 0.16),
-            child: Icon(icon, color: color, size: 18),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: const TextStyle(fontSize: 12.5, color: Colors.black54),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  value,
-                  style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _outlineActionButton({
     required IconData icon,
@@ -3056,20 +3132,121 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
     );
   }
 
+  Widget _buildMarketSection() {
+    if (_marketLoading) {
+      return const Card(
+        child: Padding(
+          padding: EdgeInsets.all(18),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2.5),
+              ),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text('جارٍ جلب أسعار الذهب والفضة واليورو/الدولار...'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
+    if (_marketError != null && _marketSnapshot == null) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'تعذّر تحميل مؤشرات السوق',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _marketError!,
+                style: const TextStyle(height: 1.5, color: Colors.black54),
+              ),
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                onPressed: _refreshMarketData,
+                icon: const Icon(Icons.refresh),
+                label: const Text('إعادة المحاولة'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final snapshot = _marketSnapshot;
+    if (snapshot == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'الذهب • الفضة • EUR/USD',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                IconButton(
+                  onPressed: _marketRefreshing ? null : _refreshMarketData,
+                  tooltip: 'تحديث مؤشرات السوق',
+                  icon: _marketRefreshing
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.wifi_tethering_outlined),
+                ),
+              ],
+            ),
+            Text(
+              _marketError == null
+                  ? 'آخر مزامنة: ${_dateTimeText(snapshot.fetchedAt)}'
+                  : 'آخر بيانات محفوظة: ${_dateTimeText(snapshot.fetchedAt)}',
+              style: const TextStyle(fontSize: 12.5, color: Colors.black54),
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                for (int i = 0; i < snapshot.quotes.length; i++) ...[
+                  Expanded(child: _marketTile(snapshot.quotes[i])),
+                  if (i != snapshot.quotes.length - 1) const SizedBox(width: 8),
+                ],
+              ],
+            ),
+            if (_marketError != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                _marketError!,
+                style: const TextStyle(fontSize: 12.5, color: Colors.black54, height: 1.5),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 
   Widget _buildDashboardPage() {
     final today = _todayEntry;
-    final latestEntries = _entries.take(3).toList();
-    final monthEntries = _currentMonthEntries;
-    final todaySales = today?.sales ?? 0;
-    final todayCost = today?.cost ?? 0;
-    final todayExpenses = today?.expenses ?? 0;
-    final todayNet = today?.netProfit ?? 0;
-    final monthSales = _salesTotal(monthEntries);
-    final monthCost = _costTotal(monthEntries);
-    final monthExpenses = _expensesTotal(monthEntries);
-    final monthNet = _netTotal(monthEntries);
+    final latestEntries = _entries.take(5).toList();
+    final monthNet = _netTotal(_currentMonthEntries);
+    final monthSales = _salesTotal(_currentMonthEntries);
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -3086,11 +3263,11 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     CircleAvatar(
-                      radius: 28,
+                      radius: 30,
                       backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.12),
                       child: Icon(
-                        Icons.space_dashboard_outlined,
-                        size: 28,
+                        Icons.account_balance_wallet_outlined,
+                        size: 30,
                         color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
@@ -3100,27 +3277,27 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'الرئيسية',
+                            'لوحة التحكم الرئيسية',
                             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'الحساب المرتبط: $_userEmail',
+                            'البريد الشخصي المرتبط: $_userEmail',
                             style: const TextStyle(color: Colors.black54),
                           ),
                           const SizedBox(height: 10),
                           Text(
                             today == null
-                                ? 'أضف سجل اليوم ليظهر ملخص مختصر وواضح بدون إطالة في الصفحة الرئيسية.'
-                                : 'ملخص اليوم جاهز: مباع ${_currency(todaySales)} • تكلفة ${_currency(todayCost)} • نتيجة ${_currency(todayNet)}',
-                            style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w700, height: 1.5),
+                                ? 'لا يوجد سجل محفوظ لليوم بعد. ابدأ بإضافة سجل اليوم ليظهر ملخص الربح مباشرة.'
+                                : 'صافي الربح الكلي لليوم: ${_currency(today.netProfit)} • السعر الكلي لليوم: ${_currency(today.sales)}',
+                            style: const TextStyle(fontSize: 16.5, fontWeight: FontWeight.w700, height: 1.5),
                           ),
                         ],
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 18),
                 Wrap(
                   spacing: 10,
                   runSpacing: 10,
@@ -3140,6 +3317,11 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                       label: 'مزامنة الآن',
                       onPressed: () => _writeBackup(showMessage: true),
                     ),
+                    _outlineActionButton(
+                      icon: Icons.forward_to_inbox_outlined,
+                      label: 'إرسال إلى البريد',
+                      onPressed: _sharingBackup ? null : _shareBackupToEmail,
+                    ),
                   ],
                 ),
               ],
@@ -3149,111 +3331,38 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
         const SizedBox(height: 16),
         _statsWrap([
           _statCard(
-            title: 'المباع',
-            value: _currency(todaySales),
+            title: 'صافي الربح الكلي لهذا الشهر',
+            value: _currency(monthNet),
+            icon: Icons.calendar_month_outlined,
+            color: Colors.green,
+            footer: 'عدد الأيام المسجلة: ${_currentMonthEntries.length}',
+          ),
+          _statCard(
+            title: 'السعر الكلي لهذا الشهر',
+            value: _currency(monthSales),
             icon: Icons.sell_outlined,
             color: Colors.blue,
-            footer: 'اليوم',
+            footer: 'صافي الربح الكلي لليوم: ${today == null ? '—' : _currency(today.netProfit)}',
           ),
           _statCard(
-            title: 'التكلفة',
-            value: _currency(todayCost),
-            icon: Icons.inventory_2_outlined,
-            color: Colors.deepPurple,
-            footer: 'اليوم',
+            title: 'صافي الربح الكلي لهذه السنة',
+            value: _currency(_netTotal(_currentYearEntries)),
+            icon: Icons.bar_chart_outlined,
+            color: Colors.indigo,
+            footer: 'متوسط السجل: ${_currency(_averageNet(_currentYearEntries))}',
           ),
           _statCard(
-            title: 'المصاريف',
-            value: _currency(todayExpenses),
+            title: 'إجمالي المشتريات اليومية',
+            value: _currency(_expensesTotal(_entries)),
             icon: Icons.payments_outlined,
             color: Colors.orange,
-            footer: 'اليوم',
-          ),
-          _statCard(
-            title: 'النتيجة',
-            value: _currency(todayNet),
-            icon: todayNet >= 0 ? Icons.trending_up : Icons.trending_down,
-            color: todayNet >= 0 ? Colors.green : Colors.red,
-            footer: today == null ? 'لا يوجد سجل اليوم' : 'بعد المصاريف',
+            footer: 'إجمالي السجلات: ${_entries.length}',
           ),
         ]),
-        const SizedBox(height: 16),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'ملخص الشهر',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'عدد الأيام المسجلة هذا الشهر: ${monthEntries.length}',
-                  style: const TextStyle(color: Colors.black54),
-                ),
-                const SizedBox(height: 12),
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final isWide = constraints.maxWidth > 560;
-                    final items = [
-                      _compactSummaryItem(
-                        label: 'مباع الشهر',
-                        value: _currency(monthSales),
-                        icon: Icons.sell_outlined,
-                        color: Colors.blue,
-                      ),
-                      _compactSummaryItem(
-                        label: 'تكلفة الشهر',
-                        value: _currency(monthCost),
-                        icon: Icons.inventory_2_outlined,
-                        color: Colors.deepPurple,
-                      ),
-                      _compactSummaryItem(
-                        label: 'مصاريف الشهر',
-                        value: _currency(monthExpenses),
-                        icon: Icons.payments_outlined,
-                        color: Colors.orange,
-                      ),
-                      _compactSummaryItem(
-                        label: 'نتيجة الشهر',
-                        value: _currency(monthNet),
-                        icon: monthNet >= 0 ? Icons.trending_up : Icons.trending_down,
-                        color: monthNet >= 0 ? Colors.green : Colors.red,
-                      ),
-                    ];
-
-                    if (isWide) {
-                      return GridView.count(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 10,
-                        mainAxisSpacing: 10,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        childAspectRatio: 3.2,
-                        children: items,
-                      );
-                    }
-
-                    return Column(
-                      children: [
-                        for (int i = 0; i < items.length; i++) ...[
-                          items[i],
-                          if (i != items.length - 1) const SizedBox(height: 10),
-                        ],
-                      ],
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-        ),
         const SizedBox(height: 20),
         _sectionHeader(
-          'آخر السجلات',
-          subtitle: 'آخر 3 سجلات بشكل مختصر',
+          'أحدث السجلات',
+          subtitle: 'آخر 5 سجلات تم إدخالها',
           trailing: TextButton(
             onPressed: () => setState(() => _selectedIndex = 2),
             child: const Text('عرض الكل'),
@@ -3264,7 +3373,7 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
           const _EmptyStateCard(
             icon: Icons.inbox_outlined,
             title: 'لا توجد سجلات بعد',
-            subtitle: 'ابدأ بإضافة أول سجل يومي ليظهر هنا الملخص المختصر.',
+            subtitle: 'ابدأ بإضافة أول سجل يومي ليظهر هنا الملخص الكامل.',
           )
         else
           ...latestEntries.map((entry) => _entryTile(entry, compact: true)),
@@ -3278,7 +3387,7 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
       children: [
         _sectionHeader(
           _editingEntry == null ? 'إضافة سجل يومي' : 'تعديل سجل يومي',
-          subtitle: 'أدخل بيانات اليوم بشكل مختصر وواضح، وسيتم تحديث التقارير والنسخة المحلية تلقائيًا.',
+          subtitle: 'أدخل بيانات اليوم وسيتم تحديث التقارير والنسخة المحلية تلقائيًا.',
         ),
         const SizedBox(height: 12),
         Card(
@@ -3299,14 +3408,14 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                   ],
                 ),
                 SizedBox(height: 10),
-                Text('1) ثمن البضاعة المباعة: مجموع قيمة البيع خلال اليوم.'),
+                Text('1) السعر الكلي: إجمالي قيمة البيع المسجلة لليوم.'),
                 SizedBox(height: 4),
-                Text('2) تكلفة البضاعة: تكلفة الأصناف أو البضاعة المباعة.'),
+                Text('2) تكلفة القطع: مجموع تكلفة القطع أو الأصناف.'),
                 SizedBox(height: 4),
-                Text('3) المصاريف اليومية: مثل النقل والعمالة وأي مصروف يومي آخر.'),
+                Text('3) مشتريات يومية: أي مشتريات أو مصروف يومي تريد احتسابه ضمن اليوم.'),
                 SizedBox(height: 8),
                 Text(
-                  'المعادلة: النتيجة = ثمن البضاعة المباعة - تكلفة البضاعة - المصاريف اليومية',
+                  'المعادلة: صافي الربح الكلي = السعر الكلي - تكلفة القطع - المشتريات اليومية',
                   style: TextStyle(fontWeight: FontWeight.w600),
                 ),
               ],
@@ -3333,13 +3442,13 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
                     decoration: const InputDecoration(
-                      labelText: 'ثمن البضاعة المباعة',
+                      labelText: 'السعر الكلي',
                       prefixIcon: Icon(Icons.sell_outlined),
                     ),
                     onChanged: (_) => setState(() {}),
                     validator: (value) {
                       final number = _parseNumber(value ?? '');
-                      if (number <= 0) return 'أدخل مبلغ بيع صحيح';
+                      if (number <= 0) return 'أدخل سعرًا كليًا صحيحًا';
                       return null;
                     },
                   ),
@@ -3349,13 +3458,13 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
                     decoration: const InputDecoration(
-                      labelText: 'تكلفة البضاعة',
+                      labelText: 'تكلفة القطع',
                       prefixIcon: Icon(Icons.inventory_2_outlined),
                     ),
                     onChanged: (_) => setState(() {}),
                     validator: (value) {
                       final number = _parseNumber(value ?? '');
-                      if (number < 0) return 'أدخل قيمة مشتريات صحيحة';
+                      if (number < 0) return 'أدخل تكلفة قطع صحيحة';
                       return null;
                     },
                   ),
@@ -3365,13 +3474,13 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
                     decoration: const InputDecoration(
-                      labelText: 'مصاريف يومية',
+                      labelText: 'مشتريات يومية',
                       prefixIcon: Icon(Icons.money_off_csred_outlined),
                     ),
                     onChanged: (_) => setState(() {}),
                     validator: (value) {
                       final number = _parseNumber(value ?? '');
-                      if (number < 0) return 'أدخل مصاريف تشغيلية صحيحة';
+                      if (number < 0) return 'أدخل قيمة مشتريات يومية صحيحة';
                       return null;
                     },
                   ),
@@ -3389,13 +3498,7 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                   const SizedBox(height: 16),
                   _statsWrap([
                     _statCard(
-                      title: 'قبل المصاريف',
-                      value: _currency(_previewGross),
-                      icon: Icons.trending_up,
-                      color: Colors.blue,
-                    ),
-                    _statCard(
-                      title: 'النتيجة المتوقعة',
+                      title: 'صافي الربح الكلي',
                       value: _currency(_previewNet),
                       icon: Icons.account_balance_wallet_outlined,
                       color: _previewNet >= 0 ? Colors.green : Colors.red,
@@ -3454,7 +3557,7 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
       children: [
         _sectionHeader(
           'التقارير والسجلات',
-          subtitle: 'متابعة مختصرة للشهر والسنة مع سجل كامل قابل للبحث والتعديل.',
+          subtitle: 'واجهة موحّدة لمتابعة الأداء الشهري والسنوي ومراجعة كل السجلات من مكان واحد.',
           trailing: OutlinedButton.icon(
             onPressed: _pickReportMonth,
             icon: const Icon(Icons.date_range),
@@ -3464,25 +3567,25 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
         const SizedBox(height: 12),
         _statsWrap([
           _statCard(
-            title: 'نتيجة الشهر',
+            title: 'صافي الربح الكلي للشهر المحدد',
             value: _currency(_netTotal(monthlyEntries)),
             icon: Icons.calendar_view_month,
             color: Colors.teal,
             footer: 'عدد الأيام المسجلة: ${monthlyEntries.length}',
           ),
           _statCard(
-            title: 'مصاريف الشهر',
+            title: 'إجمالي المشتريات اليومية للشهر',
             value: _currency(_expensesTotal(monthlyEntries)),
             icon: Icons.money_off,
             color: Colors.orange,
-            footer: 'قبل المصاريف: ${_currency(_grossTotal(monthlyEntries))}',
+            footer: 'إجمالي السعر الكلي: ${_currency(_salesTotal(monthlyEntries))}',
           ),
           _statCard(
-            title: 'نتيجة سنة ${_reportDate.year}',
+            title: 'صافي الربح الكلي لسنة ${_reportDate.year}',
             value: _currency(_netTotal(yearlyEntries)),
             icon: Icons.query_stats,
             color: Colors.indigo,
-            footer: 'متوسط اليوم: ${_currency(_averageNet(yearlyEntries))}',
+            footer: 'متوسط الصافي اليومي: ${_currency(_averageNet(yearlyEntries))}',
           ),
           _statCard(
             title: 'إجمالي السجلات المعروضة',
@@ -3719,65 +3822,9 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                       label: const Text('تحديث الوقت والطقس'),
                     ),
                     OutlinedButton.icon(
-                      onPressed: _editManualMarketSettings,
-                      icon: const Icon(Icons.tune),
-                      label: const Text('قيم السوق اليدوية'),
-                    ),
-                    OutlinedButton.icon(
                       onPressed: _confirmSignOut,
                       icon: const Icon(Icons.logout),
                       label: const Text('تسجيل الخروج'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'مصادر السوق والبدائل',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 14),
-                _infoRow(
-                  'الوضع الحالي',
-                  _marketError == null
-                      ? 'الأسعار المباشرة تعمل عبر الإنترنت'
-                      : 'يوجد تعذر في الاتصال ويجري استخدام بيانات احتياطية عند توفرها',
-                  valueColor: _marketError == null ? Colors.green.shade700 : Colors.orange.shade900,
-                ),
-                _infoRow(
-                  'القيم اليدوية',
-                  _manualMarketSettings.isComplete
-                      ? 'مكتملة'
-                      : (_manualMarketSettings.hasAny ? 'موجودة جزئيًا' : 'غير مضبوطة'),
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  'إذا تعذّر جلب سعر الذهب أو الفضة أو اليورو/الدولار من الإنترنت، يستطيع التطبيق عرض آخر بيانات ناجحة محفوظة أو القيم اليدوية التي تدخلها هنا.',
-                  style: TextStyle(height: 1.6),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    FilledButton.icon(
-                      onPressed: _editManualMarketSettings,
-                      icon: const Icon(Icons.tune),
-                      label: const Text('تعديل القيم اليدوية'),
-                    ),
-                    OutlinedButton.icon(
-                      onPressed: _marketRefreshing ? null : _refreshMarketData,
-                      icon: const Icon(Icons.wifi_tethering_outlined),
-                      label: const Text('إعادة جلب الأسعار'),
                     ),
                   ],
                 ),
@@ -3882,12 +3929,19 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
           ),
         ],
       ),
-      body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 220),
-        child: KeyedSubtree(
-          key: ValueKey(_selectedIndex),
-          child: _buildBody(),
-        ),
+      body: Column(
+        children: [
+          _buildLocationWeatherSection(),
+          Expanded(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 220),
+              child: KeyedSubtree(
+                key: ValueKey(_selectedIndex),
+                child: _buildBody(),
+              ),
+            ),
+          ),
+        ],
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
