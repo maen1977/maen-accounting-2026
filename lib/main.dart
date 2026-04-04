@@ -2314,6 +2314,312 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
     return Icons.cloud_queue;
   }
 
+  String get _normalizedUserEmail => _userEmail.trim().toLowerCase();
+
+  String get _expectedCloudDocPath => 'profit_tracker_backups/$_normalizedUserEmail';
+
+  Future<void> _runCloudConnectionTest() async {
+    if (_cloudSyncing) return;
+    setState(() => _cloudSyncing = true);
+    try {
+      await AuthService.instance.init(forceRetry: true);
+      final firebaseAvailable = AuthService.instance.isAvailable;
+      final firebaseEmail = AuthService.instance.currentUserEmail?.trim().toLowerCase();
+      final entries = await DatabaseHelper.instance.getAllEntries();
+      String message;
+      if (!firebaseAvailable) {
+        message = 'فشل اختبار السحابة: Firebase غير مهيأ بعد.';
+      } else if (firebaseEmail == null || firebaseEmail.isEmpty) {
+        message = 'فشل اختبار السحابة: لا توجد جلسة تسجيل دخول Firebase حالية.';
+      } else if (firebaseEmail != _normalizedUserEmail) {
+        message = 'فشل اختبار السحابة: بريد Firebase الحالي ($firebaseEmail) لا يطابق حساب التطبيق ($_normalizedUserEmail).';
+      } else {
+        final localSaved = await BackupService.instance.writeBackup(email: _normalizedUserEmail, entries: entries);
+        final cloudSaved = await CloudBackupService.instance.writeBackup(email: _normalizedUserEmail, entries: entries);
+        final backupInfo = await BackupService.instance.readInfo(_normalizedUserEmail);
+        final cloudInfo = await CloudBackupService.instance.readInfo(_normalizedUserEmail);
+        if (!mounted) return;
+        setState(() {
+          _backupInfo = backupInfo;
+          _cloudBackupInfo = cloudInfo;
+        });
+        if (localSaved && cloudSaved) {
+          message = 'نجح اختبار السحابة. تم تأكيد الكتابة إلى $_expectedCloudDocPath.';
+        } else if (localSaved) {
+          message = 'نجحت الكتابة المحلية، لكن اختبار السحابة فشل${CloudBackupService.instance.lastError == null ? '' : ': ${CloudBackupService.instance.lastError}'}';
+        } else {
+          message = 'فشل إنشاء النسخة المحلية أثناء الاختبار${BackupService.instance.lastError == null ? '' : ': ${BackupService.instance.lastError}'}';
+        }
+      }
+      if (!mounted) return;
+      setState(() {
+        _cloudStatusMessage = message;
+        _cloudSyncing = false;
+      });
+      _showMessage(message);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _cloudStatusMessage = 'تعذر تنفيذ اختبار الاتصال السحابي: $e';
+        _cloudSyncing = false;
+      });
+      _showMessage(_cloudStatusMessage!);
+    }
+  }
+
+  Future<void> _loadEntries({bool showStartupMessage = false}) async {
+    setState(() => _loading = true);
+    try {
+      final data = await DatabaseHelper.instance.getAllEntries();
+      final backupInfo = await BackupService.instance.readInfo(_userEmail);
+      final cloudInfo = await CloudBackupService.instance.readInfo(_userEmail);
+      if (!mounted) return;
+      setState(() {
+        _entries = data;
+        _backupInfo = backupInfo;
+        _cloudBackupInfo = cloudInfo;
+        _loading = false;
+      });
+      if (showStartupMessage && widget.startupMessage != null) {
+        unawaited(
+          Future<void>.delayed(const Duration(milliseconds: 300), () {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(widget.startupMessage!)),
+            );
+          }),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loading = false);
+      _showMessage('تعذّر تحميل السجلات: $e');
+    }
+  }
+
+  Future<void> _writeBackup({bool showMessage = false}) async {
+    if (_cloudSyncing) return;
+    try {
+      setState(() => _cloudSyncing = true);
+      final data = await DatabaseHelper.instance.getAllEntries();
+      final localSaved = await BackupService.instance.writeBackup(
+        email: _userEmail,
+        entries: data,
+      );
+      final authenticatedEmail = AuthService.instance.currentUserEmail?.trim().toLowerCase();
+      final canCloudSync = AuthService.instance.isAvailable && authenticatedEmail == _userEmail.trim().toLowerCase();
+      final cloudSaved = canCloudSync
+          ? await CloudBackupService.instance.writeBackup(
+              email: _userEmail,
+              entries: data,
+            )
+          : false;
+      final backupInfo = await BackupService.instance.readInfo(_userEmail);
+      final cloudInfo = canCloudSync
+          ? await CloudBackupService.instance.readInfo(_userEmail)
+          : const CloudBackupSnapshotInfo(exists: false);
+      if (!mounted) return;
+      setState(() {
+        _backupInfo = backupInfo;
+        _cloudBackupInfo = cloudInfo;
+        _cloudSyncing = false;
+      });
+      if (showMessage) {
+        if (localSaved && cloudSaved) {
+          _showMessage('تم تحديث النسخة المحلية والسحابية بنجاح.');
+        } else if (localSaved && !canCloudSync) {
+          _showMessage('تم تحديث النسخة المحلية. سجّل الدخول من شاشة البداية بنفس الإيميل لتفعيل النسخة السحابية.');
+        } else if (localSaved) {
+          _showMessage(
+            'تم تحديث النسخة المحلية، لكن تعذّرت المزامنة السحابية${CloudBackupService.instance.lastError == null ? '' : ': ${CloudBackupService.instance.lastError}'}',
+          );
+        } else {
+          _showMessage(
+            'تعذّر تحديث النسخة المحلية${BackupService.instance.lastError == null ? '' : ': ${BackupService.instance.lastError}'}',
+          );
+        }
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _cloudSyncing = false);
+      _showMessage('تعذّر إنشاء النسخة الاحتياطية: $e');
+    }
+  }
+
+  Future<void> _shareBackupToEmail() async {
+    if (_sharingBackup) return;
+    setState(() => _sharingBackup = true);
+    try {
+      final data = await DatabaseHelper.instance.getAllEntries();
+      final file = await BackupService.instance.exportFile(email: _userEmail, entries: data);
+      final backupInfo = await BackupService.instance.readInfo(_userEmail);
+      if (!mounted) return;
+      setState(() {
+        _backupInfo = backupInfo;
+      });
+      if (file == null) {
+        _showMessage('تعذّر تجهيز ملف النسخة الاحتياطية للمشاركة.');
+        return;
+      }
+
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        subject: 'نسخة احتياطية - Maen Accountings',
+        text: 'هذه نسخة احتياطية مرتبطة بالبريد الشخصي: $_userEmail\n\nاختر تطبيق البريد الإلكتروني وأرسل الملف إلى بريدك الشخصي للاحتفاظ بنسخة خارج الجهاز.',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      _showMessage('تعذّرت مشاركة النسخة الاحتياطية: $e');
+    } finally {
+      if (mounted) setState(() => _sharingBackup = false);
+    }
+  }
+
+  Future<void> _editManualMarketSettings() async {
+    final goldController = TextEditingController(
+      text: _manualMarketSettings.gold?.toStringAsFixed(2) ?? '',
+    );
+    final silverController = TextEditingController(
+      text: _manualMarketSettings.silver?.toStringAsFixed(2) ?? '',
+    );
+    final eurUsdController = TextEditingController(
+      text: _manualMarketSettings.eurUsd?.toStringAsFixed(4) ?? '',
+    );
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('إعداد قيم السوق اليدوية'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: goldController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                  labelText: 'الذهب (دولار / أونصة)',
+                  prefixIcon: Icon(Icons.workspace_premium_outlined),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: silverController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                  labelText: 'الفضة (دولار / أونصة)',
+                  prefixIcon: Icon(Icons.brightness_5_outlined),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: eurUsdController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                  labelText: 'اليورو مقابل الدولار',
+                  prefixIcon: Icon(Icons.currency_exchange),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('حفظ'),
+          ),
+        ],
+      ),
+    );
+
+    if (saved != true) return;
+
+    double? parseManual(String value) {
+      final cleaned = value.trim();
+      if (cleaned.isEmpty) return null;
+      return double.tryParse(cleaned.replaceAll(',', '.'));
+    }
+
+    final manual = ManualMarketSettings(
+      gold: parseManual(goldController.text),
+      silver: parseManual(silverController.text),
+      eurUsd: parseManual(eurUsdController.text),
+    );
+
+    await _marketSettingsStore.saveManual(manual);
+    if (!mounted) return;
+    setState(() {
+      _manualMarketSettings = manual;
+      if ((_marketSnapshot == null || _marketError != null) && manual.isComplete) {
+        _marketSnapshot = manual.toSnapshot();
+      }
+    });
+    _showMessage('تم حفظ القيم اليدوية لمؤشرات السوق.');
+    unawaited(_refreshMarketData());
+  }
+
+  Future<void> _confirmSignOut() async {
+    final approved = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('تسجيل الخروج'),
+        content: const Text(
+          'سيبقى كل شيء محفوظًا داخل الجهاز، كما ستبقى آخر نسخة محلية وسحابية محفوظة. هل تريد تسجيل الخروج الآن؟',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('تسجيل الخروج'),
+          ),
+        ],
+      ),
+    );
+
+    if (approved != true) return;
+    await widget.onSignOut();
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  double _parseNumber(String value) {
+    return double.tryParse(value.trim().replaceAll(',', '.')) ?? 0;
+  }
+
+  String _currency(double value) {
+    final formatter = NumberFormat('#,##0.00', 'ar');
+    return formatter.format(value);
+  }
+
+  String _dateText(DateTime value) {
+    return DateFormat('yyyy-MM-dd', 'ar').format(value);
+  }
+
+  String _dateTimeText(DateTime value) {
+    return DateFormat('yyyy-MM-dd – HH:mm', 'ar').format(value);
+  }
+
+
+  String _marketValue(MarketQuote quote) {
+    final pattern = quote.symbol == 'EUR/USD' ? '#,##0.0000' : '#,##0.00';
+    return NumberFormat(pattern, 'en').format(quote.value);
+  }
+
+  String _monthText(DateTime value) {
+    return DateFormat('MMMM yyyy', 'ar').format(value);
+  }
+
+
+
 
 
   List<ProfitEntry> get _currentMonthEntries {
