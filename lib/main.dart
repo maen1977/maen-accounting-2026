@@ -1,4 +1,3 @@
-// ignore_for_file: unused_element
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -2407,7 +2406,7 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
                   children: [
                     compactItem(
                       icon: Icons.today_outlined,
-                      value: _fullDateText(now),
+                      value: DateFormat('d MMM yyyy', 'ar').format(now),
                     ),
                     compactItem(
                       icon: Icons.access_time,
@@ -2787,19 +2786,19 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
   }
 
   double _salesTotal(List<ProfitEntry> list) {
-    return list.fold(0.0, (total, item) => total + item.sales);
+    return list.fold(0, (sum, item) => sum + item.sales);
   }
 
   double _grossTotal(List<ProfitEntry> list) {
-    return list.fold(0.0, (total, item) => total + item.grossProfit);
+    return list.fold(0, (sum, item) => sum + item.grossProfit);
   }
 
   double _expensesTotal(List<ProfitEntry> list) {
-    return list.fold(0.0, (total, item) => total + item.expenses);
+    return list.fold(0, (sum, item) => sum + item.expenses);
   }
 
   double _netTotal(List<ProfitEntry> list) {
-    return list.fold(0.0, (total, item) => total + item.netProfit);
+    return list.fold(0, (sum, item) => sum + item.netProfit);
   }
 
   double _averageNet(List<ProfitEntry> list) {
@@ -3000,7 +2999,7 @@ class _ProfitHomePageState extends State<ProfitHomePage> {
       builder: (context, constraints) {
         final maxWidth = constraints.maxWidth;
         final crossAxisCount = maxWidth > 920 ? 4 : maxWidth > 640 ? 2 : 1;
-        const spacing = 12.0;
+        final spacing = 12.0;
         final itemWidth = (maxWidth - spacing * (crossAxisCount - 1)) / crossAxisCount;
 
         return Wrap(
