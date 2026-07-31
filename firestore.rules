@@ -1,10 +1,40 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /profit_tracker_backups/{userEmail} {
-      allow read, write: if request.auth != null
-        && request.auth.token.email != null
-        && request.auth.token.email.lower() == userEmail.lower();
+    match /users/{userId}/entries/{entryId} {
+      function signedInAsOwner() {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      function validEntry() {
+        return request.resource.data.keys().hasOnly([
+          'entryId', 'userId', 'entryDate',
+          'salesMinor', 'costMinor', 'expensesMinor',
+          'notes', 'isDeleted', 'createdAtUtc', 'updatedAtUtc',
+          'version', 'deviceId'
+        ])
+        && request.resource.data.entryId == entryId
+        && request.resource.data.userId == userId
+        && request.resource.data.entryDate is string
+        && request.resource.data.salesMinor is int
+        && request.resource.data.costMinor is int
+        && request.resource.data.expensesMinor is int
+        && request.resource.data.salesMinor >= 0
+        && request.resource.data.costMinor >= 0
+        && request.resource.data.expensesMinor >= 0
+        && request.resource.data.notes is string
+        && request.resource.data.notes.size() <= 4000
+        && request.resource.data.isDeleted is bool
+        && request.resource.data.createdAtUtc is string
+        && request.resource.data.updatedAtUtc is string
+        && request.resource.data.version is int
+        && request.resource.data.version >= 1
+        && request.resource.data.deviceId is string;
+      }
+
+      allow read: if signedInAsOwner();
+      allow create, update: if signedInAsOwner() && validEntry();
+      allow delete: if false;
     }
   }
 }

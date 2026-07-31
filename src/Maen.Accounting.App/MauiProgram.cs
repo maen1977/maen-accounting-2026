@@ -1,0 +1,51 @@
+using System.Globalization;
+using Microsoft.Extensions.DependencyInjection;
+using Maen.Accounting.App.Data;
+using Maen.Accounting.App.Services;
+using Maen.Accounting.App.ViewModels;
+using Maen.Accounting.App.Views;
+using Microsoft.Extensions.Logging;
+
+namespace Maen.Accounting.App;
+
+public static class MauiProgram
+{
+    public static MauiApp CreateMauiApp()
+    {
+        var arabicCulture = CultureInfo.GetCultureInfo("ar-JO");
+        CultureInfo.DefaultThreadCurrentCulture = arabicCulture;
+        CultureInfo.DefaultThreadCurrentUICulture = arabicCulture;
+
+        var builder = MauiApp.CreateBuilder();
+        builder.UseMauiApp<App>();
+
+#if DEBUG
+        builder.Logging.AddDebug();
+#endif
+
+        builder.Services.AddSingleton(new HttpClient
+        {
+            Timeout = TimeSpan.FromSeconds(25)
+        });
+        builder.Services.AddSingleton<FirebaseOptions>();
+        builder.Services.AddSingleton<AuthSessionStore>();
+        builder.Services.AddSingleton<FirebaseAuthService>();
+        builder.Services.AddSingleton<AuthTokenProvider>();
+        builder.Services.AddSingleton<DeviceIdentityService>();
+        builder.Services.AddSingleton<UserDatabaseFactory>();
+        builder.Services.AddSingleton<ProfitEntryRepository>();
+        builder.Services.AddSingleton<BackupService>();
+        builder.Services.AddSingleton<FirestoreSyncService>();
+        builder.Services.AddSingleton<MainStateViewModel>();
+        builder.Services.AddSingleton<SessionCoordinator>();
+
+        builder.Services.AddTransient<LoginPage>();
+        builder.Services.AddTransient<DashboardPage>();
+        builder.Services.AddTransient<EntryPage>();
+        builder.Services.AddTransient<ReportsPage>();
+        builder.Services.AddTransient<SettingsPage>();
+        builder.Services.AddTransient<MainTabbedPage>();
+
+        return builder.Build();
+    }
+}

@@ -1,0 +1,26 @@
+using Maen.Accounting.Core.Models;
+using Maen.Accounting.Core.Services;
+
+namespace Maen.Accounting.App.ViewModels;
+
+public sealed class ProfitEntryItemViewModel
+{
+    public ProfitEntryItemViewModel(ProfitEntry model)
+    {
+        Model = model;
+        DateText = model.EntryDate.ToString("yyyy-MM-dd");
+        SalesText = Money.Format(model.SalesMinor);
+        CostText = Money.Format(model.CostMinor);
+        ExpensesText = Money.Format(model.ExpensesMinor);
+        NetText = Money.Format(model.NetProfitMinor);
+        NotesText = string.IsNullOrWhiteSpace(model.Notes) ? "لا توجد ملاحظات" : model.Notes;
+    }
+
+    public ProfitEntry Model { get; }
+    public string DateText { get; }
+    public string SalesText { get; }
+    public string CostText { get; }
+    public string ExpensesText { get; }
+    public string NetText { get; }
+    public string NotesText { get; }
+}

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Maen.Accounting.App.Views.ReportsPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Title="التقارير">
+    <Grid RowDefinitions="Auto,*" Padding="18" MaximumWidthRequest="1100" HorizontalOptions="Center">
+        <VerticalStackLayout Spacing="12">
+            <Label Text="التقارير" Style="{StaticResource TitleLabel}" />
+            <DatePicker Date="{Binding ReportMonth}" Format="MMMM yyyy" />
+            <SearchBar Text="{Binding SearchText}" Placeholder="ابحث بالتاريخ أو الملاحظات" />
+            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="صافي الشهر" Style="{StaticResource MutedLabel}"/><Label Text="{Binding ReportNetText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
+                <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="المبيعات" Style="{StaticResource MutedLabel}"/><Label Text="{Binding ReportSalesText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
+                <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="المصروفات" Style="{StaticResource MutedLabel}"/><Label Text="{Binding ReportExpensesText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
+                <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="عدد السجلات" Style="{StaticResource MutedLabel}"/><Label Text="{Binding ReportCountText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
+            </Grid>
+        </VerticalStackLayout>
+
+        <CollectionView Grid.Row="1" ItemsSource="{Binding ReportEntries}" Margin="0,14,0,0" EmptyView="لا توجد سجلات في هذا الشهر.">
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Border Style="{StaticResource CardBorder}" Margin="0,0,0,10">
+                        <VerticalStackLayout Spacing="7">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label Text="{Binding DateText}" FontAttributes="Bold" />
+                                <Label Grid.Column="1" Text="{Binding NetText}" FontSize="19" FontAttributes="Bold" TextColor="{StaticResource PrimaryDark}" />
+                            </Grid>
+                            <Label Text="{Binding NotesText}" Style="{StaticResource MutedLabel}" />
+                            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="6">
+                                <Label Text="{Binding SalesText, StringFormat='مبيعات: {0}'}" FontSize="12" />
+                                <Label Grid.Column="1" Text="{Binding CostText, StringFormat='تكلفة: {0}'}" FontSize="12" />
+                                <Label Grid.Column="2" Text="{Binding ExpensesText, StringFormat='مصروف: {0}'}" FontSize="12" />
+                            </Grid>
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,6,0,0">
+                                <Button Text="تعديل" Style="{StaticResource SecondaryButton}" CommandParameter="{Binding .}" Clicked="OnEditClicked" />
+                                <Button Grid.Column="1" Text="حذف" Style="{StaticResource DangerButton}" CommandParameter="{Binding .}" Clicked="OnDeleteClicked" />
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </Grid>
+</ContentPage>

@@ -1,0 +1,27 @@
+namespace Maen.Accounting.Core.Models;
+
+public sealed record ProfitEntry(
+    string EntryId,
+    string UserId,
+    DateOnly EntryDate,
+    long SalesMinor,
+    long CostMinor,
+    long ExpensesMinor,
+    string Notes,
+    bool IsDeleted,
+    DateTimeOffset CreatedAtUtc,
+    DateTimeOffset UpdatedAtUtc,
+    int Version,
+    string DeviceId)
+{
+    public long GrossProfitMinor => checked(SalesMinor - CostMinor);
+    public long NetProfitMinor => checked(GrossProfitMinor - ExpensesMinor);
+
+    public ProfitEntry MarkDeleted(DateTimeOffset nowUtc, string deviceId) => this with
+    {
+        IsDeleted = true,
+        UpdatedAtUtc = nowUtc,
+        Version = checked(Version + 1),
+        DeviceId = deviceId
+    };
+}

@@ -1,0 +1,30 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 18
+VisualStudioVersion = 18.0.0.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Maen.Accounting.Core", "src\Maen.Accounting.Core\Maen.Accounting.Core.csproj", "{5ED1AA3C-B259-46D8-8F64-B160CC11FB1B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Maen.Accounting.App", "src\Maen.Accounting.App\Maen.Accounting.App.csproj", "{9FD5C56F-43DA-4EF4-8A0C-F3F90B9EEB20}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Maen.Accounting.Core.Tests", "tests\Maen.Accounting.Core.Tests\Maen.Accounting.Core.Tests.csproj", "{0B08F0E1-BB53-4FF5-9C9C-066A68A3AF5A}"
+EndProject
+Global
+  GlobalSection(SolutionConfigurationPlatforms) = preSolution
+    Debug|Any CPU = Debug|Any CPU
+    Release|Any CPU = Release|Any CPU
+  EndGlobalSection
+  GlobalSection(ProjectConfigurationPlatforms) = postSolution
+    {5ED1AA3C-B259-46D8-8F64-B160CC11FB1B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+    {5ED1AA3C-B259-46D8-8F64-B160CC11FB1B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+    {5ED1AA3C-B259-46D8-8F64-B160CC11FB1B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+    {5ED1AA3C-B259-46D8-8F64-B160CC11FB1B}.Release|Any CPU.Build.0 = Release|Any CPU
+    {9FD5C56F-43DA-4EF4-8A0C-F3F90B9EEB20}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+    {9FD5C56F-43DA-4EF4-8A0C-F3F90B9EEB20}.Debug|Any CPU.Build.0 = Debug|Any CPU
+    {9FD5C56F-43DA-4EF4-8A0C-F3F90B9EEB20}.Release|Any CPU.ActiveCfg = Release|Any CPU
+    {9FD5C56F-43DA-4EF4-8A0C-F3F90B9EEB20}.Release|Any CPU.Build.0 = Release|Any CPU
+    {0B08F0E1-BB53-4FF5-9C9C-066A68A3AF5A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+    {0B08F0E1-BB53-4FF5-9C9C-066A68A3AF5A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+    {0B08F0E1-BB53-4FF5-9C9C-066A68A3AF5A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+    {0B08F0E1-BB53-4FF5-9C9C-066A68A3AF5A}.Release|Any CPU.Build.0 = Release|Any CPU
+  EndGlobalSection
+EndGlobal
