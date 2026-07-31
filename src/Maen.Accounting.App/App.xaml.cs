@@ -1,3 +1,5 @@
+﻿using Maen.Accounting.App.Views;
+
 namespace Maen.Accounting.App;
 
 public partial class App : Application
@@ -27,3 +29,4 @@ public partial class App : Application
         }
     }
 }
+
