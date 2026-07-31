@@ -1,7 +1,9 @@
-.dart_tool/
-.packages
-.pub/
-build/
+**/bin/
+**/obj/
+.vs/
 .idea/
-.vscode/
-*.iml
+*.user
+*.suo
+*.keystore
+*.jks
+artifacts/
