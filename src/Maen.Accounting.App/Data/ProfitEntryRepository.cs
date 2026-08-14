@@ -33,12 +33,13 @@ public sealed class ProfitEntryRepository
     {
         UserIsolation.EnsureOwner(userId, entry.UserId);
         var database = await _databaseFactory.GetAsync(userId);
+        var entryDateText = entry.EntryDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
         await database.RunInTransactionAsync(connection =>
         {
             var sameDate = connection.Table<ProfitEntryRow>()
                 .FirstOrDefault(row =>
                     row.UserId == userId &&
-                    row.EntryDate == entry.EntryDate.ToString("yyyy-MM-dd") &&
+                    row.EntryDate == entryDateText &&
                     !row.IsDeleted &&
                     row.EntryId != entry.EntryId);
 
