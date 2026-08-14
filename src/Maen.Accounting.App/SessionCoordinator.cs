@@ -13,6 +13,7 @@ public sealed class SessionCoordinator
     private readonly AuthSessionStore _sessionStore;
     private readonly FirebaseAuthService _authService;
     private readonly UserDatabaseFactory _databaseFactory;
+    private static readonly TimeSpan StartupInitializationTimeout = TimeSpan.FromSeconds(30);
     private Window? _window;
 
     public SessionCoordinator(
@@ -76,10 +77,36 @@ public sealed class SessionCoordinator
         var business = _services.GetRequiredService<BusinessViewModel>();
         state.SignedOut -= OnSignedOut;
         state.SignedOut += OnSignedOut;
-        await state.InitializeAsync(session);
-        await accounting.InitializeAsync(session);
-        await business.InitializeAsync(session);
+
+        // تبديل الشاشة قبل تحميل البيانات يمنع بقاء شاشة البداية في حالة دوران صامتة.
         SetPage(_services.GetRequiredService<MainTabbedPage>());
+
+        try
+        {
+            await Task.WhenAll(
+                state.InitializeAsync(session),
+                accounting.InitializeAsync(session),
+                business.InitializeAsync(session))
+                .WaitAsync(StartupInitializationTimeout);
+        }
+        catch (TimeoutException)
+        {
+            await ShowStartupAlertAsync(
+                "تم فتح البرنامج، لكن تحميل بعض البيانات استغرق وقتًا أطول من المتوقع. يمكنك متابعة العمل وتحديث الصفحات لاحقًا.");
+        }
+        catch (Exception exception)
+        {
+            await ShowStartupAlertAsync(
+                $"تم فتح البرنامج، لكن تعذر تحميل بعض البيانات. يمكنك متابعة العمل ثم إعادة المحاولة من داخل الصفحات.\n\nالتفاصيل: {exception.Message}");
+        }
+    }
+
+    private async Task ShowStartupAlertAsync(string message)
+    {
+        if (_window?.Page is Page page)
+        {
+            await page.DisplayAlertAsync("تنبيه تحميل البيانات", message, "حسنًا");
+        }
     }
 
     private async void OnAuthenticated(object? sender, AuthSession session)
