@@ -23,6 +23,9 @@ public static class UserIsolation
     public static string LocalUserId(string email) =>
         $"local_{SafeHash(NormalizeEmail(email), 32)}";
 
+    public static string LocalDeviceUserId(string deviceId) =>
+        $"local_device_{SafeHash(deviceId, 32)}";
+
     public static void EnsureOwner(string expectedUserId, string actualUserId)
     {
         if (!string.Equals(expectedUserId, actualUserId, StringComparison.Ordinal))

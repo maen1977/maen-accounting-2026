@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage
     x:Class="Maen.Accounting.App.Views.LoginPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
@@ -11,7 +10,17 @@
             <Label Text="سجلات مالية يومية دقيقة مع فصل كامل بين الحسابات" Style="{StaticResource MutedLabel}" HorizontalTextAlignment="Center" />
 
             <Border Style="{StaticResource CardBorder}" Margin="0,14,0,0">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="ابدأ بدون تسجيل" Style="{StaticResource SectionTitle}" />
+                    <Label Text="يفتح البرنامج مباشرة دون بريد أو كلمة مرور. تبقى البيانات على هذا الجهاز فقط." Style="{StaticResource MutedLabel}" />
+                    <Button x:Name="LocalButton" Text="الدخول محليًا بدون تسجيل" Style="{StaticResource SecondaryButton}" Clicked="OnLocalClicked" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource CardBorder}">
                 <VerticalStackLayout Spacing="12">
+                    <Label Text="الدخول السحابي" Style="{StaticResource SectionTitle}" />
+                    <Label Text="استخدم البريد وكلمة المرور للمزامنة والنسخ الاحتياطي السحابي." Style="{StaticResource MutedLabel}" />
                     <Label Text="البريد الإلكتروني" FontAttributes="Bold" />
                     <Entry x:Name="EmailEntry" Keyboard="Email" Placeholder="name@example.com" FlowDirection="LeftToRight" />
                     <Label Text="كلمة المرور" FontAttributes="Bold" />
@@ -21,15 +30,8 @@
                     <ActivityIndicator x:Name="BusyIndicator" IsVisible="False" IsRunning="False" Color="{StaticResource Primary}" />
                     <Label x:Name="StatusLabel" TextColor="{StaticResource Danger}" />
                     <Button x:Name="SubmitButton" Text="تسجيل الدخول" Clicked="OnSubmitClicked" />
+                    <Button x:Name="ForgotPasswordButton" Text="نسيت كلمة المرور؟" Style="{StaticResource SecondaryButton}" Clicked="OnForgotPasswordClicked" />
                     <Button x:Name="ModeButton" Text="إنشاء حساب جديد" Style="{StaticResource SecondaryButton}" Clicked="OnModeClicked" />
-                </VerticalStackLayout>
-            </Border>
-
-            <Border Style="{StaticResource CardBorder}">
-                <VerticalStackLayout Spacing="10">
-                    <Label Text="استخدام محلي" Style="{StaticResource SectionTitle}" />
-                    <Label Text="يعمل دون سحابة، وتبقى بيانات هذا البريد داخل الجهاز فقط." Style="{StaticResource MutedLabel}" />
-                    <Button Text="فتح بوضع محلي" Style="{StaticResource SecondaryButton}" Clicked="OnLocalClicked" />
                 </VerticalStackLayout>
             </Border>
         </VerticalStackLayout>

@@ -10,11 +10,16 @@ public sealed class FirebaseAuthService
 {
     private readonly HttpClient _httpClient;
     private readonly FirebaseOptions _options;
+    private readonly DeviceIdentityService _deviceIdentityService;
 
-    public FirebaseAuthService(HttpClient httpClient, FirebaseOptions options)
+    public FirebaseAuthService(
+        HttpClient httpClient,
+        FirebaseOptions options,
+        DeviceIdentityService deviceIdentityService)
     {
         _httpClient = httpClient;
         _options = options;
+        _deviceIdentityService = deviceIdentityService;
     }
 
     public Task<AuthSession> SignInAsync(string email, string password, CancellationToken cancellationToken = default) =>
@@ -22,6 +27,37 @@ public sealed class FirebaseAuthService
 
     public Task<AuthSession> RegisterAsync(string email, string password, CancellationToken cancellationToken = default) =>
         AuthenticateAsync("accounts:signUp", email, password, cancellationToken);
+
+    public async Task SendPasswordResetEmailAsync(
+        string email,
+        CancellationToken cancellationToken = default)
+    {
+        var normalized = UserIsolation.NormalizeEmail(email);
+        using var response = await _httpClient.PostAsJsonAsync(
+            $"https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key={Uri.EscapeDataString(_options.ApiKey)}",
+            new
+            {
+                requestType = "PASSWORD_RESET",
+                email = normalized
+            },
+            JsonOptions,
+            cancellationToken);
+
+        var payload = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (response.IsSuccessStatusCode)
+        {
+            return;
+        }
+
+        var code = ReadFirebaseErrorCode(payload);
+        if (code == "EMAIL_NOT_FOUND")
+        {
+            // Do not reveal whether an account exists. The UI shows the same message either way.
+            return;
+        }
+
+        throw new InvalidOperationException(MapFirebaseError(payload));
+    }
 
     public async Task<AuthSession> RefreshAsync(AuthSession current, CancellationToken cancellationToken = default)
     {
@@ -56,6 +92,19 @@ public sealed class FirebaseAuthService
         };
     }
 
+    public AuthSession CreateLocalDeviceSession()
+    {
+        var deviceId = _deviceIdentityService.GetOrCreate();
+        return new AuthSession(
+            UserIsolation.LocalDeviceUserId(deviceId),
+            "محلي - هذا الجهاز",
+            string.Empty,
+            string.Empty,
+            DateTimeOffset.MaxValue,
+            true);
+    }
+
+    // Kept for compatibility with previously exported local sessions.
     public AuthSession CreateLocalSession(string email)
     {
         var normalized = UserIsolation.NormalizeEmail(email);
@@ -108,28 +157,33 @@ public sealed class FirebaseAuthService
 
     private static string MapFirebaseError(string payload)
     {
+        return ReadFirebaseErrorCode(payload) switch
+        {
+            "EMAIL_EXISTS" => "هذا البريد مستخدم مسبقًا.",
+            "INVALID_LOGIN_CREDENTIALS" or "INVALID_PASSWORD" => "بيانات الدخول غير صحيحة.",
+            "EMAIL_NOT_FOUND" => "لا يوجد حساب بهذا البريد.",
+            "INVALID_EMAIL" => "صيغة البريد الإلكتروني غير صحيحة.",
+            "WEAK_PASSWORD" => "كلمة المرور ضعيفة.",
+            "USER_DISABLED" => "هذا الحساب موقوف.",
+            "TOO_MANY_ATTEMPTS_TRY_LATER" => "محاولات كثيرة. حاول لاحقًا.",
+            _ => "تعذّر إكمال المصادقة مع Firebase."
+        };
+    }
+
+    private static string ReadFirebaseErrorCode(string payload)
+    {
         try
         {
             using var document = JsonDocument.Parse(payload);
-            var code = document.RootElement
+            var message = document.RootElement
                 .GetProperty("error")
                 .GetProperty("message")
                 .GetString() ?? string.Empty;
-            return code.Split(':', 2)[0] switch
-            {
-                "EMAIL_EXISTS" => "هذا البريد مستخدم مسبقًا.",
-                "INVALID_LOGIN_CREDENTIALS" or "INVALID_PASSWORD" => "بيانات الدخول غير صحيحة.",
-                "EMAIL_NOT_FOUND" => "لا يوجد حساب بهذا البريد.",
-                "INVALID_EMAIL" => "صيغة البريد الإلكتروني غير صحيحة.",
-                "WEAK_PASSWORD" => "كلمة المرور ضعيفة.",
-                "USER_DISABLED" => "هذا الحساب موقوف.",
-                "TOO_MANY_ATTEMPTS_TRY_LATER" => "محاولات كثيرة. حاول لاحقًا.",
-                _ => "تعذّر إكمال المصادقة مع Firebase."
-            };
+            return message.Split(':', 2)[0];
         }
         catch
         {
-            return "تعذّر الاتصال بخدمة تسجيل الدخول.";
+            return string.Empty;
         }
     }
 

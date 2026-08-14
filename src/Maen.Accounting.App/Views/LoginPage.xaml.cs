@@ -21,9 +21,10 @@ public partial class LoginPage : ContentPage
         _registerMode = !_registerMode;
         ConfirmLabel.IsVisible = _registerMode;
         ConfirmEntry.IsVisible = _registerMode;
+        ForgotPasswordButton.IsVisible = !_registerMode;
         SubmitButton.Text = _registerMode ? "إنشاء الحساب" : "تسجيل الدخول";
         ModeButton.Text = _registerMode ? "لدي حساب بالفعل" : "إنشاء حساب جديد";
-        StatusLabel.Text = string.Empty;
+        SetStatus(string.Empty);
     }
 
     private async void OnSubmitClicked(object? sender, EventArgs e)
@@ -32,7 +33,7 @@ public partial class LoginPage : ContentPage
         var password = PasswordEntry.Text ?? string.Empty;
         if (_registerMode && password != (ConfirmEntry.Text ?? string.Empty))
         {
-            StatusLabel.Text = "كلمتا المرور غير متطابقتين.";
+            SetStatus("كلمتا المرور غير متطابقتين.");
             return;
         }
 
@@ -45,18 +46,29 @@ public partial class LoginPage : ContentPage
         });
     }
 
-    private async void OnLocalClicked(object? sender, EventArgs e)
+    private async void OnForgotPasswordClicked(object? sender, EventArgs e)
     {
         var email = EmailEntry.Text?.Trim() ?? string.Empty;
         if (string.IsNullOrWhiteSpace(email) || !email.Contains('@', StringComparison.Ordinal))
         {
-            StatusLabel.Text = "أدخل بريدًا صحيحًا لتعريف البيانات المحلية.";
+            SetStatus("اكتب بريدك الإلكتروني أولاً ثم اضغط «نسيت كلمة المرور؟».");
             return;
         }
 
+        await RunBusyAsync(async () =>
+        {
+            await _authService.SendPasswordResetEmailAsync(email);
+            SetStatus(
+                "إذا كان البريد مسجلاً لدينا، فستصلك رسالة استرجاع خلال دقائق. افحص مجلد Spam أو الرسائل غير المرغوبة.",
+                success: true);
+        });
+    }
+
+    private async void OnLocalClicked(object? sender, EventArgs e)
+    {
         await RunBusyAsync(() =>
         {
-            Authenticated?.Invoke(this, _authService.CreateLocalSession(email));
+            Authenticated?.Invoke(this, _authService.CreateLocalDeviceSession());
             return Task.CompletedTask;
         });
     }
@@ -66,17 +78,25 @@ public partial class LoginPage : ContentPage
         try
         {
             SetBusy(true);
-            StatusLabel.Text = string.Empty;
+            SetStatus(string.Empty);
             await action();
         }
         catch (Exception exception)
         {
-            StatusLabel.Text = exception.Message;
+            SetStatus(exception.Message);
         }
         finally
         {
             SetBusy(false);
         }
+    }
+
+    private void SetStatus(string message, bool success = false)
+    {
+        StatusLabel.Text = message;
+        StatusLabel.TextColor = success
+            ? (Color)Application.Current!.Resources["PrimaryDark"]
+            : (Color)Application.Current!.Resources["Danger"];
     }
 
     private void SetBusy(bool busy)
@@ -85,5 +105,10 @@ public partial class LoginPage : ContentPage
         BusyIndicator.IsRunning = busy;
         SubmitButton.IsEnabled = !busy;
         ModeButton.IsEnabled = !busy;
+        LocalButton.IsEnabled = !busy;
+        ForgotPasswordButton.IsEnabled = !busy;
+        EmailEntry.IsEnabled = !busy;
+        PasswordEntry.IsEnabled = !busy;
+        ConfirmEntry.IsEnabled = !busy;
     }
 }
