@@ -18,6 +18,10 @@
                 <Button Text="{local:Tr Key=T164}" Style="{StaticResource SecondaryButton}" Clicked="OnCurrentMonthClicked" />
                 <Button Grid.Column="1" Text="{local:Tr Key=T165}" Style="{StaticResource SecondaryButton}" Clicked="OnPreviousMonthClicked" />
             </Grid>
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                <Button Text="{local:Tr Key=T328}" Style="{StaticResource SecondaryButton}" Clicked="OnCurrentQuarterClicked" />
+                <Button Grid.Column="1" Text="{local:Tr Key=T329}" Style="{StaticResource SecondaryButton}" Clicked="OnCurrentYearClicked" />
+            </Grid>
             <SearchBar Text="{Binding SearchText}" Placeholder="{local:Tr Key=T163}" />
             <Button Text="{local:Tr Key=T201}" Clicked="OnShareClicked" Style="{StaticResource SecondaryButton}" />
             <Border Style="{StaticResource HeroCard}">
@@ -61,7 +65,7 @@
                     </CollectionView>
                 </VerticalStackLayout>
             </Border>
-            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+            <Grid IsVisible="{Binding IsBusinessExperience}" ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="10">
                 <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T004}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding PostedInvoiceTotalText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
                 <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T006}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding PaymentsTotalText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
                 <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T212}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding PostedJournalCountText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>

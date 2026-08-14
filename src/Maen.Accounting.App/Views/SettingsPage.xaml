@@ -27,6 +27,17 @@
 
             <Border Style="{StaticResource CardBorder}">
                 <VerticalStackLayout Spacing="10">
+                    <Label Text="{local:Tr Key=T322}" Style="{StaticResource SectionTitle}" />
+                    <Label Text="{local:Tr Key=T323}" Style="{StaticResource MutedLabel}" />
+                    <HorizontalStackLayout Spacing="10">
+                        <Button Text="{local:Tr Key=T325}" Style="{StaticResource SecondaryButton}" HorizontalOptions="FillAndExpand" Clicked="OnArabicLanguageClicked" />
+                        <Button Text="{local:Tr Key=T326}" Style="{StaticResource SecondaryButton}" HorizontalOptions="FillAndExpand" Clicked="OnEnglishLanguageClicked" />
+                    </HorizontalStackLayout>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource CardBorder}">
+                <VerticalStackLayout Spacing="10">
                     <Label Text="{local:Tr Key=T045}" Style="{StaticResource SectionTitle}" />
                     <Label Text="{Binding SyncStatus}" Style="{StaticResource MutedLabel}" />
                     <Button Text="{local:Tr Key=T091}" IsVisible="{Binding IsCloudAccount}" Clicked="OnSyncClicked" />

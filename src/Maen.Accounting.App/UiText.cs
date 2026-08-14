@@ -321,6 +321,15 @@ public static class UiText
         ["T319"] = ("تم الحذف محليًا، لكن تعذرت المزامنة: {0}", "Deleted locally, but synchronization failed: {0}"),
         ["T320"] = ("تم استيراد {0} سجلًا.", "Imported {0} record(s)."),
         ["T321"] = ("ملف النسخة الاحتياطية غير صالح أو لا يخص هذا الحساب.", "The backup file is invalid or belongs to a different account."),
+        ["T322"] = ("لغة التطبيق", "Application language"),
+        ["T323"] = ("غيّر لغة الواجهة في أي وقت، وسيعاد فتح التطبيق باللغة المختارة.", "Change the interface language at any time; the app will reopen in the selected language."),
+        ["T324"] = ("تغيير اللغة", "Change language"),
+        ["T325"] = ("العربية", "Arabic"),
+        ["T326"] = ("الإنجليزية", "English"),
+        ["T327"] = ("اختر لغة التطبيق", "Choose the application language"),
+        ["T328"] = ("الربع الحالي", "Current quarter"),
+        ["T329"] = ("السنة الحالية", "Current year"),
+        ["T330"] = ("الربع {0} - {1}", "Q{0} - {1}"),
     };
 
     public static string Get(string key)

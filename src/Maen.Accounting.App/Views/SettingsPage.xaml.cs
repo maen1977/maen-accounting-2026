@@ -33,6 +33,28 @@ public partial class SettingsPage : ContentPage
         _coordinator.ShowOnboarding();
     }
 
+    private async void OnArabicLanguageClicked(object? sender, EventArgs e)
+    {
+        await ChangeLanguageAsync(AppLanguage.Arabic);
+    }
+
+    private async void OnEnglishLanguageClicked(object? sender, EventArgs e)
+    {
+        await ChangeLanguageAsync(AppLanguage.English);
+    }
+
+    private async Task ChangeLanguageAsync(AppLanguage language)
+    {
+        if (_preferences.Language == language) return;
+
+        _preferences.Language = language;
+        _preferences.ApplyCulture();
+        if (Application.Current?.Windows.FirstOrDefault() is Window window)
+        {
+            await _coordinator.ShowCurrentSessionAsync(window);
+        }
+    }
+
     private async void OnSyncClicked(object? sender, EventArgs e)
     {
         try

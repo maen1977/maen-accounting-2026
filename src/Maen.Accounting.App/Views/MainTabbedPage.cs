@@ -1,3 +1,4 @@
+using Maen.Accounting.App.Services;
 using Maen.Accounting.App.ViewModels;
 using Microsoft.Maui.Controls.PlatformConfiguration;
 using Microsoft.Maui.Controls.PlatformConfiguration.AndroidSpecific;
@@ -18,7 +19,9 @@ public sealed class MainTabbedPage : Microsoft.Maui.Controls.TabbedPage
         ReportsPage reportsPage,
         SettingsPage settingsPage)
     {
-        FlowDirection = FlowDirection.RightToLeft;
+        FlowDirection = UiText.Language == AppLanguage.English
+            ? FlowDirection.LeftToRight
+            : FlowDirection.RightToLeft;
         BarBackgroundColor = Color.FromArgb("#0B172A");
         BarTextColor = Colors.White;
         SelectedTabColor = Color.FromArgb("#48D597");

@@ -1,3 +1,4 @@
+using Maen.Accounting.App.Services;
 using Maen.Accounting.App.ViewModels;
 using Microsoft.Maui.Controls.PlatformConfiguration.AndroidSpecific;
 using AndroidTabbedPage = Microsoft.Maui.Controls.PlatformConfiguration.AndroidSpecific.TabbedPage;
@@ -16,6 +17,9 @@ public sealed class PersonalTabbedPage : Microsoft.Maui.Controls.TabbedPage
         MainStateViewModel state)
     {
         _entryPage = entryPage;
+        FlowDirection = UiText.Language == AppLanguage.English
+            ? FlowDirection.LeftToRight
+            : FlowDirection.RightToLeft;
         Title = UiText.Get("T105");
         BarBackgroundColor = Color.FromArgb("#0B172A");
         BarTextColor = Colors.White;

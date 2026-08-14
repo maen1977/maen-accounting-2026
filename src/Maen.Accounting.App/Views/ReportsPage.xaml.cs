@@ -15,30 +15,47 @@ public partial class ReportsPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
-        if (!string.IsNullOrWhiteSpace(_state.UserEmail))
-        {
-            await _state.RefreshReportBusinessSummaryAsync();
-        }
+        await RefreshBusinessSummaryIfNeededAsync();
     }
 
     private async void OnCurrentMonthClicked(object? sender, EventArgs e)
     {
         var today = DateTime.Today;
         _state.ReportMonth = new DateTime(today.Year, today.Month, 1);
-        await _state.RefreshReportBusinessSummaryAsync();
+        await RefreshBusinessSummaryIfNeededAsync();
     }
 
     private async void OnPreviousMonthClicked(object? sender, EventArgs e)
     {
         _state.ReportMonth = _state.ReportMonth.AddMonths(-1);
-        await _state.RefreshReportBusinessSummaryAsync();
+        await RefreshBusinessSummaryIfNeededAsync();
+    }
+
+    private async void OnCurrentQuarterClicked(object? sender, EventArgs e)
+    {
+        _state.SelectCurrentQuarter();
+        await RefreshBusinessSummaryIfNeededAsync();
+    }
+
+    private async void OnCurrentYearClicked(object? sender, EventArgs e)
+    {
+        _state.SelectCurrentYear();
+        await RefreshBusinessSummaryIfNeededAsync();
     }
 
     private async void OnReportDateSelected(object? sender, DateChangedEventArgs e)
     {
         var selectedDate = e.NewDate ?? DateTime.Today;
         _state.ReportMonth = new DateTime(selectedDate.Year, selectedDate.Month, 1);
-        await _state.RefreshReportBusinessSummaryAsync();
+        await RefreshBusinessSummaryIfNeededAsync();
+    }
+
+    private async Task RefreshBusinessSummaryIfNeededAsync()
+    {
+        if (_state.IsBusinessExperience && !string.IsNullOrWhiteSpace(_state.UserEmail))
+        {
+            await _state.RefreshReportBusinessSummaryAsync();
+        }
     }
 
     private async void OnShareClicked(object? sender, EventArgs e)

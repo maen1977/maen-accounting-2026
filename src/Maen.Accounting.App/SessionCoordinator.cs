@@ -72,6 +72,19 @@ public sealed class SessionCoordinator
         await ShowMainAsync(session);
     }
 
+    public async Task ShowCurrentSessionAsync(Window window)
+    {
+        _window = window;
+        var session = await _sessionStore.LoadAsync();
+        if (session is null)
+        {
+            ShowLogin();
+            return;
+        }
+
+        await ShowMainAsync(session);
+    }
+
     public void ShowOnboarding()
     {
         var onboarding = _services.GetRequiredService<OnboardingPage>();

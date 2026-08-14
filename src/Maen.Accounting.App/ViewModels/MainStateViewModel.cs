@@ -10,6 +10,13 @@ namespace Maen.Accounting.App.ViewModels;
 
 public sealed class MainStateViewModel : ObservableObject
 {
+    private enum ReportScope
+    {
+        Month,
+        Quarter,
+        Year
+    }
+
     private readonly ProfitEntryRepository _repository;
     private readonly AccountingRepository _accountingRepository;
     private readonly BusinessRepository _businessRepository;
@@ -17,6 +24,7 @@ public sealed class MainStateViewModel : ObservableObject
     private readonly FirestoreSyncService _syncService;
     private readonly DeviceIdentityService _deviceIdentity;
     private readonly AuthSessionStore _sessionStore;
+    private readonly AppPreferencesService _preferences;
     private readonly SemaphoreSlim _gate = new(1, 1);
 
     private AuthSession? _session;
@@ -27,6 +35,7 @@ public sealed class MainStateViewModel : ObservableObject
     private string _expensesInput = "0";
     private string _notesInput = string.Empty;
     private DateTime _reportMonth = new(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private ReportScope _reportScope = ReportScope.Month;
     private string _searchText = string.Empty;
     private bool _isBusy;
     private string _statusMessage = string.Empty;
@@ -44,7 +53,8 @@ public sealed class MainStateViewModel : ObservableObject
         BackupService backupService,
         FirestoreSyncService syncService,
         DeviceIdentityService deviceIdentity,
-        AuthSessionStore sessionStore)
+        AuthSessionStore sessionStore,
+        AppPreferencesService preferences)
     {
         _repository = repository;
         _accountingRepository = accountingRepository;
@@ -53,7 +63,10 @@ public sealed class MainStateViewModel : ObservableObject
         _syncService = syncService;
         _deviceIdentity = deviceIdentity;
         _sessionStore = sessionStore;
+        _preferences = preferences;
     }
+
+    public bool IsBusinessExperience => _preferences.Experience == AccountExperience.Business;
 
     public ObservableCollection<ProfitEntryItemViewModel> Entries { get; } = [];
     public ObservableCollection<ProfitEntryItemViewModel> RecentEntries { get; } = [];
@@ -72,7 +85,17 @@ public sealed class MainStateViewModel : ObservableObject
     public string CostInput { get => _costInput; set { if (SetProperty(ref _costInput, value)) RefreshPreview(); } }
     public string ExpensesInput { get => _expensesInput; set { if (SetProperty(ref _expensesInput, value)) RefreshPreview(); } }
     public string NotesInput { get => _notesInput; set => SetProperty(ref _notesInput, value); }
-    public DateTime ReportMonth { get => _reportMonth; set { if (SetProperty(ref _reportMonth, new DateTime(value.Year, value.Month, 1))) RebuildReport(); } }
+    public DateTime ReportMonth
+    {
+        get => _reportMonth;
+        set
+        {
+            _reportScope = ReportScope.Month;
+            var normalized = new DateTime(value.Year, value.Month, 1);
+            SetProperty(ref _reportMonth, normalized);
+            RebuildReport();
+        }
+    }
     public string SearchText { get => _searchText; set { if (SetProperty(ref _searchText, value)) RebuildReport(); } }
     public bool IsBusy { get => _isBusy; private set => SetProperty(ref _isBusy, value); }
     public string StatusMessage { get => _statusMessage; private set => SetProperty(ref _statusMessage, value); }
@@ -142,9 +165,14 @@ public sealed class MainStateViewModel : ObservableObject
         }
     }
 
-    public string ReportPeriodText => ReportMonth.ToString(
-        "MMMM yyyy",
-        UiText.Language == AppLanguage.English ? System.Globalization.CultureInfo.InvariantCulture : System.Globalization.CultureInfo.GetCultureInfo("ar-EG"));
+    public string ReportPeriodText => _reportScope switch
+    {
+        ReportScope.Quarter => UiText.Format("T330", ((ReportMonth.Month - 1) / 3) + 1, ReportMonth.Year),
+        ReportScope.Year => ReportMonth.Year.ToString(System.Globalization.CultureInfo.InvariantCulture),
+        _ => ReportMonth.ToString(
+            "MMMM yyyy",
+            UiText.Language == AppLanguage.English ? System.Globalization.CultureInfo.InvariantCulture : System.Globalization.CultureInfo.GetCultureInfo("ar-EG"))
+    };
     public string ReportNetText => Money.Format(SummarizeReport().NetProfitMinor);
     public string ReportMarginText
     {
@@ -200,6 +228,18 @@ public sealed class MainStateViewModel : ObservableObject
     public string TrialBalanceDebitText { get; private set; } = Money.Format(0);
     public string TrialBalanceCreditText { get; private set; } = Money.Format(0);
     public string TrialBalanceStatusText { get; private set; } = UiText.Get("T200");
+
+    public void SelectCurrentQuarter()
+    {
+        var today = DateTime.Today;
+        var quarterStartMonth = ((today.Month - 1) / 3) * 3 + 1;
+        SetReportPeriod(new DateTime(today.Year, quarterStartMonth, 1), ReportScope.Quarter);
+    }
+
+    public void SelectCurrentYear()
+    {
+        SetReportPeriod(new DateTime(DateTime.Today.Year, 1, 1), ReportScope.Year);
+    }
 
     public async Task RefreshReportBusinessSummaryAsync()
     {
@@ -521,9 +561,10 @@ public sealed class MainStateViewModel : ObservableObject
         ReportEntries.Clear();
         ReportDays.Clear();
         var query = SearchText.Trim();
+        var range = GetReportRange();
         var filtered = Entries.Where(item =>
-                     item.Model.EntryDate.Year == ReportMonth.Year &&
-                     item.Model.EntryDate.Month == ReportMonth.Month &&
+                     item.Model.EntryDate >= range.FromDate &&
+                     item.Model.EntryDate <= range.ToDate &&
                      (query.Length == 0 ||
                       item.DateText.Contains(query, StringComparison.OrdinalIgnoreCase) ||
                       item.Model.Notes.Contains(query, StringComparison.OrdinalIgnoreCase)))
@@ -557,6 +598,25 @@ public sealed class MainStateViewModel : ObservableObject
         }
 
         RaiseReportSummary();
+    }
+
+    private void SetReportPeriod(DateTime start, ReportScope scope)
+    {
+        _reportScope = scope;
+        _reportMonth = new DateTime(start.Year, start.Month, 1);
+        OnPropertyChanged(nameof(ReportMonth));
+        RebuildReport();
+    }
+
+    private (DateOnly FromDate, DateOnly ToDate) GetReportRange()
+    {
+        var from = DateOnly.FromDateTime(ReportMonth);
+        return _reportScope switch
+        {
+            ReportScope.Quarter => (from, from.AddMonths(3).AddDays(-1)),
+            ReportScope.Year => (new DateOnly(ReportMonth.Year, 1, 1), new DateOnly(ReportMonth.Year, 12, 31)),
+            _ => (from, from.AddMonths(1).AddDays(-1))
+        };
     }
 
     private IEnumerable<ProfitEntry> Models() => Entries.Select(static item => item.Model);
@@ -616,8 +676,9 @@ public sealed class MainStateViewModel : ObservableObject
 
     private async Task RefreshAccountingSummaryAsync(string userId)
     {
-        var fromDate = DateOnly.FromDateTime(ReportMonth);
-        var toDate = fromDate.AddMonths(1).AddDays(-1);
+        var range = GetReportRange();
+        var fromDate = range.FromDate;
+        var toDate = range.ToDate;
         var accounts = await _accountingRepository.GetAccountsAsync(userId);
         var journalEntries = await _accountingRepository.GetJournalEntriesAsync(userId, fromDate, toDate);
         var invoices = (await _businessRepository.GetInvoicesAsync(userId))
