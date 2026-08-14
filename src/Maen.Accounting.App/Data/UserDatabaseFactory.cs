@@ -6,21 +6,25 @@ namespace Maen.Accounting.App.Data;
 public sealed class UserDatabaseFactory
 {
     private readonly SemaphoreSlim _gate = new(1, 1);
-    private string? _activeUserId;
+    private string? _activeDatabaseKey;
     private SQLiteAsyncConnection? _connection;
 
-    public async Task<SQLiteAsyncConnection> GetAsync(string userId)
+    public async Task<SQLiteAsyncConnection> GetAsync(string userId, string storageScope = "business")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(userId);
+        var normalizedScope = UserIsolation.NormalizeStorageScope(storageScope);
+        var databaseKey = $"{userId}:{normalizedScope}";
         await _gate.WaitAsync();
         try
         {
-            if (_connection is not null && string.Equals(_activeUserId, userId, StringComparison.Ordinal))
+            if (_connection is not null && string.Equals(_activeDatabaseKey, databaseKey, StringComparison.Ordinal))
             {
                 return _connection;
             }
 
-            var path = Path.Combine(FileSystem.AppDataDirectory, UserIsolation.DatabaseFileName(userId));
+            var path = Path.Combine(
+                FileSystem.AppDataDirectory,
+                UserIsolation.DatabaseFileName(userId, normalizedScope));
             var flags = SQLiteOpenFlags.ReadWrite |
                         SQLiteOpenFlags.Create |
                         SQLiteOpenFlags.SharedCache |
@@ -56,7 +60,7 @@ public sealed class UserDatabaseFactory
                 "CREATE INDEX IF NOT EXISTS ix_payments_user_date " +
                 "ON payments(UserId, PaymentDate);");
 
-            _activeUserId = userId;
+            _activeDatabaseKey = databaseKey;
             _connection = connection;
             return connection;
         }
@@ -68,7 +72,7 @@ public sealed class UserDatabaseFactory
 
     public void ClearActiveConnection()
     {
-        _activeUserId = null;
+        _activeDatabaseKey = null;
         _connection = null;
     }
 }

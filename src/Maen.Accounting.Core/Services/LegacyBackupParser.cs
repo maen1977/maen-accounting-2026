@@ -18,21 +18,34 @@ public static class LegacyBackupParser
         string expectedUserId,
         string expectedEmail,
         string deviceId,
-        DateTimeOffset nowUtc)
+        DateTimeOffset nowUtc,
+        string expectedScope = "business")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(json);
         ArgumentException.ThrowIfNullOrWhiteSpace(expectedUserId);
         ArgumentException.ThrowIfNullOrWhiteSpace(expectedEmail);
         ArgumentException.ThrowIfNullOrWhiteSpace(deviceId);
+        if (expectedScope is not ("personal" or "business"))
+        {
+            throw new ArgumentException("The account scope is invalid.", nameof(expectedScope));
+        }
 
         using var document = JsonDocument.Parse(json);
         var root = document.RootElement;
         var version = root.TryGetProperty("version", out var versionElement)
             ? versionElement.GetInt32()
             : 1;
-        if (version is not (1 or 2 or 3))
+        if (version is not (1 or 2 or 3 or 4))
         {
             throw new InvalidDataException($"Unsupported backup version: {version}.");
+        }
+
+        var backupScope = root.TryGetProperty("accountScope", out var scopeElement)
+            ? scopeElement.GetString() ?? string.Empty
+            : "business";
+        if (!string.Equals(backupScope, expectedScope, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("The backup belongs to a different account type.");
         }
 
         var backupEmail = root.TryGetProperty("backupEmail", out var emailElement)

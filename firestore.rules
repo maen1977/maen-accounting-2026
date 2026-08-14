@@ -1,18 +1,30 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /users/{userId}/entries/{entryId} {
+    match /users/{userId}/{collection}/{entryId} {
       function signedInAsOwner() {
         return request.auth != null && request.auth.uid == userId;
       }
 
+      function allowedCollection() {
+        return collection == 'entries' || collection == 'personalEntries';
+      }
+
+      function scopeMatchesCollection() {
+        return (collection == 'entries' && request.resource.data.accountScope == 'business')
+            || (collection == 'personalEntries' && request.resource.data.accountScope == 'personal');
+      }
+
       function validEntry() {
-        return request.resource.data.keys().hasOnly([
-          'entryId', 'userId', 'entryDate',
+        return allowedCollection()
+        && request.resource.data.keys().hasOnly([
+          'accountScope', 'entryId', 'userId', 'entryDate',
           'salesMinor', 'costMinor', 'expensesMinor',
           'notes', 'isDeleted', 'createdAtUtc', 'updatedAtUtc',
           'version', 'deviceId'
         ])
+        && request.resource.data.accountScope is string
+        && scopeMatchesCollection()
         && request.resource.data.entryId == entryId
         && request.resource.data.userId == userId
         && request.resource.data.entryDate is string
@@ -32,7 +44,7 @@ service cloud.firestore {
         && request.resource.data.deviceId is string;
       }
 
-      allow read: if signedInAsOwner();
+      allow read: if signedInAsOwner() && allowedCollection();
       allow create, update: if signedInAsOwner() && validEntry();
       allow delete: if false;
     }

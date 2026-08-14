@@ -33,4 +33,25 @@ public sealed class LegacyBackupParserTests
         Assert.Throws<InvalidOperationException>(() =>
             LegacyBackupParser.Parse(json, "uid-a", "person@example.com", "device", DateTimeOffset.UtcNow));
     }
+
+    [Fact]
+    public void Accepts_personal_backup_only_for_personal_scope()
+    {
+        const string json = """{"version":4,"accountScope":"personal","backupEmail":"person@example.com","entries":[]}""";
+
+        var result = LegacyBackupParser.Parse(
+            json, "uid-a", "person@example.com", "device", DateTimeOffset.UtcNow, "personal");
+
+        Assert.Equal(4, result.Version);
+    }
+
+    [Fact]
+    public void Rejects_personal_backup_in_business_scope()
+    {
+        const string json = """{"version":4,"accountScope":"personal","backupEmail":"person@example.com","entries":[]}""";
+
+        Assert.Throws<InvalidOperationException>(() =>
+            LegacyBackupParser.Parse(
+                json, "uid-a", "person@example.com", "device", DateTimeOffset.UtcNow, "business"));
+    }
 }

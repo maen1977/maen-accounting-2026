@@ -15,18 +15,21 @@ public sealed class FirestoreSyncService
     private readonly FirebaseOptions _options;
     private readonly AuthTokenProvider _tokenProvider;
     private readonly ProfitEntryRepository _repository;
+    private readonly AppPreferencesService _preferences;
     private readonly SemaphoreSlim _gate = new(1, 1);
 
     public FirestoreSyncService(
         HttpClient httpClient,
         FirebaseOptions options,
         AuthTokenProvider tokenProvider,
-        ProfitEntryRepository repository)
+        ProfitEntryRepository repository,
+        AppPreferencesService preferences)
     {
         _httpClient = httpClient;
         _options = options;
         _tokenProvider = tokenProvider;
         _repository = repository;
+        _preferences = preferences;
     }
 
     public async Task<SyncResult> SyncAsync(CancellationToken cancellationToken = default)
@@ -94,7 +97,7 @@ public sealed class FirestoreSyncService
             {
                 foreach (var item in documents.EnumerateArray())
                 {
-                    result.Add(ParseDocument(item, session.UserId));
+                    result.Add(ParseDocument(item, session.UserId, _preferences.StorageScope));
                 }
             }
 
@@ -132,7 +135,7 @@ public sealed class FirestoreSyncService
     private Uri CollectionUri(string userId, string? pageToken)
     {
         var uri = $"https://firestore.googleapis.com/v1/projects/{Uri.EscapeDataString(_options.ProjectId)}/" +
-                  $"databases/(default)/documents/users/{Uri.EscapeDataString(userId)}/entries?pageSize=200";
+                  $"databases/(default)/documents/users/{Uri.EscapeDataString(userId)}/{CollectionName()}?pageSize=200";
         if (!string.IsNullOrWhiteSpace(pageToken))
         {
             uri += $"&pageToken={Uri.EscapeDataString(pageToken)}";
@@ -142,7 +145,9 @@ public sealed class FirestoreSyncService
 
     private Uri DocumentUri(string userId, string entryId) => new(
         $"https://firestore.googleapis.com/v1/projects/{Uri.EscapeDataString(_options.ProjectId)}/" +
-        $"databases/(default)/documents/users/{Uri.EscapeDataString(userId)}/entries/{Uri.EscapeDataString(entryId)}");
+        $"databases/(default)/documents/users/{Uri.EscapeDataString(userId)}/{CollectionName()}/{Uri.EscapeDataString(entryId)}");
+
+    private string CollectionName() => _preferences.StorageScope == "personal" ? "personalEntries" : "entries";
 
     private static HttpRequestMessage CreateRequest(HttpMethod method, Uri uri, string idToken)
     {
@@ -152,8 +157,9 @@ public sealed class FirestoreSyncService
         return request;
     }
 
-    private static Dictionary<string, object> ToFirestoreFields(ProfitEntry entry) => new()
+    private Dictionary<string, object> ToFirestoreFields(ProfitEntry entry) => new()
     {
+        ["accountScope"] = StringField(_preferences.StorageScope),
         ["entryId"] = StringField(entry.EntryId),
         ["userId"] = StringField(entry.UserId),
         ["entryDate"] = StringField(entry.EntryDate.ToString("yyyy-MM-dd")),
@@ -213,10 +219,18 @@ public sealed class FirestoreSyncService
         return string.Empty;
     }
 
-    private static ProfitEntry ParseDocument(JsonElement document, string expectedUserId)
+    private static ProfitEntry ParseDocument(JsonElement document, string expectedUserId, string expectedScope)
     {
         var fields = document.GetProperty("fields");
         string String(string name) => fields.GetProperty(name).GetProperty("stringValue").GetString() ?? string.Empty;
+        var accountScope = fields.TryGetProperty("accountScope", out var scopeField)
+            ? scopeField.GetProperty("stringValue").GetString() ?? string.Empty
+            : "business";
+        if (!string.Equals(accountScope, expectedScope, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException(UiText.Get("T331"));
+        }
+
         long Integer(string name) => long.Parse(fields.GetProperty(name).GetProperty("integerValue").GetString()!, System.Globalization.CultureInfo.InvariantCulture);
         bool Boolean(string name) => fields.GetProperty(name).GetProperty("booleanValue").GetBoolean();
 

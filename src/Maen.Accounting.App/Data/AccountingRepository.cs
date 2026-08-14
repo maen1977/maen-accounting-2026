@@ -1,3 +1,4 @@
+using Maen.Accounting.App.Services;
 using Maen.Accounting.Core.Models;
 using Maen.Accounting.Core.Services;
 
@@ -7,18 +8,21 @@ public sealed class AccountingRepository
 {
     private readonly UserDatabaseFactory _databaseFactory;
     private readonly ProfitEntryRepository _profitEntryRepository;
+    private readonly AppPreferencesService _preferences;
 
     public AccountingRepository(
         UserDatabaseFactory databaseFactory,
-        ProfitEntryRepository profitEntryRepository)
+        ProfitEntryRepository profitEntryRepository,
+        AppPreferencesService preferences)
     {
         _databaseFactory = databaseFactory;
         _profitEntryRepository = profitEntryRepository;
+        _preferences = preferences;
     }
 
     public async Task<IReadOnlyList<Account>> GetAccountsAsync(string userId)
     {
-        var database = await _databaseFactory.GetAsync(userId);
+        var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
         await EnsureDefaultAccountsAsync(userId, database);
         var rows = await database.Table<AccountRow>()
             .Where(row => row.UserId == userId)
@@ -38,7 +42,7 @@ public sealed class AccountingRepository
             throw new ArgumentException(UiText.Get("T314"));
         }
 
-        var database = await _databaseFactory.GetAsync(userId);
+        var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
         await database.InsertOrReplaceAsync(AccountRow.FromModel(account));
     }
 
@@ -47,7 +51,7 @@ public sealed class AccountingRepository
         DateOnly? fromDate = null,
         DateOnly? toDate = null)
     {
-        var database = await _databaseFactory.GetAsync(userId);
+        var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
         var entryRows = await database.Table<JournalEntryRow>()
             .Where(row => row.UserId == userId)
             .ToListAsync();
@@ -84,7 +88,7 @@ public sealed class AccountingRepository
             JournalEntryValidator.EnsurePostable(entry, accountIds);
         }
 
-        var database = await _databaseFactory.GetAsync(userId);
+        var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
         await database.RunInTransactionAsync(connection =>
         {
             connection.InsertOrReplace(JournalEntryRow.FromModel(entry));
@@ -98,7 +102,7 @@ public sealed class AccountingRepository
 
     public async Task<int> MigrateLegacyProfitEntriesAsync(string userId, string deviceId = "")
     {
-        var database = await _databaseFactory.GetAsync(userId);
+        var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
         await EnsureDefaultAccountsAsync(userId, database);
         var legacyEntries = await _profitEntryRepository.GetAllForSyncAsync(userId);
         var candidates = legacyEntries

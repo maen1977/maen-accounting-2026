@@ -20,6 +20,22 @@ public static class UserIsolation
     public static string DatabaseFileName(string userId) =>
         $"maen_{SafeHash(userId)}.db3";
 
+    public static string DatabaseFileName(string userId, string storageScope)
+    {
+        var normalizedScope = NormalizeStorageScope(storageScope);
+        return normalizedScope == "business"
+            ? DatabaseFileName(userId)
+            : $"maen_{SafeHash(userId)}_{normalizedScope}.db3";
+    }
+
+    public static string NormalizeStorageScope(string storageScope) =>
+        storageScope.Trim().ToLowerInvariant() switch
+        {
+            "personal" => "personal",
+            "business" => "business",
+            _ => throw new ArgumentException("Unsupported storage scope.", nameof(storageScope))
+        };
+
     public static string LocalUserId(string email) =>
         $"local_{SafeHash(NormalizeEmail(email), 32)}";
 

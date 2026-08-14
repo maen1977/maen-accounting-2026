@@ -36,6 +36,8 @@ public sealed class AppPreferencesService
         set => Preferences.Default.Set(ExperienceKey, value == AccountExperience.Personal ? nameof(AccountExperience.Personal) : nameof(AccountExperience.Business));
     }
 
+    public string StorageScope => Experience == AccountExperience.Personal ? "personal" : "business";
+
     public bool IsConfigured => Preferences.Default.Get(OnboardingKey, false);
 
     public void CompleteOnboarding(AppLanguage language, AccountExperience experience)

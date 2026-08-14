@@ -1,3 +1,4 @@
+using Maen.Accounting.App.Services;
 using Maen.Accounting.Core.Models;
 using AccountingContact = Maen.Accounting.Core.Models.Contact;
 using Maen.Accounting.Core.Services;
@@ -8,18 +9,21 @@ public sealed class BusinessRepository
 {
     private readonly UserDatabaseFactory _databaseFactory;
     private readonly AccountingRepository _accountingRepository;
+    private readonly AppPreferencesService _preferences;
 
     public BusinessRepository(
         UserDatabaseFactory databaseFactory,
-        AccountingRepository accountingRepository)
+        AccountingRepository accountingRepository,
+        AppPreferencesService preferences)
     {
         _databaseFactory = databaseFactory;
         _accountingRepository = accountingRepository;
+        _preferences = preferences;
     }
 
     public async Task<IReadOnlyList<AccountingContact>> GetContactsAsync(string userId, ContactType? type = null)
     {
-        var database = await _databaseFactory.GetAsync(userId);
+        var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
         var rows = await database.Table<ContactRow>()
             .Where(row => row.UserId == userId && row.IsActive)
             .ToListAsync();
@@ -38,13 +42,13 @@ public sealed class BusinessRepository
             throw new ArgumentException(UiText.Get("T267"));
         }
 
-        var database = await _databaseFactory.GetAsync(userId);
+        var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
         await database.InsertOrReplaceAsync(ContactRow.FromModel(contact));
     }
 
     public async Task<IReadOnlyList<Invoice>> GetInvoicesAsync(string userId)
     {
-        var database = await _databaseFactory.GetAsync(userId);
+        var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
         var invoiceRows = await database.Table<InvoiceRow>()
             .Where(row => row.UserId == userId)
             .ToListAsync();
@@ -77,7 +81,7 @@ public sealed class BusinessRepository
             BusinessDocumentValidator.EnsureValidInvoice(invoice);
         }
 
-        var database = await _databaseFactory.GetAsync(userId);
+        var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
         await database.RunInTransactionAsync(connection =>
         {
             connection.InsertOrReplace(InvoiceRow.FromModel(invoice));
@@ -98,7 +102,7 @@ public sealed class BusinessRepository
 
     public async Task<IReadOnlyList<Payment>> GetPaymentsAsync(string userId)
     {
-        var database = await _databaseFactory.GetAsync(userId);
+        var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
         var rows = await database.Table<PaymentRow>()
             .Where(row => row.UserId == userId)
             .ToListAsync();
@@ -113,7 +117,7 @@ public sealed class BusinessRepository
     {
         UserIsolation.EnsureOwner(userId, payment.UserId);
         BusinessDocumentValidator.EnsureValidPayment(payment);
-        var database = await _databaseFactory.GetAsync(userId);
+        var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
         await database.InsertOrReplaceAsync(PaymentRow.FromModel(payment));
         await _accountingRepository.UpsertJournalEntryAsync(
             userId,

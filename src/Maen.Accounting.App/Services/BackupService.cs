@@ -11,15 +11,20 @@ public sealed class BackupService
 {
     private readonly ProfitEntryRepository _repository;
     private readonly DeviceIdentityService _deviceIdentity;
+    private readonly AppPreferencesService _preferences;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
         WriteIndented = true
     };
 
-    public BackupService(ProfitEntryRepository repository, DeviceIdentityService deviceIdentity)
+    public BackupService(
+        ProfitEntryRepository repository,
+        DeviceIdentityService deviceIdentity,
+        AppPreferencesService preferences)
     {
         _repository = repository;
         _deviceIdentity = deviceIdentity;
+        _preferences = preferences;
     }
 
     public async Task<BackupInfo> WriteAsync(AuthSession session)
@@ -27,7 +32,8 @@ public sealed class BackupService
         var entries = await _repository.GetAllForSyncAsync(session.UserId);
         var envelope = new
         {
-            version = 3,
+            version = 4,
+            accountScope = _preferences.StorageScope,
             userId = session.UserId,
             backupEmail = session.Email,
             updatedAtUtc = DateTimeOffset.UtcNow,
@@ -49,7 +55,7 @@ public sealed class BackupService
             })
         };
 
-        var path = GetBackupPath(session.UserId);
+        var path = GetBackupPath(session.UserId, _preferences.StorageScope);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         var temporaryPath = $"{path}.{Guid.NewGuid():N}.tmp";
         try
@@ -71,7 +77,7 @@ public sealed class BackupService
 
     public Task<BackupInfo> ReadInfoAsync(string userId)
     {
-        var path = GetBackupPath(userId);
+        var path = GetBackupPath(userId, _preferences.StorageScope);
         if (!File.Exists(path))
         {
             return Task.FromResult(new BackupInfo(false, null, null, 0));
@@ -84,7 +90,7 @@ public sealed class BackupService
     {
         var info = await WriteAsync(session);
         var safeEmail = session.Email.Replace('@', '_').Replace('.', '_');
-        var exportPath = Path.Combine(FileSystem.CacheDirectory, $"maen_backup_{safeEmail}_{DateTime.Now:yyyyMMdd_HHmmss}.json");
+        var exportPath = Path.Combine(FileSystem.CacheDirectory, $"maen_backup_{_preferences.StorageScope}_{safeEmail}_{DateTime.Now:yyyyMMdd_HHmmss}.json");
         File.Copy(info.FilePath!, exportPath, overwrite: true);
         return exportPath;
     }
@@ -97,17 +103,18 @@ public sealed class BackupService
             session.UserId,
             session.Email,
             _deviceIdentity.GetOrCreate(),
-            DateTimeOffset.UtcNow);
+            DateTimeOffset.UtcNow,
+            _preferences.StorageScope);
         await _repository.UpsertManyAsync(session.UserId, parsed.Entries);
         await WriteAsync(session);
         return parsed.Entries.Count;
     }
 
-    private static string GetBackupPath(string userId) => Path.Combine(
+    private static string GetBackupPath(string userId, string scope) => Path.Combine(
         FileSystem.AppDataDirectory,
         "Backups",
         UserIsolation.SafeHash(userId),
-        "maen_backup.json");
+        scope == "business" ? "maen_backup.json" : $"maen_backup_{scope}.json");
 
     private static async Task<BackupInfo> ReadInfoCoreAsync(string path)
     {

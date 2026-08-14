@@ -116,7 +116,7 @@ public sealed class AccountingCoreTests
     [Fact]
     public void Backup_parser_rejects_unsupported_version()
     {
-        const string json = "{\"version\":4,\"backupEmail\":\"user@example.com\",\"entries\":[]}";
+        const string json = "{\"version\":5,\"backupEmail\":\"user@example.com\",\"entries\":[]}";
 
         Assert.Throws<InvalidDataException>(() => LegacyBackupParser.Parse(
             json,

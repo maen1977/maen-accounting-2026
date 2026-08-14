@@ -330,6 +330,7 @@ public static class UiText
         ["T328"] = ("الربع الحالي", "Current quarter"),
         ["T329"] = ("السنة الحالية", "Current year"),
         ["T330"] = ("الربع {0} - {1}", "Q{0} - {1}"),
+        ["T331"] = ("السجل السحابي ينتمي إلى نوع حساب مختلف.", "The cloud entry belongs to a different account type."),
     };
 
     public static string Get(string key)

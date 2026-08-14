@@ -1,3 +1,4 @@
+using Maen.Accounting.App.Services;
 using Maen.Accounting.Core.Models;
 using Maen.Accounting.Core.Services;
 
@@ -6,13 +7,19 @@ namespace Maen.Accounting.App.Data;
 public sealed class ProfitEntryRepository
 {
     private readonly UserDatabaseFactory _databaseFactory;
+    private readonly AppPreferencesService _preferences;
 
-    public ProfitEntryRepository(UserDatabaseFactory databaseFactory) =>
+    public ProfitEntryRepository(
+        UserDatabaseFactory databaseFactory,
+        AppPreferencesService preferences)
+    {
         _databaseFactory = databaseFactory;
+        _preferences = preferences;
+    }
 
     public async Task<IReadOnlyList<ProfitEntry>> GetVisibleAsync(string userId)
     {
-        var database = await _databaseFactory.GetAsync(userId);
+        var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
         var rows = await database.Table<ProfitEntryRow>()
             .Where(row => row.UserId == userId && !row.IsDeleted)
             .OrderByDescending(row => row.EntryDate)
@@ -22,7 +29,7 @@ public sealed class ProfitEntryRepository
 
     public async Task<IReadOnlyList<ProfitEntry>> GetAllForSyncAsync(string userId)
     {
-        var database = await _databaseFactory.GetAsync(userId);
+        var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
         var rows = await database.Table<ProfitEntryRow>()
             .Where(row => row.UserId == userId)
             .ToListAsync();
@@ -32,7 +39,7 @@ public sealed class ProfitEntryRepository
     public async Task UpsertAsync(string userId, ProfitEntry entry)
     {
         UserIsolation.EnsureOwner(userId, entry.UserId);
-        var database = await _databaseFactory.GetAsync(userId);
+        var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
         var entryDateText = entry.EntryDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
         await database.RunInTransactionAsync(connection =>
         {
@@ -64,7 +71,7 @@ public sealed class ProfitEntryRepository
             UserIsolation.EnsureOwner(userId, entry.UserId);
         }
 
-        var database = await _databaseFactory.GetAsync(userId);
+        var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
         await database.RunInTransactionAsync(connection =>
         {
             foreach (var entry in materialized)
@@ -96,7 +103,7 @@ public sealed class ProfitEntryRepository
 
     public async Task<ProfitEntry?> FindByDateAsync(string userId, DateOnly date)
     {
-        var database = await _databaseFactory.GetAsync(userId);
+        var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
         var dateText = date.ToString("yyyy-MM-dd");
         var row = await database.Table<ProfitEntryRow>()
             .FirstOrDefaultAsync(item => item.UserId == userId && item.EntryDate == dateText && !item.IsDeleted);
