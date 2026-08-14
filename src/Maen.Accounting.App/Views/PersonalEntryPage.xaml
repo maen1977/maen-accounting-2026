@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage
     x:Class="Maen.Accounting.App.Views.PersonalEntryPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
@@ -9,8 +10,8 @@
         <VerticalStackLayout Padding="18,20,18,32" Spacing="16" MaximumWidthRequest="680" HorizontalOptions="Center">
             <Border Style="{StaticResource HeroCard}">
                 <VerticalStackLayout Spacing="6">
-                    <Label Text="{local:Tr Key=T114}" TextColor="White" FontSize="25" FontAttributes="Bold" />
-                    <Label Text="{local:Tr Key=T115}" TextColor="#D7FAE8" FontSize="14" />
+                    <Label Text="{local:Tr Key=T110}" TextColor="White" FontSize="25" FontAttributes="Bold" />
+                    <Label Text="{local:Tr Key=T154}" TextColor="#D7FAE8" FontSize="14" />
                 </VerticalStackLayout>
             </Border>
 
@@ -19,28 +20,30 @@
                     <Label Text="{local:Tr Key=T021}" FontAttributes="Bold" />
                     <DatePicker Date="{Binding EntryDate}" />
 
-                    <Label Text="{local:Tr Key=T116}" FontAttributes="Bold" Margin="0,8,0,0" />
-                    <Entry Text="{Binding SalesInput}" Keyboard="Numeric" Placeholder="0" FontSize="20" />
+                    <Label Text="{local:Tr Key=T152}" FontAttributes="Bold" Margin="0,6,0,0" />
+                    <Picker ItemsSource="{Binding MovementTypes}" SelectedItem="{Binding SelectedMovementType}" />
 
-                    <Label Text="{local:Tr Key=T117}" FontAttributes="Bold" Margin="0,8,0,0" />
-                    <Entry Text="{Binding ExpensesInput}" Keyboard="Numeric" Placeholder="0" FontSize="20" />
+                    <Label Text="{local:Tr Key=T153}" FontAttributes="Bold" Margin="0,6,0,0" />
+                    <Picker ItemsSource="{Binding Directions}" SelectedItem="{Binding SelectedDirection}" />
 
-                    <Label Text="{local:Tr Key=T093}" FontAttributes="Bold" Margin="0,8,0,0" />
-                    <Editor Text="{Binding NotesInput}" AutoSize="TextChanges" MinimumHeightRequest="90" Placeholder="" />
-                    <Label Text="{local:Tr Key=T113}" Style="{StaticResource MutedLabel}" />
+                    <Label Text="{local:Tr Key=T149}" FontAttributes="Bold" Margin="0,6,0,0" />
+                    <Entry Text="{Binding AmountInput}" Keyboard="Numeric" Placeholder="0" FontSize="22" ClearButtonVisibility="WhileEditing" />
+
+                    <Label Text="{local:Tr Key=T093}" FontAttributes="Bold" Margin="0,6,0,0" />
+                    <Editor Text="{Binding NotesInput}" AutoSize="TextChanges" MinimumHeightRequest="90" />
                 </VerticalStackLayout>
             </Border>
 
             <Border BackgroundColor="#EAF8F2" StrokeThickness="0" Padding="18">
                 <Border.StrokeShape><RoundRectangle CornerRadius="20" /></Border.StrokeShape>
                 <Grid ColumnDefinitions="*,Auto">
-                    <Label Text="{local:Tr Key=T107}" TextColor="#087A55" FontAttributes="Bold" VerticalOptions="Center" />
+                    <Label Text="{Binding DirectionSummaryText}" TextColor="#087A55" FontAttributes="Bold" VerticalOptions="Center" />
                     <Label Grid.Column="1" Text="{Binding PreviewNetText}" TextColor="#087A55" FontSize="25" FontAttributes="Bold" />
                 </Grid>
             </Border>
 
             <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="{StaticResource Primary}" />
-            <Button Text="{Binding SaveButtonText}" Clicked="OnSaveClicked" Style="{StaticResource PrimaryButton}" HeightRequest="56" />
+            <Button Text="{local:Tr Key=T062}" Clicked="OnSaveClicked" Style="{StaticResource PrimaryButton}" HeightRequest="56" />
             <Label Text="{Binding StatusMessage}" Style="{StaticResource MutedLabel}" LineBreakMode="WordWrap" />
         </VerticalStackLayout>
     </ScrollView>

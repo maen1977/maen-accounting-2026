@@ -38,6 +38,29 @@
                 </Grid>
 
                 <Border Style="{StaticResource CardBorder}">
+                    <VerticalStackLayout Spacing="12">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="{local:Tr Key=T155}" FontSize="17" FontAttributes="Bold" />
+                                <Label Text="{Binding CurrentMonthHealthText}" TextColor="{Binding CurrentMonthHealthColor}" FontSize="13" />
+                            </VerticalStackLayout>
+                            <Label Grid.Column="1" Text="{Binding CurrentMonthSpendingPercentText}" TextColor="{StaticResource PrimaryDark}" FontSize="22" FontAttributes="Bold" VerticalOptions="Center" />
+                        </Grid>
+                        <ProgressBar Progress="{Binding CurrentMonthSpendingProgress}" ProgressColor="#E27852" BackgroundColor="#E7EDEA" HeightRequest="8" />
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="14">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="{local:Tr Key=T156}" Style="{StaticResource MetricCaption}" />
+                                <Label Text="{Binding CurrentMonthSpendingPercentText}" FontAttributes="Bold" TextColor="#A84B2E" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                <Label Text="{local:Tr Key=T157}" Style="{StaticResource MetricCaption}" />
+                                <Label Text="{Binding CurrentMonthEntryCountText}" FontAttributes="Bold" TextColor="{StaticResource PrimaryDark}" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource CardBorder}">
                     <VerticalStackLayout Spacing="10">
                         <Label Text="{local:Tr Key=T110}" FontSize="18" FontAttributes="Bold" />
                         <Label Text="{local:Tr Key=T115}" Style="{StaticResource MutedLabel}" />

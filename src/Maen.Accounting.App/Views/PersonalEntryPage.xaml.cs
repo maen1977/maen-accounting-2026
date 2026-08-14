@@ -19,9 +19,7 @@ public partial class PersonalEntryPage : ContentPage
 
         try
         {
-            // في المسار الشخصي نستخدم حقلي الدخل والمصروف فقط؛ تكلفة البضاعة تخص حسابات الشركات.
-            _state.CostInput = "0";
-            await _state.SaveCurrentAsync();
+            await _state.SavePersonalCurrentAsync();
             await DisplayAlertAsync(UiText.Get("T120"), _state.StatusMessage, UiText.Get("T122"));
         }
         catch (Exception exception)

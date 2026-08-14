@@ -32,6 +32,9 @@ public sealed class MainStateViewModel : ObservableObject
     private string _statusMessage = string.Empty;
     private string _syncStatus = UiText.Get("T130");
     private string _backupStatus = UiText.Get("T131");
+    private string _amountInput = string.Empty;
+    private string _selectedMovementType = UiText.Get("T143");
+    private string _selectedDirection = UiText.Get("T151");
 
     public MainStateViewModel(
         ProfitEntryRepository repository,
@@ -74,6 +77,16 @@ public sealed class MainStateViewModel : ObservableObject
     public string SyncStatus { get => _syncStatus; private set => SetProperty(ref _syncStatus, value); }
     public string BackupStatus { get => _backupStatus; private set => SetProperty(ref _backupStatus, value); }
     public string SaveButtonText => _editingEntry is null ? UiText.Get("T128") : UiText.Get("T129");
+    public IReadOnlyList<string> MovementTypes => new[]
+    {
+        UiText.Get("T143"), UiText.Get("T144"), UiText.Get("T145"),
+        UiText.Get("T146"), UiText.Get("T147"), UiText.Get("T148")
+    };
+    public IReadOnlyList<string> Directions => new[] { UiText.Get("T151"), UiText.Get("T150") };
+    public string AmountInput { get => _amountInput; set { if (SetProperty(ref _amountInput, value)) UpdatePersonalAmounts(); } }
+    public string SelectedMovementType { get => _selectedMovementType; set => SetProperty(ref _selectedMovementType, value); }
+    public string SelectedDirection { get => _selectedDirection; set { if (SetProperty(ref _selectedDirection, value)) UpdatePersonalAmounts(); } }
+    public string DirectionSummaryText => SelectedDirection;
 
     public string PreviewNetText
     {
@@ -91,6 +104,28 @@ public sealed class MainStateViewModel : ObservableObject
     public string CurrentMonthAverageNetText => Money.Format(SummarizeCurrentMonth().AverageNetMinor);
     public string CurrentMonthSalesText => Money.Format(SummarizeCurrentMonth().SalesMinor);
     public string CurrentMonthExpensesText => Money.Format(SummarizeCurrentMonth().ExpensesMinor);
+    public string CurrentMonthEntryCountText => SummarizeCurrentMonth().EntriesCount.ToString();
+    public double CurrentMonthSpendingProgress
+    {
+        get
+        {
+            var summary = SummarizeCurrentMonth();
+            if (summary.SalesMinor <= 0) return summary.ExpensesMinor > 0 ? 1 : 0;
+            return Math.Clamp((double)summary.ExpensesMinor / summary.SalesMinor, 0, 1);
+        }
+    }
+    public string CurrentMonthSpendingPercentText => $"{Math.Round(CurrentMonthSpendingProgress * 100):0}%";
+    public string CurrentMonthHealthText
+    {
+        get
+        {
+            var summary = SummarizeCurrentMonth();
+            if (summary.EntriesCount == 0) return UiText.Get("T161");
+            if (summary.NetProfitMinor < 0) return UiText.Get("T159");
+            return UiText.Get("T158");
+        }
+    }
+    public string CurrentMonthHealthColor => SummarizeCurrentMonth().NetProfitMinor < 0 ? "#C2413A" : "#137A53";
     public string CurrentYearNetText => Money.Format(SummarizeCurrentYear().NetProfitMinor);
     public string TotalExpensesText => Money.Format(ProfitCalculator.Summarize(Models()).ExpensesMinor);
     public string ReportNetText => Money.Format(SummarizeReport().NetProfitMinor);
@@ -153,6 +188,24 @@ public sealed class MainStateViewModel : ObservableObject
         NotesInput = item.Model.Notes;
         OnPropertyChanged(nameof(SaveButtonText));
         EntryEditorRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    public async Task SavePersonalCurrentAsync()
+    {
+        if (!Money.TryParse(AmountInput, out var amountMinor) || amountMinor < 0)
+        {
+            throw new InvalidOperationException(UiText.Format("T139", UiText.Get("T149")));
+        }
+
+        var type = SelectedMovementType;
+        var notes = string.IsNullOrWhiteSpace(NotesInput)
+            ? $"[{type}]"
+            : $"[{type}] {NotesInput.Trim()}";
+        SalesInput = SelectedDirection == UiText.Get("T151") ? Money.Format(amountMinor) : "0";
+        CostInput = "0";
+        ExpensesInput = SelectedDirection == UiText.Get("T150") ? Money.Format(amountMinor) : "0";
+        NotesInput = notes;
+        await SaveCurrentAsync();
     }
 
     public async Task SaveCurrentAsync()
@@ -337,8 +390,33 @@ public sealed class MainStateViewModel : ObservableObject
         SalesInput = "0";
         CostInput = "0";
         ExpensesInput = "0";
+        AmountInput = string.Empty;
+        SelectedMovementType = UiText.Get("T143");
+        SelectedDirection = UiText.Get("T151");
         NotesInput = string.Empty;
         OnPropertyChanged(nameof(SaveButtonText));
+        OnPropertyChanged(nameof(DirectionSummaryText));
+    }
+
+    private void UpdatePersonalAmounts()
+    {
+        if (string.IsNullOrWhiteSpace(AmountInput))
+        {
+            SalesInput = "0";
+            ExpensesInput = "0";
+        }
+        else if (SelectedDirection == UiText.Get("T151"))
+        {
+            SalesInput = AmountInput;
+            ExpensesInput = "0";
+        }
+        else
+        {
+            SalesInput = "0";
+            ExpensesInput = AmountInput;
+        }
+
+        OnPropertyChanged(nameof(DirectionSummaryText));
     }
 
     private void RebuildRecent()
@@ -386,6 +464,11 @@ public sealed class MainStateViewModel : ObservableObject
         OnPropertyChanged(nameof(CurrentMonthAverageNetText));
         OnPropertyChanged(nameof(CurrentMonthSalesText));
         OnPropertyChanged(nameof(CurrentMonthExpensesText));
+        OnPropertyChanged(nameof(CurrentMonthEntryCountText));
+        OnPropertyChanged(nameof(CurrentMonthSpendingProgress));
+        OnPropertyChanged(nameof(CurrentMonthSpendingPercentText));
+        OnPropertyChanged(nameof(CurrentMonthHealthText));
+        OnPropertyChanged(nameof(CurrentMonthHealthColor));
         OnPropertyChanged(nameof(CurrentYearNetText));
         OnPropertyChanged(nameof(TotalExpensesText));
         RaiseReportSummary();
