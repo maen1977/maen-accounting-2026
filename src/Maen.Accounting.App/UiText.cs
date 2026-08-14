@@ -320,6 +320,7 @@ public static class UiText
         ["T318"] = ("تم الحذف محليًا، لكن تعذرت المزامنة. اضغط مزامنة الآن لإعادة المحاولة.", "Deleted locally, but synchronization failed. Press Sync now to retry."),
         ["T319"] = ("تم الحذف محليًا، لكن تعذرت المزامنة: {0}", "Deleted locally, but synchronization failed: {0}"),
         ["T320"] = ("تم استيراد {0} سجلًا.", "Imported {0} record(s)."),
+        ["T321"] = ("ملف النسخة الاحتياطية غير صالح أو لا يخص هذا الحساب.", "The backup file is invalid or belongs to a different account."),
     };
 
     public static string Get(string key)

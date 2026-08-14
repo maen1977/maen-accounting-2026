@@ -51,7 +51,21 @@ public sealed class BackupService
 
         var path = GetBackupPath(session.UserId);
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        await File.WriteAllTextAsync(path, JsonSerializer.Serialize(envelope, JsonOptions));
+        var temporaryPath = $"{path}.{Guid.NewGuid():N}.tmp";
+        try
+        {
+            var json = JsonSerializer.Serialize(envelope, JsonOptions);
+            await File.WriteAllTextAsync(temporaryPath, json);
+            File.Move(temporaryPath, path, overwrite: true);
+        }
+        finally
+        {
+            if (File.Exists(temporaryPath))
+            {
+                File.Delete(temporaryPath);
+            }
+        }
+
         return new BackupInfo(true, path, File.GetLastWriteTimeUtc(path), entries.Count);
     }
 
@@ -101,8 +115,15 @@ public sealed class BackupService
         {
             using var document = JsonDocument.Parse(await File.ReadAllTextAsync(path));
             var root = document.RootElement;
-            var count = root.TryGetProperty("entriesCount", out var element) ? element.GetInt32() : 0;
-            return new BackupInfo(true, path, File.GetLastWriteTimeUtc(path), count);
+            if (!root.TryGetProperty("entries", out var entries) || entries.ValueKind != JsonValueKind.Array)
+            {
+                return new BackupInfo(false, path, File.GetLastWriteTimeUtc(path), 0);
+            }
+
+            var count = root.TryGetProperty("entriesCount", out var element) && element.TryGetInt32(out var declaredCount)
+                ? declaredCount
+                : entries.GetArrayLength();
+            return new BackupInfo(true, path, File.GetLastWriteTimeUtc(path), Math.Max(0, count));
         }
         catch
         {

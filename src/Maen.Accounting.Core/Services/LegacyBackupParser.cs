@@ -30,6 +30,10 @@ public static class LegacyBackupParser
         var version = root.TryGetProperty("version", out var versionElement)
             ? versionElement.GetInt32()
             : 1;
+        if (version is not (1 or 2 or 3))
+        {
+            throw new InvalidDataException($"Unsupported backup version: {version}.");
+        }
 
         var backupEmail = root.TryGetProperty("backupEmail", out var emailElement)
             ? emailElement.GetString() ?? string.Empty
@@ -96,13 +100,19 @@ public static class LegacyBackupParser
     {
         var entryUserId = item.GetProperty("userId").GetString() ?? string.Empty;
         UserIsolation.EnsureOwner(userId, entryUserId);
+        var entryId = item.GetProperty("entryId").GetString();
+        if (string.IsNullOrWhiteSpace(entryId))
+        {
+            throw new InvalidDataException("A version three entry has no entryId.");
+        }
+
         var date = DateOnly.ParseExact(
             item.GetProperty("entryDate").GetString() ?? string.Empty,
             "yyyy-MM-dd",
             CultureInfo.InvariantCulture);
 
         return new ProfitEntry(
-            item.GetProperty("entryId").GetString() ?? throw new InvalidDataException("Missing entryId."),
+            entryId,
             userId,
             date,
             item.GetProperty("salesMinor").GetInt64(),

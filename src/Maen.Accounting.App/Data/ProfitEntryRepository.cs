@@ -69,6 +69,26 @@ public sealed class ProfitEntryRepository
         {
             foreach (var entry in materialized)
             {
+                if (!entry.IsDeleted)
+                {
+                    var entryDateText = entry.EntryDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+                    var sameDate = connection.Table<ProfitEntryRow>()
+                        .FirstOrDefault(row =>
+                            row.UserId == userId &&
+                            row.EntryDate == entryDateText &&
+                            !row.IsDeleted &&
+                            row.EntryId != entry.EntryId);
+
+                    if (sameDate is not null)
+                    {
+                        sameDate.IsDeleted = true;
+                        sameDate.UpdatedAtUtcTicks = entry.UpdatedAtUtc.UtcDateTime.Ticks;
+                        sameDate.Version = checked(sameDate.Version + 1);
+                        sameDate.DeviceId = entry.DeviceId;
+                        connection.Update(sameDate);
+                    }
+                }
+
                 connection.InsertOrReplace(ProfitEntryRow.FromModel(entry));
             }
         });

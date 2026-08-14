@@ -114,6 +114,72 @@ public sealed class AccountingCoreTests
     }
 
     [Fact]
+    public void Backup_parser_rejects_unsupported_version()
+    {
+        const string json = "{\"version\":4,\"backupEmail\":\"user@example.com\",\"entries\":[]}";
+
+        Assert.Throws<InvalidDataException>(() => LegacyBackupParser.Parse(
+            json,
+            "user-1",
+            "user@example.com",
+            "device-1",
+            DateTimeOffset.UtcNow));
+    }
+
+    [Fact]
+    public void Backup_parser_rejects_backup_for_another_account()
+    {
+        const string json = "{\"version\":3,\"backupEmail\":\"other@example.com\",\"entries\":[]}";
+
+        Assert.Throws<InvalidOperationException>(() => LegacyBackupParser.Parse(
+            json,
+            "user-1",
+            "user@example.com",
+            "device-1",
+            DateTimeOffset.UtcNow));
+    }
+
+    [Fact]
+    public void Backup_parser_preserves_version_three_deleted_entry()
+    {
+        const string json = """
+        {
+          "version": 3,
+          "backupEmail": "user@example.com",
+          "entries": [
+            {
+              "entryId": "entry-1",
+              "userId": "user-1",
+              "entryDate": "2026-01-15",
+              "salesMinor": 10000,
+              "costMinor": 2000,
+              "expensesMinor": 500,
+              "notes": "deleted",
+              "isDeleted": true,
+              "createdAtUtc": "2026-01-15T08:00:00Z",
+              "updatedAtUtc": "2026-01-15T09:00:00Z",
+              "version": 2,
+              "deviceId": "device-1"
+            }
+          ]
+        }
+        """;
+
+        var result = LegacyBackupParser.Parse(
+            json,
+            "user-1",
+            "user@example.com",
+            "device-2",
+            DateTimeOffset.Parse("2026-01-20T00:00:00Z"));
+
+        var entry = Assert.Single(result.Entries);
+        Assert.True(entry.IsDeleted);
+        Assert.Equal("entry-1", entry.EntryId);
+        Assert.Equal(2, entry.Version);
+        Assert.Equal("device-1", entry.DeviceId);
+    }
+
+    [Fact]
     public void Trial_balance_ignores_drafts_and_filters_by_date()
     {
         var accounts = DefaultChartOfAccounts.Create("user-1");

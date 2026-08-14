@@ -80,11 +80,14 @@ public partial class SettingsPage : ContentPage
                 await source.CopyToAsync(destination);
             }
             var count = await _state.ImportAsync(cachedPath);
-            await DisplayAlertAsync(UiText.Get("T120"), $"{count}", UiText.Get("T122"));
+            await DisplayAlertAsync(UiText.Get("T120"), UiText.Format("T320", count), UiText.Get("T122"));
         }
         catch (Exception exception)
         {
-            await DisplayAlertAsync(UiText.Get("T121"), exception.Message, UiText.Get("T122"));
+            var message = exception is InvalidDataException or InvalidOperationException
+                ? UiText.Get("T321")
+                : exception.Message;
+            await DisplayAlertAsync(UiText.Get("T121"), message, UiText.Get("T122"));
         }
     }
 
