@@ -4,7 +4,6 @@ using Maen.Accounting.App.Data;
 using Maen.Accounting.App.Services;
 using Maen.Accounting.App.ViewModels;
 using Maen.Accounting.App.Views;
-using Microsoft.Extensions.Logging;
 
 namespace Maen.Accounting.App;
 
@@ -19,9 +18,6 @@ public static class MauiProgram
         var builder = MauiApp.CreateBuilder();
         builder.UseMauiApp<App>();
 
-#if DEBUG
-        builder.Logging.AddDebug();
-#endif
 
         builder.Services.AddSingleton(new HttpClient
         {

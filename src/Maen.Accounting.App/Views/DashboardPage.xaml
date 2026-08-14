@@ -10,7 +10,7 @@
                 <Label Text="نظرة مالية" Style="{StaticResource TitleLabel}" />
                 <Label Text="ملخص مباشر مبني على سجلاتك المحلية الحالية" Style="{StaticResource MutedLabel}" />
 
-                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="12">
+                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="12">
                     <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource CardBorder}">
                         <VerticalStackLayout Spacing="6"><Label Text="صافي الشهر" Style="{StaticResource MutedLabel}"/><Label Text="{Binding CurrentMonthNetText}" FontSize="22" FontAttributes="Bold" TextColor="{StaticResource PrimaryDark}"/></VerticalStackLayout>
                     </Border>
@@ -22,6 +22,12 @@
                     </Border>
                     <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource CardBorder}">
                         <VerticalStackLayout Spacing="6"><Label Text="إجمالي المصروفات" Style="{StaticResource MutedLabel}"/><Label Text="{Binding TotalExpensesText}" FontSize="22" FontAttributes="Bold"/></VerticalStackLayout>
+                    </Border>
+                    <Border Grid.Row="2" Grid.Column="0" Style="{StaticResource CardBorder}">
+                        <VerticalStackLayout Spacing="6"><Label Text="الربح الإجمالي للشهر" Style="{StaticResource MutedLabel}"/><Label Text="{Binding CurrentMonthGrossText}" FontSize="22" FontAttributes="Bold"/></VerticalStackLayout>
+                    </Border>
+                    <Border Grid.Row="2" Grid.Column="1" Style="{StaticResource CardBorder}">
+                        <VerticalStackLayout Spacing="6"><Label Text="متوسط صافي السجل" Style="{StaticResource MutedLabel}"/><Label Text="{Binding CurrentMonthAverageNetText}" FontSize="22" FontAttributes="Bold"/></VerticalStackLayout>
                     </Border>
                 </Grid>
 

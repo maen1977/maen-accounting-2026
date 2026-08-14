@@ -80,10 +80,14 @@ public sealed class MainStateViewModel : ObservableObject
     }
 
     public string CurrentMonthNetText => Money.Format(SummarizeCurrentMonth().NetProfitMinor);
+    public string CurrentMonthGrossText => Money.Format(SummarizeCurrentMonth().GrossProfitMinor);
+    public string CurrentMonthAverageNetText => Money.Format(SummarizeCurrentMonth().AverageNetMinor);
     public string CurrentMonthSalesText => Money.Format(SummarizeCurrentMonth().SalesMinor);
     public string CurrentYearNetText => Money.Format(SummarizeCurrentYear().NetProfitMinor);
     public string TotalExpensesText => Money.Format(ProfitCalculator.Summarize(Models()).ExpensesMinor);
     public string ReportNetText => Money.Format(SummarizeReport().NetProfitMinor);
+    public string ReportGrossText => Money.Format(SummarizeReport().GrossProfitMinor);
+    public string ReportAverageNetText => Money.Format(SummarizeReport().AverageNetMinor);
     public string ReportSalesText => Money.Format(SummarizeReport().SalesMinor);
     public string ReportExpensesText => Money.Format(SummarizeReport().ExpensesMinor);
     public string ReportCountText => SummarizeReport().EntriesCount.ToString();
@@ -323,6 +327,8 @@ public sealed class MainStateViewModel : ObservableObject
     private void RaiseSummaries()
     {
         OnPropertyChanged(nameof(CurrentMonthNetText));
+        OnPropertyChanged(nameof(CurrentMonthGrossText));
+        OnPropertyChanged(nameof(CurrentMonthAverageNetText));
         OnPropertyChanged(nameof(CurrentMonthSalesText));
         OnPropertyChanged(nameof(CurrentYearNetText));
         OnPropertyChanged(nameof(TotalExpensesText));
@@ -332,6 +338,8 @@ public sealed class MainStateViewModel : ObservableObject
     private void RaiseReportSummary()
     {
         OnPropertyChanged(nameof(ReportNetText));
+        OnPropertyChanged(nameof(ReportGrossText));
+        OnPropertyChanged(nameof(ReportAverageNetText));
         OnPropertyChanged(nameof(ReportSalesText));
         OnPropertyChanged(nameof(ReportExpensesText));
         OnPropertyChanged(nameof(ReportCountText));

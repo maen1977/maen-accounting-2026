@@ -8,7 +8,7 @@
     <SingleProject>true</SingleProject>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <ApplicationTitle>Ù…Ø¹Ù† Ù„Ù„Ù…Ø­Ø§Ø³Ø¨Ø©</ApplicationTitle>
+    <ApplicationTitle>معن للمحاسبة</ApplicationTitle>
     <ApplicationId>com.maen.accounting</ApplicationId>
     <ApplicationDisplayVersion>2.0.0</ApplicationDisplayVersion>
     <ApplicationVersion>1</ApplicationVersion>
