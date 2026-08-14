@@ -7,22 +7,67 @@
     Title="{local:Tr Key=T022}">
     <Grid RowDefinitions="Auto,*" Padding="18" MaximumWidthRequest="1100" HorizontalOptions="Center">
         <VerticalStackLayout Spacing="12">
-            <Label Text="{local:Tr Key=T022}" Style="{StaticResource TitleLabel}" />
-            <DatePicker Date="{Binding ReportMonth}" Format="MMMM yyyy" />
-            <SearchBar Text="{Binding SearchText}" Placeholder="ابحث بالتاريخ أو الملاحظات" />
-            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="10">
-                <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T071}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding ReportNetText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
-                <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T043}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding ReportSalesText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
-                <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T048}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding ReportExpensesText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
-                <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T072}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding ReportCountText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
-                <Border Grid.Row="2" Grid.Column="0" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T033}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding ReportGrossText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
-                <Border Grid.Row="2" Grid.Column="1" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T088}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding ReportAverageNetText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
-                <Border Grid.Row="3" Grid.Column="0" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T026}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding AccountingAccountsText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
-                <Border Grid.Row="3" Grid.Column="1" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T042}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding PostedJournalCountText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                <VerticalStackLayout Spacing="3">
+                    <Label Text="{local:Tr Key=T022}" Style="{StaticResource TitleLabel}" />
+                    <Label Text="{Binding ReportPeriodText}" Style="{StaticResource MutedLabel}" />
+                </VerticalStackLayout>
+                <DatePicker Grid.Column="1" Date="{Binding ReportMonth}" Format="MMMM yyyy" DateSelected="OnReportDateSelected" VerticalOptions="Center" />
             </Grid>
             <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                <Border Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T004}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding PostedInvoiceTotalText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
-                <Border Grid.Column="1" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T006}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding PaymentsTotalText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
+                <Button Text="{local:Tr Key=T164}" Style="{StaticResource SecondaryButton}" Clicked="OnCurrentMonthClicked" />
+                <Button Grid.Column="1" Text="{local:Tr Key=T165}" Style="{StaticResource SecondaryButton}" Clicked="OnPreviousMonthClicked" />
+            </Grid>
+            <SearchBar Text="{Binding SearchText}" Placeholder="{local:Tr Key=T163}" />
+            <Button Text="{local:Tr Key=T201}" Clicked="OnShareClicked" Style="{StaticResource SecondaryButton}" />
+            <Border Style="{StaticResource HeroCard}">
+                <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="18" RowSpacing="5">
+                    <VerticalStackLayout Spacing="3">
+                        <Label Text="{local:Tr Key=T169}" TextColor="White" Style="{StaticResource SectionTitle}" />
+                        <Label Text="{local:Tr Key=T171}" TextColor="#D7F7E9" FontSize="12" />
+                    </VerticalStackLayout>
+                    <Label Grid.Column="1" Text="{Binding ReportNetText}" TextColor="White" FontSize="25" FontAttributes="Bold" VerticalOptions="Center" />
+                    <Label Grid.Row="1" Text="{local:Tr Key=T071}" TextColor="#D7F7E9" FontSize="12" />
+                    <Label Grid.Row="1" Grid.Column="1" Text="{Binding ReportNetText}" TextColor="White" FontSize="16" FontAttributes="Bold" HorizontalTextAlignment="End" />
+                    <Label Grid.Row="2" Text="{local:Tr Key=T167}" TextColor="#D7F7E9" FontSize="12" />
+                    <Label Grid.Row="2" Grid.Column="1" Text="{Binding ReportMarginText}" TextColor="White" FontSize="16" FontAttributes="Bold" HorizontalTextAlignment="End" />
+                </Grid>
+            </Border>
+            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T043}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding ReportSalesText}" FontSize="20" FontAttributes="Bold" TextColor="{StaticResource PrimaryDark}"/></VerticalStackLayout></Border>
+                <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T048}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding ReportExpensesText}" FontSize="20" FontAttributes="Bold" TextColor="{StaticResource Danger}"/></VerticalStackLayout></Border>
+                <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T072}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding ReportCountText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
+                <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T033}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding ReportGrossText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
+                <Border Grid.Row="2" Grid.Column="0" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T088}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding ReportAverageNetText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
+                <Border Grid.Row="2" Grid.Column="1" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T026}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding AccountingAccountsText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
+            </Grid>
+            <Border Style="{StaticResource CardBorder}">
+                <VerticalStackLayout Spacing="9">
+                    <Label Text="{local:Tr Key=T166}" Style="{StaticResource SectionTitle}" />
+                    <CollectionView ItemsSource="{Binding ReportDays}" HeightRequest="210" SelectionMode="None" EmptyView="{local:Tr Key=T168}">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnDefinitions="62,*,Auto" ColumnSpacing="9" Padding="0,5">
+                                    <Label Text="{Binding DateText}" Style="{StaticResource MutedLabel}" VerticalOptions="Center" />
+                                    <ProgressBar Grid.Column="1" Progress="{Binding NetProgress}" ProgressColor="{Binding NetColor}" BackgroundColor="#E2E8F0" VerticalOptions="Center" />
+                                    <VerticalStackLayout Grid.Column="2" Spacing="1" HorizontalOptions="End">
+                                        <Label Text="{Binding NetText}" TextColor="{Binding NetColor}" FontAttributes="Bold" HorizontalTextAlignment="End" />
+                                        <Label Text="{Binding SalesSummaryText}" Style="{StaticResource MutedLabel}" FontSize="11" HorizontalTextAlignment="End" />
+                                        <Label Text="{Binding ExpensesSummaryText}" Style="{StaticResource MutedLabel}" FontSize="11" HorizontalTextAlignment="End" />
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Border>
+            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T004}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding PostedInvoiceTotalText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
+                <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T006}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding PaymentsTotalText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
+                <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T212}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding PostedJournalCountText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
+                <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T213}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding TrialBalanceDebitText}" FontSize="20" FontAttributes="Bold" TextColor="{StaticResource PrimaryDark}"/></VerticalStackLayout></Border>
+                <Border Grid.Row="2" Grid.Column="0" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T214}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding TrialBalanceCreditText}" FontSize="20" FontAttributes="Bold" TextColor="{StaticResource PrimaryDark}"/></VerticalStackLayout></Border>
+                <Border Grid.Row="2" Grid.Column="1" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T215}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding TrialBalanceStatusText}" FontSize="14" FontAttributes="Bold" TextColor="{StaticResource PrimaryDark}"/></VerticalStackLayout></Border>
             </Grid>
         </VerticalStackLayout>
 
@@ -37,9 +82,9 @@
                             </Grid>
                             <Label Text="{Binding NotesText}" Style="{StaticResource MutedLabel}" />
                             <Grid ColumnDefinitions="*,*,*" ColumnSpacing="6">
-                                <Label Text="{Binding SalesText, StringFormat='مبيعات: {0}'}" FontSize="12" />
-                                <Label Grid.Column="1" Text="{Binding CostText, StringFormat='تكلفة: {0}'}" FontSize="12" />
-                                <Label Grid.Column="2" Text="{Binding ExpensesText, StringFormat='مصروف: {0}'}" FontSize="12" />
+                                <Label Text="{Binding SalesSummaryText}" FontSize="12" />
+                                <Label Grid.Column="1" Text="{Binding CostSummaryText}" FontSize="12" />
+                                <Label Grid.Column="2" Text="{Binding ExpensesSummaryText}" FontSize="12" />
                             </Grid>
                             <Grid ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,6,0,0">
                                 <Button Text="{local:Tr Key=T058}" Style="{StaticResource SecondaryButton}" CommandParameter="{Binding .}" Clicked="OnEditClicked" />

@@ -35,6 +35,7 @@ public sealed class MainStateViewModel : ObservableObject
     private string _amountInput = string.Empty;
     private string _selectedMovementType = UiText.Get("T143");
     private string _selectedDirection = UiText.Get("T151");
+    private string _monthlyBudgetInput = Preferences.Default.Get("maen_personal_monthly_budget_v1", string.Empty);
 
     public MainStateViewModel(
         ProfitEntryRepository repository,
@@ -57,6 +58,7 @@ public sealed class MainStateViewModel : ObservableObject
     public ObservableCollection<ProfitEntryItemViewModel> Entries { get; } = [];
     public ObservableCollection<ProfitEntryItemViewModel> RecentEntries { get; } = [];
     public ObservableCollection<ProfitEntryItemViewModel> ReportEntries { get; } = [];
+    public ObservableCollection<ReportDayItemViewModel> ReportDays { get; } = [];
 
     public event EventHandler? EntryEditorRequested;
     public event EventHandler? SignedOut;
@@ -87,6 +89,47 @@ public sealed class MainStateViewModel : ObservableObject
     public string SelectedMovementType { get => _selectedMovementType; set => SetProperty(ref _selectedMovementType, value); }
     public string SelectedDirection { get => _selectedDirection; set { if (SetProperty(ref _selectedDirection, value)) UpdatePersonalAmounts(); } }
     public string DirectionSummaryText => SelectedDirection;
+    public string MonthlyBudgetInput { get => _monthlyBudgetInput; set => SetProperty(ref _monthlyBudgetInput, value); }
+    private long MonthlyBudgetMinor => Money.TryParse(_monthlyBudgetInput, out var amount) && amount >= 0 ? amount : 0;
+    public string MonthlyBudgetText => MonthlyBudgetMinor <= 0 ? UiText.Get("T182") : Money.Format(MonthlyBudgetMinor);
+    public double MonthlyBudgetProgress => MonthlyBudgetMinor <= 0
+        ? 0
+        : Math.Clamp((double)SummarizeCurrentMonth().ExpensesMinor / MonthlyBudgetMinor, 0, 1);
+    public string MonthlyBudgetPercentText => MonthlyBudgetMinor <= 0
+        ? "0%"
+        : $"{Math.Round((double)SummarizeCurrentMonth().ExpensesMinor / MonthlyBudgetMinor * 100):0}%";
+    public string MonthlyBudgetStatusText
+    {
+        get
+        {
+            if (MonthlyBudgetMinor <= 0) return UiText.Get("T182");
+            var progress = (double)SummarizeCurrentMonth().ExpensesMinor / MonthlyBudgetMinor;
+            if (progress >= 1) return UiText.Get("T183");
+            if (progress >= 0.8) return UiText.Get("T184");
+            return UiText.Get("T185");
+        }
+    }
+    public string MonthlyBudgetStatusColor => MonthlyBudgetMinor <= 0
+        ? "#64748B"
+        : MonthlyBudgetProgress >= 1 ? "#C2413A" : MonthlyBudgetProgress >= 0.8 ? "#A16207" : "#137A53";
+
+    public void SaveMonthlyBudget()
+    {
+        if (string.IsNullOrWhiteSpace(MonthlyBudgetInput))
+        {
+            Preferences.Default.Remove("maen_personal_monthly_budget_v1");
+        }
+        else if (!Money.TryParse(MonthlyBudgetInput, out var amount) || amount < 0)
+        {
+            throw new InvalidOperationException(UiText.Get("T187"));
+        }
+        else
+        {
+            Preferences.Default.Set("maen_personal_monthly_budget_v1", MonthlyBudgetInput.Trim());
+        }
+
+        RaiseBudgetProperties();
+    }
 
     public string PreviewNetText
     {
@@ -98,6 +141,23 @@ public sealed class MainStateViewModel : ObservableObject
             return Money.Format(checked(sales - cost - expenses));
         }
     }
+
+    public string ReportPeriodText => ReportMonth.ToString(
+        "MMMM yyyy",
+        UiText.Language == AppLanguage.English ? System.Globalization.CultureInfo.InvariantCulture : System.Globalization.CultureInfo.GetCultureInfo("ar-EG"));
+    public string ReportNetText => Money.Format(SummarizeReport().NetProfitMinor);
+    public string ReportMarginText
+    {
+        get
+        {
+            var summary = SummarizeReport();
+            if (summary.SalesMinor <= 0) return "0%";
+            return $"{Math.Round((double)summary.NetProfitMinor / summary.SalesMinor * 100):0}%";
+        }
+    }
+    public Color ReportNetColor => SummarizeReport().NetProfitMinor >= 0
+        ? Color.FromArgb("#168A64")
+        : Color.FromArgb("#D45B5B");
 
     public string CurrentMonthNetText => Money.Format(SummarizeCurrentMonth().NetProfitMinor);
     public string CurrentMonthGrossText => Money.Format(SummarizeCurrentMonth().GrossProfitMinor);
@@ -128,7 +188,6 @@ public sealed class MainStateViewModel : ObservableObject
     public string CurrentMonthHealthColor => SummarizeCurrentMonth().NetProfitMinor < 0 ? "#C2413A" : "#137A53";
     public string CurrentYearNetText => Money.Format(SummarizeCurrentYear().NetProfitMinor);
     public string TotalExpensesText => Money.Format(ProfitCalculator.Summarize(Models()).ExpensesMinor);
-    public string ReportNetText => Money.Format(SummarizeReport().NetProfitMinor);
     public string ReportGrossText => Money.Format(SummarizeReport().GrossProfitMinor);
     public string ReportAverageNetText => Money.Format(SummarizeReport().AverageNetMinor);
     public string ReportSalesText => Money.Format(SummarizeReport().SalesMinor);
@@ -138,6 +197,35 @@ public sealed class MainStateViewModel : ObservableObject
     public string PostedJournalCountText { get; private set; } = "0";
     public string PostedInvoiceTotalText { get; private set; } = Money.Format(0);
     public string PaymentsTotalText { get; private set; } = Money.Format(0);
+    public string TrialBalanceDebitText { get; private set; } = Money.Format(0);
+    public string TrialBalanceCreditText { get; private set; } = Money.Format(0);
+    public string TrialBalanceStatusText { get; private set; } = UiText.Get("T200");
+
+    public async Task RefreshReportBusinessSummaryAsync()
+    {
+        if (_session is not null)
+        {
+            await RefreshAccountingSummaryAsync(_session.UserId);
+        }
+    }
+
+    public string BuildReportShareText()
+    {
+        return string.Join(Environment.NewLine,
+            UiText.Get("T202"),
+            UiText.Format("T203", ReportPeriodText),
+            UiText.Format("T204", ReportNetText),
+            UiText.Format("T205", ReportSalesText),
+            UiText.Format("T206", ReportExpensesText),
+            UiText.Format("T207", ReportCountText),
+            UiText.Format("T208", AccountingAccountsText),
+            UiText.Format("T209", PostedJournalCountText),
+            UiText.Format("T210", PostedInvoiceTotalText),
+            UiText.Format("T211", PaymentsTotalText),
+            UiText.Format("T197", TrialBalanceDebitText),
+            UiText.Format("T198", TrialBalanceCreditText),
+            TrialBalanceStatusText);
+    }
 
     public async Task InitializeAsync(AuthSession session)
     {
@@ -431,16 +519,43 @@ public sealed class MainStateViewModel : ObservableObject
     private void RebuildReport()
     {
         ReportEntries.Clear();
+        ReportDays.Clear();
         var query = SearchText.Trim();
-        foreach (var item in Entries.Where(item =>
+        var filtered = Entries.Where(item =>
                      item.Model.EntryDate.Year == ReportMonth.Year &&
                      item.Model.EntryDate.Month == ReportMonth.Month &&
                      (query.Length == 0 ||
                       item.DateText.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                      item.Model.Notes.Contains(query, StringComparison.OrdinalIgnoreCase))))
+                      item.Model.Notes.Contains(query, StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+
+        foreach (var item in filtered)
         {
             ReportEntries.Add(item);
         }
+
+        var daily = filtered
+            .GroupBy(item => item.Model.EntryDate)
+            .Select(group => new
+            {
+                Date = group.Key,
+                SalesMinor = group.Sum(item => item.Model.SalesMinor),
+                ExpensesMinor = group.Sum(item => item.Model.CostMinor + item.Model.ExpensesMinor),
+                NetMinor = group.Sum(item => item.Model.NetProfitMinor)
+            })
+            .OrderBy(item => item.Date)
+            .ToList();
+        var maxAbsNet = daily.Count == 0 ? 1 : Math.Max(1, daily.Max(item => Math.Abs(item.NetMinor)));
+        foreach (var item in daily)
+        {
+            ReportDays.Add(new ReportDayItemViewModel(
+                item.Date,
+                item.SalesMinor,
+                item.ExpensesMinor,
+                item.NetMinor,
+                Math.Clamp((double)Math.Abs(item.NetMinor) / maxAbsNet, 0.04, 1)));
+        }
+
         RaiseReportSummary();
     }
 
@@ -471,7 +586,17 @@ public sealed class MainStateViewModel : ObservableObject
         OnPropertyChanged(nameof(CurrentMonthHealthColor));
         OnPropertyChanged(nameof(CurrentYearNetText));
         OnPropertyChanged(nameof(TotalExpensesText));
+        RaiseBudgetProperties();
         RaiseReportSummary();
+    }
+
+    private void RaiseBudgetProperties()
+    {
+        OnPropertyChanged(nameof(MonthlyBudgetText));
+        OnPropertyChanged(nameof(MonthlyBudgetProgress));
+        OnPropertyChanged(nameof(MonthlyBudgetPercentText));
+        OnPropertyChanged(nameof(MonthlyBudgetStatusText));
+        OnPropertyChanged(nameof(MonthlyBudgetStatusColor));
     }
 
     private void RaiseReportSummary()
@@ -482,24 +607,42 @@ public sealed class MainStateViewModel : ObservableObject
         OnPropertyChanged(nameof(ReportSalesText));
         OnPropertyChanged(nameof(ReportExpensesText));
         OnPropertyChanged(nameof(ReportCountText));
+        OnPropertyChanged(nameof(ReportPeriodText));
+        OnPropertyChanged(nameof(ReportMarginText));
+        OnPropertyChanged(nameof(ReportNetColor));
     }
 
     private void RefreshPreview() => OnPropertyChanged(nameof(PreviewNetText));
 
     private async Task RefreshAccountingSummaryAsync(string userId)
     {
+        var fromDate = DateOnly.FromDateTime(ReportMonth);
+        var toDate = fromDate.AddMonths(1).AddDays(-1);
         var accounts = await _accountingRepository.GetAccountsAsync(userId);
-        var journalEntries = await _accountingRepository.GetJournalEntriesAsync(userId);
-        var invoices = await _businessRepository.GetInvoicesAsync(userId);
-        var payments = await _businessRepository.GetPaymentsAsync(userId);
+        var journalEntries = await _accountingRepository.GetJournalEntriesAsync(userId, fromDate, toDate);
+        var invoices = (await _businessRepository.GetInvoicesAsync(userId))
+            .Where(invoice => invoice.IssueDate >= fromDate && invoice.IssueDate <= toDate)
+            .ToArray();
+        var payments = (await _businessRepository.GetPaymentsAsync(userId))
+            .Where(payment => payment.PaymentDate >= fromDate && payment.PaymentDate <= toDate)
+            .ToArray();
+        var trialBalance = await _accountingRepository.GetTrialBalanceAsync(userId, fromDate, toDate);
+
         AccountingAccountsText = accounts.Count.ToString();
         PostedJournalCountText = journalEntries.Count(static entry => entry.Status == JournalEntryStatus.Posted).ToString();
         PostedInvoiceTotalText = Money.Format(invoices.Where(static invoice => invoice.Status == InvoiceStatus.Posted).Sum(static invoice => invoice.TotalMinor));
         PaymentsTotalText = Money.Format(payments.Sum(static payment => payment.AmountMinor));
+        TrialBalanceDebitText = Money.Format(trialBalance.TotalDebitMinor);
+        TrialBalanceCreditText = Money.Format(trialBalance.TotalCreditMinor);
+        TrialBalanceStatusText = trialBalance.IsBalanced ? UiText.Get("T200") : UiText.Get("T201");
+
         OnPropertyChanged(nameof(AccountingAccountsText));
         OnPropertyChanged(nameof(PostedJournalCountText));
         OnPropertyChanged(nameof(PostedInvoiceTotalText));
         OnPropertyChanged(nameof(PaymentsTotalText));
+        OnPropertyChanged(nameof(TrialBalanceDebitText));
+        OnPropertyChanged(nameof(TrialBalanceCreditText));
+        OnPropertyChanged(nameof(TrialBalanceStatusText));
     }
 
     private AuthSession RequireSession() =>

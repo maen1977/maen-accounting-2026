@@ -21,5 +21,18 @@ public partial class PersonalDashboardPage : ContentPage
         }
     }
 
+    private async void OnSaveBudgetClicked(object? sender, EventArgs e)
+    {
+        try
+        {
+            _state.SaveMonthlyBudget();
+            await DisplayAlertAsync(UiText.Get("T181"), UiText.Get("T188"), UiText.Get("T180"));
+        }
+        catch (Exception exception)
+        {
+            await DisplayAlertAsync(UiText.Get("T181"), exception.Message, UiText.Get("T180"));
+        }
+    }
+
     private void OnAddClicked(object? sender, EventArgs e) => _state.BeginNewEntry();
 }

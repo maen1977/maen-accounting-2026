@@ -62,6 +62,24 @@
 
                 <Border Style="{StaticResource CardBorder}">
                     <VerticalStackLayout Spacing="10">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <VerticalStackLayout Spacing="3">
+                                <Label Text="{local:Tr Key=T181}" FontSize="17" FontAttributes="Bold" />
+                                <Label Text="{Binding MonthlyBudgetStatusText}" TextColor="{Binding MonthlyBudgetStatusColor}" FontSize="13" />
+                            </VerticalStackLayout>
+                            <Label Grid.Column="1" Text="{Binding MonthlyBudgetText}" TextColor="{StaticResource PrimaryDark}" FontSize="18" FontAttributes="Bold" VerticalOptions="Center" />
+                        </Grid>
+                        <Entry Text="{Binding MonthlyBudgetInput}" Placeholder="{local:Tr Key=T181}" Keyboard="Numeric" />
+                        <Button Text="{local:Tr Key=T186}" Clicked="OnSaveBudgetClicked" Style="{StaticResource SecondaryButton}" />
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <ProgressBar Progress="{Binding MonthlyBudgetProgress}" ProgressColor="{Binding MonthlyBudgetStatusColor}" BackgroundColor="#E7EDEA" HeightRequest="8" VerticalOptions="Center" />
+                            <Label Grid.Column="1" Text="{Binding MonthlyBudgetPercentText}" TextColor="{Binding MonthlyBudgetStatusColor}" FontAttributes="Bold" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource CardBorder}">
+                    <VerticalStackLayout Spacing="10">
                         <Label Text="{local:Tr Key=T110}" FontSize="18" FontAttributes="Bold" />
                         <Label Text="{local:Tr Key=T115}" Style="{StaticResource MutedLabel}" />
                         <Button Text="{local:Tr Key=T110}" Clicked="OnAddClicked" Style="{StaticResource PrimaryButton}" HeightRequest="54" />

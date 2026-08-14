@@ -12,6 +12,44 @@ public partial class ReportsPage : ContentPage
         BindingContext = _state = state;
     }
 
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+        if (!string.IsNullOrWhiteSpace(_state.UserEmail))
+        {
+            await _state.RefreshReportBusinessSummaryAsync();
+        }
+    }
+
+    private async void OnCurrentMonthClicked(object? sender, EventArgs e)
+    {
+        var today = DateTime.Today;
+        _state.ReportMonth = new DateTime(today.Year, today.Month, 1);
+        await _state.RefreshReportBusinessSummaryAsync();
+    }
+
+    private async void OnPreviousMonthClicked(object? sender, EventArgs e)
+    {
+        _state.ReportMonth = _state.ReportMonth.AddMonths(-1);
+        await _state.RefreshReportBusinessSummaryAsync();
+    }
+
+    private async void OnReportDateSelected(object? sender, DateChangedEventArgs e)
+    {
+        var selectedDate = e.NewDate ?? DateTime.Today;
+        _state.ReportMonth = new DateTime(selectedDate.Year, selectedDate.Month, 1);
+        await _state.RefreshReportBusinessSummaryAsync();
+    }
+
+    private async void OnShareClicked(object? sender, EventArgs e)
+    {
+        await Share.Default.RequestAsync(new ShareTextRequest
+        {
+            Title = UiText.Get("T201"),
+            Text = _state.BuildReportShareText()
+        });
+    }
+
     private void OnEditClicked(object? sender, EventArgs e)
     {
         if (sender is Button { CommandParameter: ProfitEntryItemViewModel item })
@@ -23,8 +61,8 @@ public partial class ReportsPage : ContentPage
     private async void OnDeleteClicked(object? sender, EventArgs e)
     {
         if (sender is not Button { CommandParameter: ProfitEntryItemViewModel item }) return;
-        if (!await DisplayAlertAsync("حذف السجل", $"هل تريد حذف سجل {item.DateText}؟", "حذف", "إلغاء")) return;
+        if (!await DisplayAlertAsync(UiText.Get("T175"), UiText.Format("T176", item.DateText), UiText.Get("T177"), UiText.Get("T178"))) return;
         try { await _state.DeleteAsync(item); }
-        catch (Exception exception) { await DisplayAlertAsync("تعذر الحذف", exception.Message, "حسنًا"); }
+        catch (Exception exception) { await DisplayAlertAsync(UiText.Get("T179"), exception.Message, UiText.Get("T180")); }
     }
 }
