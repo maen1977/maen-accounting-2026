@@ -49,8 +49,23 @@ public sealed class FirestoreSyncService
                 await UploadAsync(session, entry, cancellationToken);
             }
 
+            // لا نعلن نجاح المزامنة إلا بعد إعادة قراءة البيانات من Firestore.
+            // نجاح PATCH يؤكد قبول الطلب، وإعادة التنزيل تؤكد أن السجل أصبح قابلاً للقراءة من السحابة.
+            var verifiedRemote = await DownloadAllAsync(session, cancellationToken);
+            var verifiedById = verifiedRemote.ToDictionary(entry => entry.EntryId, StringComparer.Ordinal);
+            foreach (var entry in plan.EntriesToPush)
+            {
+                if (!verifiedById.TryGetValue(entry.EntryId, out var remoteEntry) ||
+                    remoteEntry.Version < entry.Version ||
+                    remoteEntry.UpdatedAtUtc < entry.UpdatedAtUtc)
+                {
+                    throw new InvalidOperationException(
+                        $"تم إرسال السجل {entry.EntryDate:yyyy-MM-dd}، لكن تعذر التحقق من وجوده في السحابة بعد الرفع.");
+                }
+            }
+
             await _repository.UpsertManyAsync(session.UserId, plan.MergedEntries);
-            return new SyncResult(plan.MergedEntries.Count, plan.EntriesToPush.Count, plan.RemoteWins, DateTimeOffset.UtcNow);
+            return new SyncResult(verifiedRemote.Count, plan.EntriesToPush.Count, plan.RemoteWins, DateTimeOffset.UtcNow);
         }
         finally
         {
