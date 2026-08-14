@@ -72,9 +72,13 @@ public sealed class SessionCoordinator
     private async Task ShowMainAsync(AuthSession session)
     {
         var state = _services.GetRequiredService<MainStateViewModel>();
+        var accounting = _services.GetRequiredService<AccountingViewModel>();
+        var business = _services.GetRequiredService<BusinessViewModel>();
         state.SignedOut -= OnSignedOut;
         state.SignedOut += OnSignedOut;
         await state.InitializeAsync(session);
+        await accounting.InitializeAsync(session);
+        await business.InitializeAsync(session);
         SetPage(_services.GetRequiredService<MainTabbedPage>());
     }
 

@@ -9,6 +9,8 @@ public sealed class MainTabbedPage : TabbedPage
     public MainTabbedPage(
         MainStateViewModel state,
         DashboardPage dashboardPage,
+        AccountingPage accountingPage,
+        BusinessPage businessPage,
         EntryPage entryPage,
         ReportsPage reportsPage,
         SettingsPage settingsPage)
@@ -21,6 +23,8 @@ public sealed class MainTabbedPage : TabbedPage
         _entryPage = entryPage;
 
         Children.Add(dashboardPage);
+        Children.Add(accountingPage);
+        Children.Add(businessPage);
         Children.Add(entryPage);
         Children.Add(reportsPage);
         Children.Add(settingsPage);

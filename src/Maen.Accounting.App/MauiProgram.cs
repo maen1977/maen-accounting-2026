@@ -30,13 +30,19 @@ public static class MauiProgram
         builder.Services.AddSingleton<DeviceIdentityService>();
         builder.Services.AddSingleton<UserDatabaseFactory>();
         builder.Services.AddSingleton<ProfitEntryRepository>();
+        builder.Services.AddSingleton<AccountingRepository>();
+        builder.Services.AddSingleton<BusinessRepository>();
         builder.Services.AddSingleton<BackupService>();
         builder.Services.AddSingleton<FirestoreSyncService>();
         builder.Services.AddSingleton<MainStateViewModel>();
+        builder.Services.AddSingleton<AccountingViewModel>();
+        builder.Services.AddSingleton<BusinessViewModel>();
         builder.Services.AddSingleton<SessionCoordinator>();
 
         builder.Services.AddTransient<LoginPage>();
         builder.Services.AddTransient<DashboardPage>();
+        builder.Services.AddTransient<AccountingPage>();
+        builder.Services.AddTransient<BusinessPage>();
         builder.Services.AddTransient<EntryPage>();
         builder.Services.AddTransient<ReportsPage>();
         builder.Services.AddTransient<SettingsPage>();

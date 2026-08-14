@@ -9,13 +9,19 @@
             <Label Text="التقارير" Style="{StaticResource TitleLabel}" />
             <DatePicker Date="{Binding ReportMonth}" Format="MMMM yyyy" />
             <SearchBar Text="{Binding SearchText}" Placeholder="ابحث بالتاريخ أو الملاحظات" />
-            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="10">
                 <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="صافي الشهر" Style="{StaticResource MutedLabel}"/><Label Text="{Binding ReportNetText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
                 <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="المبيعات" Style="{StaticResource MutedLabel}"/><Label Text="{Binding ReportSalesText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
                 <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="المصروفات" Style="{StaticResource MutedLabel}"/><Label Text="{Binding ReportExpensesText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
                 <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="عدد السجلات" Style="{StaticResource MutedLabel}"/><Label Text="{Binding ReportCountText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
                 <Border Grid.Row="2" Grid.Column="0" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="الربح الإجمالي" Style="{StaticResource MutedLabel}"/><Label Text="{Binding ReportGrossText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
                 <Border Grid.Row="2" Grid.Column="1" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="متوسط صافي السجل" Style="{StaticResource MutedLabel}"/><Label Text="{Binding ReportAverageNetText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
+                <Border Grid.Row="3" Grid.Column="0" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="الحسابات" Style="{StaticResource MutedLabel}"/><Label Text="{Binding AccountingAccountsText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
+                <Border Grid.Row="3" Grid.Column="1" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="القيود المرحّلة" Style="{StaticResource MutedLabel}"/><Label Text="{Binding PostedJournalCountText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
+            </Grid>
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                <Border Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="إجمالي الفواتير المرحّلة" Style="{StaticResource MutedLabel}"/><Label Text="{Binding PostedInvoiceTotalText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
+                <Border Grid.Column="1" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="إجمالي المدفوعات" Style="{StaticResource MutedLabel}"/><Label Text="{Binding PaymentsTotalText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
             </Grid>
         </VerticalStackLayout>
 

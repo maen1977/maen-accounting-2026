@@ -10,6 +10,8 @@ namespace Maen.Accounting.App.ViewModels;
 public sealed class MainStateViewModel : ObservableObject
 {
     private readonly ProfitEntryRepository _repository;
+    private readonly AccountingRepository _accountingRepository;
+    private readonly BusinessRepository _businessRepository;
     private readonly BackupService _backupService;
     private readonly FirestoreSyncService _syncService;
     private readonly DeviceIdentityService _deviceIdentity;
@@ -32,12 +34,16 @@ public sealed class MainStateViewModel : ObservableObject
 
     public MainStateViewModel(
         ProfitEntryRepository repository,
+        AccountingRepository accountingRepository,
+        BusinessRepository businessRepository,
         BackupService backupService,
         FirestoreSyncService syncService,
         DeviceIdentityService deviceIdentity,
         AuthSessionStore sessionStore)
     {
         _repository = repository;
+        _accountingRepository = accountingRepository;
+        _businessRepository = businessRepository;
         _backupService = backupService;
         _syncService = syncService;
         _deviceIdentity = deviceIdentity;
@@ -91,6 +97,10 @@ public sealed class MainStateViewModel : ObservableObject
     public string ReportSalesText => Money.Format(SummarizeReport().SalesMinor);
     public string ReportExpensesText => Money.Format(SummarizeReport().ExpensesMinor);
     public string ReportCountText => SummarizeReport().EntriesCount.ToString();
+    public string AccountingAccountsText { get; private set; } = "0";
+    public string PostedJournalCountText { get; private set; } = "0";
+    public string PostedInvoiceTotalText { get; private set; } = Money.Format(0);
+    public string PaymentsTotalText { get; private set; } = Money.Format(0);
 
     public async Task InitializeAsync(AuthSession session)
     {
@@ -107,6 +117,7 @@ public sealed class MainStateViewModel : ObservableObject
     {
         var session = RequireSession();
         var entries = await _repository.GetVisibleAsync(session.UserId);
+        await RefreshAccountingSummaryAsync(session.UserId);
         Entries.Clear();
         foreach (var entry in entries)
         {
@@ -346,6 +357,22 @@ public sealed class MainStateViewModel : ObservableObject
     }
 
     private void RefreshPreview() => OnPropertyChanged(nameof(PreviewNetText));
+
+    private async Task RefreshAccountingSummaryAsync(string userId)
+    {
+        var accounts = await _accountingRepository.GetAccountsAsync(userId);
+        var journalEntries = await _accountingRepository.GetJournalEntriesAsync(userId);
+        var invoices = await _businessRepository.GetInvoicesAsync(userId);
+        var payments = await _businessRepository.GetPaymentsAsync(userId);
+        AccountingAccountsText = accounts.Count.ToString();
+        PostedJournalCountText = journalEntries.Count(static entry => entry.Status == JournalEntryStatus.Posted).ToString();
+        PostedInvoiceTotalText = Money.Format(invoices.Where(static invoice => invoice.Status == InvoiceStatus.Posted).Sum(static invoice => invoice.TotalMinor));
+        PaymentsTotalText = Money.Format(payments.Sum(static payment => payment.AmountMinor));
+        OnPropertyChanged(nameof(AccountingAccountsText));
+        OnPropertyChanged(nameof(PostedJournalCountText));
+        OnPropertyChanged(nameof(PostedInvoiceTotalText));
+        OnPropertyChanged(nameof(PaymentsTotalText));
+    }
 
     private AuthSession RequireSession() =>
         _session ?? throw new InvalidOperationException("لا توجد جلسة مستخدم نشطة.");
