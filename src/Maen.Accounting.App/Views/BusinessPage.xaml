@@ -3,14 +3,15 @@
     x:Class="Maen.Accounting.App.Views.BusinessPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    Title="العمليات">
+    xmlns:local="clr-namespace:Maen.Accounting.App"
+    Title="{local:Tr Key=T039}">
     <Grid RowDefinitions="Auto,*" Padding="18" MaximumWidthRequest="1100" HorizontalOptions="Center">
         <VerticalStackLayout Spacing="7">
-            <Label Text="العمليات التجارية" Style="{StaticResource TitleLabel}" />
-            <Label Text="العملاء والموردون والفواتير والمدفوعات" Style="{StaticResource MutedLabel}" />
+            <Label Text="{local:Tr Key=T040}" Style="{StaticResource TitleLabel}" />
+            <Label Text="{local:Tr Key=T038}" Style="{StaticResource MutedLabel}" />
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                 <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
-                <Button Grid.Column="1" Text="تحديث" Style="{StaticResource SecondaryButton}" Clicked="OnRefreshClicked" />
+                <Button Grid.Column="1" Text="{local:Tr Key=T052}" Style="{StaticResource SecondaryButton}" Clicked="OnRefreshClicked" />
             </Grid>
             <Label Text="{Binding StatusMessage}" Style="{StaticResource MutedLabel}" />
         </VerticalStackLayout>
@@ -19,18 +20,18 @@
             <VerticalStackLayout Spacing="12">
                 <Border Style="{StaticResource CardBorder}">
                     <VerticalStackLayout Spacing="8">
-                        <Label Text="عميل أو مورد جديد" FontSize="18" FontAttributes="Bold" />
+                        <Label Text="{local:Tr Key=T073}" FontSize="18" FontAttributes="Bold" />
                         <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
-                            <Picker Title="النوع" ItemsSource="{Binding ContactTypes}" SelectedItem="{Binding SelectedContactType}" ItemDisplayBinding="{Binding Label}" />
+                            <Picker Title="{local:Tr Key=T050}" ItemsSource="{Binding ContactTypes}" SelectedItem="{Binding SelectedContactType}" ItemDisplayBinding="{Binding Label}" />
                             <Entry Grid.Column="1" Text="{Binding ContactNameInput}" Placeholder="الاسم" />
                         </Grid>
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                             <Entry Text="{Binding ContactPhoneInput}" Placeholder="الهاتف" Keyboard="Telephone" />
-                            <Button Grid.Column="1" Text="حفظ" Style="{StaticResource PrimaryButton}" Clicked="OnSaveContactClicked" />
+                            <Button Grid.Column="1" Text="{local:Tr Key=T062}" Style="{StaticResource PrimaryButton}" Clicked="OnSaveContactClicked" />
                         </Grid>
                     </VerticalStackLayout>
                 </Border>
-                <CollectionView ItemsSource="{Binding Contacts}" HeightRequest="180" EmptyView="لا يوجد عملاء أو موردون.">
+                <CollectionView ItemsSource="{Binding Contacts}" HeightRequest="180" EmptyView="{local:Tr Key=T084}">
                     <CollectionView.ItemTemplate>
                         <DataTemplate>
                             <Border Style="{StaticResource CardBorder}" Margin="0,0,0,7">
@@ -48,10 +49,10 @@
 
                 <Border Style="{StaticResource CardBorder}">
                     <VerticalStackLayout Spacing="8">
-                        <Label Text="فاتورة جديدة" FontSize="18" FontAttributes="Bold" />
+                        <Label Text="{local:Tr Key=T074}" FontSize="18" FontAttributes="Bold" />
                         <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
-                            <Picker Title="نوع الفاتورة" ItemsSource="{Binding InvoiceTypes}" SelectedItem="{Binding SelectedInvoiceType}" ItemDisplayBinding="{Binding Label}" />
-                            <Picker Grid.Column="1" Title="العميل أو المورد" ItemsSource="{Binding Contacts}" SelectedItem="{Binding SelectedInvoiceContact}" ItemDisplayBinding="{Binding DisplayText}" />
+                            <Picker Title="{local:Tr Key=T101}" ItemsSource="{Binding InvoiceTypes}" SelectedItem="{Binding SelectedInvoiceType}" ItemDisplayBinding="{Binding Label}" />
+                            <Picker Grid.Column="1" Title="{local:Tr Key=T041}" ItemsSource="{Binding Contacts}" SelectedItem="{Binding SelectedInvoiceContact}" ItemDisplayBinding="{Binding DisplayText}" />
                         </Grid>
                         <DatePicker Date="{Binding InvoiceDate}" Format="yyyy-MM-dd" />
                         <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
@@ -60,10 +61,10 @@
                             <Entry Grid.Column="2" Text="{Binding InvoiceTaxInput}" Placeholder="الضريبة" Keyboard="Numeric" />
                         </Grid>
                         <Entry Text="{Binding InvoiceDescriptionInput}" Placeholder="وصف الفاتورة" />
-                        <Button Text="حفظ وترحيل الفاتورة" Style="{StaticResource PrimaryButton}" Clicked="OnSaveInvoiceClicked" />
+                        <Button Text="{local:Tr Key=T064}" Style="{StaticResource PrimaryButton}" Clicked="OnSaveInvoiceClicked" />
                     </VerticalStackLayout>
                 </Border>
-                <CollectionView ItemsSource="{Binding Invoices}" HeightRequest="230" EmptyView="لا توجد فواتير.">
+                <CollectionView ItemsSource="{Binding Invoices}" HeightRequest="230" EmptyView="{local:Tr Key=T080}">
                     <CollectionView.ItemTemplate>
                         <DataTemplate>
                             <Border Style="{StaticResource CardBorder}" Margin="0,0,0,7">
@@ -85,20 +86,20 @@
 
                 <Border Style="{StaticResource CardBorder}">
                     <VerticalStackLayout Spacing="8">
-                        <Label Text="دفعة أو قبض جديد" FontSize="18" FontAttributes="Bold" />
+                        <Label Text="{local:Tr Key=T065}" FontSize="18" FontAttributes="Bold" />
                         <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
-                            <Picker Title="نوع العملية" ItemsSource="{Binding PaymentTypes}" SelectedItem="{Binding SelectedPaymentType}" ItemDisplayBinding="{Binding Label}" />
-                            <Picker Grid.Column="1" Title="العميل أو المورد" ItemsSource="{Binding Contacts}" SelectedItem="{Binding SelectedPaymentContact}" ItemDisplayBinding="{Binding DisplayText}" />
+                            <Picker Title="{local:Tr Key=T100}" ItemsSource="{Binding PaymentTypes}" SelectedItem="{Binding SelectedPaymentType}" ItemDisplayBinding="{Binding Label}" />
+                            <Picker Grid.Column="1" Title="{local:Tr Key=T041}" ItemsSource="{Binding Contacts}" SelectedItem="{Binding SelectedPaymentContact}" ItemDisplayBinding="{Binding DisplayText}" />
                         </Grid>
                         <DatePicker Date="{Binding PaymentDate}" Format="yyyy-MM-dd" />
                         <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
                             <Entry Text="{Binding PaymentNumberInput}" Placeholder="رقم العملية" />
                             <Entry Grid.Column="1" Text="{Binding PaymentAmountInput}" Placeholder="المبلغ" Keyboard="Numeric" />
                         </Grid>
-                        <Button Text="حفظ وترحيل العملية" Style="{StaticResource PrimaryButton}" Clicked="OnSavePaymentClicked" />
+                        <Button Text="{local:Tr Key=T063}" Style="{StaticResource PrimaryButton}" Clicked="OnSavePaymentClicked" />
                     </VerticalStackLayout>
                 </Border>
-                <CollectionView ItemsSource="{Binding Payments}" HeightRequest="190" EmptyView="لا توجد مدفوعات.">
+                <CollectionView ItemsSource="{Binding Payments}" HeightRequest="190" EmptyView="{local:Tr Key=T082}">
                     <CollectionView.ItemTemplate>
                         <DataTemplate>
                             <Border Style="{StaticResource CardBorder}" Margin="0,0,0,7">

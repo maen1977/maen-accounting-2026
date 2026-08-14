@@ -1,0 +1,79 @@
+<ContentPage
+    x:Class="Maen.Accounting.App.Views.PersonalDashboardPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:local="clr-namespace:Maen.Accounting.App"
+    Title="{local:Tr Key=T032}"
+    BackgroundColor="{StaticResource AppBackground}">
+    <ScrollView>
+            <VerticalStackLayout Padding="18,20,18,32" Spacing="16" MaximumWidthRequest="760" HorizontalOptions="Center">
+                <Border Style="{StaticResource HeroCard}">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="{local:Tr Key=T105}" TextColor="White" FontSize="25" FontAttributes="Bold" />
+                            <Label Text="{local:Tr Key=T106}" TextColor="#D7FAE8" FontSize="13" />
+                            <Label Text="{Binding CurrentMonthNetText}" TextColor="White" FontSize="33" FontAttributes="Bold" Margin="0,8,0,0" />
+                            <Label Text="{local:Tr Key=T107}" TextColor="#D7FAE8" FontSize="13" />
+                        </VerticalStackLayout>
+                        <Border Grid.Column="1" BackgroundColor="#2BBF83" WidthRequest="66" HeightRequest="66" StrokeThickness="0" VerticalOptions="Center">
+                            <Border.StrokeShape><RoundRectangle CornerRadius="22" /></Border.StrokeShape>
+                            <Label Text="{local:Tr Key=T085}" TextColor="White" FontSize="31" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                    <Border Style="{StaticResource MetricCard}">
+                        <VerticalStackLayout Spacing="5">
+                            <Label Text="{local:Tr Key=T108}" Style="{StaticResource MetricCaption}" />
+                            <Label Text="{Binding CurrentMonthSalesText}" TextColor="#137A53" FontSize="22" FontAttributes="Bold" />
+                        </VerticalStackLayout>
+                    </Border>
+                    <Border Grid.Column="1" Style="{StaticResource MetricCard}">
+                        <VerticalStackLayout Spacing="5">
+                            <Label Text="{local:Tr Key=T109}" Style="{StaticResource MetricCaption}" />
+                            <Label Text="{Binding CurrentMonthExpensesText}" TextColor="#C2413A" FontSize="22" FontAttributes="Bold" />
+                        </VerticalStackLayout>
+                    </Border>
+                </Grid>
+
+                <Border Style="{StaticResource CardBorder}">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="{local:Tr Key=T110}" FontSize="18" FontAttributes="Bold" />
+                        <Label Text="{local:Tr Key=T115}" Style="{StaticResource MutedLabel}" />
+                        <Button Text="{local:Tr Key=T110}" Clicked="OnAddClicked" Style="{StaticResource PrimaryButton}" HeightRequest="54" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Grid ColumnDefinitions="*,Auto" Margin="2,6,2,0">
+                    <Label Text="{local:Tr Key=T002}" FontSize="19" FontAttributes="Bold" />
+                    <Label Grid.Column="1" Text="{Binding ReportCountText}" TextColor="{StaticResource PrimaryDark}" FontSize="14" VerticalOptions="Center" />
+                </Grid>
+
+                <CollectionView ItemsSource="{Binding RecentEntries}" SelectionMode="None">
+                    <CollectionView.EmptyView>
+                        <Border Style="{StaticResource EmptyStateBorder}">
+                            <Label Text="{local:Tr Key=T078}" Style="{StaticResource MutedLabel}" HorizontalTextAlignment="Center" />
+                        </Border>
+                    </CollectionView.EmptyView>
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource ListItemBorder}" Margin="0,0,0,10">
+                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                    <Border BackgroundColor="#EAF8F2" WidthRequest="42" HeightRequest="42" StrokeThickness="0">
+                                        <Border.StrokeShape><RoundRectangle CornerRadius="14" /></Border.StrokeShape>
+                                        <Label Text="{local:Tr Key=T085}" TextColor="#087A55" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                                    </Border>
+                                    <VerticalStackLayout Grid.Column="1" Spacing="3">
+                                        <Label Text="{Binding DateText}" FontAttributes="Bold" />
+                                        <Label Text="{Binding NotesText}" Style="{StaticResource MutedLabel}" LineBreakMode="TailTruncation" />
+                                    </VerticalStackLayout>
+                                    <Label Grid.Column="2" Text="{Binding NetText}" TextColor="{StaticResource PrimaryDark}" FontAttributes="Bold" VerticalOptions="Center" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using Maen.Accounting.App;
 using Maen.Accounting.App.Data;
 using Maen.Accounting.App.Infrastructure;
 using Maen.Accounting.App.Services;
@@ -29,8 +30,8 @@ public sealed class MainStateViewModel : ObservableObject
     private string _searchText = string.Empty;
     private bool _isBusy;
     private string _statusMessage = string.Empty;
-    private string _syncStatus = "لم تتم المزامنة بعد";
-    private string _backupStatus = "لا توجد نسخة محلية بعد";
+    private string _syncStatus = UiText.Get("T130");
+    private string _backupStatus = UiText.Get("T131");
 
     public MainStateViewModel(
         ProfitEntryRepository repository,
@@ -59,7 +60,7 @@ public sealed class MainStateViewModel : ObservableObject
 
     public string UserEmail => _session?.Email ?? string.Empty;
     public bool IsCloudAccount => _session is { IsLocal: false };
-    public string AccountModeText => IsCloudAccount ? "حساب سحابي محمي" : "وضع محلي على هذا الجهاز";
+    public string AccountModeText => IsCloudAccount ? UiText.Get("T126") : UiText.Get("T127");
 
     public DateTime EntryDate { get => _entryDate; set => SetProperty(ref _entryDate, value); }
     public string SalesInput { get => _salesInput; set { if (SetProperty(ref _salesInput, value)) RefreshPreview(); } }
@@ -72,7 +73,7 @@ public sealed class MainStateViewModel : ObservableObject
     public string StatusMessage { get => _statusMessage; private set => SetProperty(ref _statusMessage, value); }
     public string SyncStatus { get => _syncStatus; private set => SetProperty(ref _syncStatus, value); }
     public string BackupStatus { get => _backupStatus; private set => SetProperty(ref _backupStatus, value); }
-    public string SaveButtonText => _editingEntry is null ? "حفظ السجل" : "تحديث السجل";
+    public string SaveButtonText => _editingEntry is null ? UiText.Get("T128") : UiText.Get("T129");
 
     public string PreviewNetText
     {
@@ -89,6 +90,7 @@ public sealed class MainStateViewModel : ObservableObject
     public string CurrentMonthGrossText => Money.Format(SummarizeCurrentMonth().GrossProfitMinor);
     public string CurrentMonthAverageNetText => Money.Format(SummarizeCurrentMonth().AverageNetMinor);
     public string CurrentMonthSalesText => Money.Format(SummarizeCurrentMonth().SalesMinor);
+    public string CurrentMonthExpensesText => Money.Format(SummarizeCurrentMonth().ExpensesMinor);
     public string CurrentYearNetText => Money.Format(SummarizeCurrentYear().NetProfitMinor);
     public string TotalExpensesText => Money.Format(ProfitCalculator.Summarize(Models()).ExpensesMinor);
     public string ReportNetText => Money.Format(SummarizeReport().NetProfitMinor);
@@ -156,9 +158,9 @@ public sealed class MainStateViewModel : ObservableObject
     public async Task SaveCurrentAsync()
     {
         var session = RequireSession();
-        var sales = ParseEntryAmount(SalesInput, "إجمالي المبيعات");
-        var cost = ParseEntryAmount(CostInput, "تكلفة القطع");
-        var expenses = ParseEntryAmount(ExpensesInput, "المشتريات والمصروفات اليومية");
+        var sales = ParseEntryAmount(SalesInput, UiText.Get("T005"));
+        var cost = ParseEntryAmount(CostInput, UiText.Get("T059"));
+        var expenses = ParseEntryAmount(ExpensesInput, UiText.Get("T047"));
 
         await RunBusyAsync(async () =>
         {
@@ -184,7 +186,7 @@ public sealed class MainStateViewModel : ObservableObject
             await WriteBackupAndUpdateAsync();
             await ReloadAsync();
             ResetEditor();
-            StatusMessage = "تم حفظ السجل محليًا بدقة.";
+            StatusMessage = UiText.Get("T132");
 
             if (!session.IsLocal)
             {
@@ -193,15 +195,15 @@ public sealed class MainStateViewModel : ObservableObject
                     var syncResult = await SyncInternalAsync();
                     var completedAt = syncResult.CompletedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
                     StatusMessage = syncResult.Uploaded > 0
-                        ? $"تم الحفظ محليًا وتمت المزامنة السحابية بنجاح — رُفع {syncResult.Uploaded} سجل، وتم التحقق من {syncResult.TotalEntries} سجل — {completedAt}."
-                        : $"تم الحفظ محليًا وتمت المزامنة السحابية بنجاح — السجل موجود ومؤكد في السحابة — تم التحقق من {syncResult.TotalEntries} سجل — {completedAt}.";
+                        ? UiText.Format("T133", syncResult.Uploaded, syncResult.TotalEntries, completedAt)
+                        : UiText.Format("T134", syncResult.TotalEntries, completedAt);
                 }
                 catch (Exception exception)
                 {
                     var detail = exception.Message.Trim();
                     StatusMessage = string.IsNullOrWhiteSpace(detail)
-                        ? "تم الحفظ محليًا، لكن تعذرت المزامنة. اضغط مزامنة الآن لإعادة المحاولة."
-                        : $"تم الحفظ محليًا، لكن تعذرت المزامنة: {detail}";
+                        ? UiText.Get("T135")
+                        : $"{UiText.Get("T135")} {detail}";
                     SyncStatus = StatusMessage;
                 }
             }
@@ -244,15 +246,15 @@ public sealed class MainStateViewModel : ObservableObject
     {
         if (!IsCloudAccount)
         {
-            throw new InvalidOperationException("المزامنة متاحة للحساب السحابي فقط.");
+            throw new InvalidOperationException(UiText.Get("T126"));
         }
 
         await RunBusyAsync(async () =>
         {
             var syncResult = await SyncInternalAsync();
             StatusMessage = syncResult.Uploaded > 0
-                ? $"اكتملت المزامنة السحابية بنجاح — رُفع {syncResult.Uploaded} سجل، وتم التحقق من {syncResult.TotalEntries} سجل."
-                : $"اكتملت المزامنة السحابية بنجاح — تم التحقق من {syncResult.TotalEntries} سجل ولم توجد تغييرات معلقة.";
+                ? UiText.Format("T136", syncResult.CompletedAtUtc.ToLocalTime().ToString("g"), syncResult.Uploaded, syncResult.TotalEntries)
+                : UiText.Format("T137", syncResult.CompletedAtUtc.ToLocalTime().ToString("g"), syncResult.TotalEntries);
         });
     }
 
@@ -290,9 +292,10 @@ public sealed class MainStateViewModel : ObservableObject
     private async Task<SyncResult> SyncInternalAsync()
     {
         var result = await _syncService.SyncAsync();
+        var completedAt = result.CompletedAtUtc.ToLocalTime().ToString("g");
         SyncStatus = result.Uploaded > 0
-            ? $"آخر مزامنة سحابية ناجحة: {result.CompletedAtUtc.ToLocalTime():yyyy-MM-dd HH:mm} — رُفع {result.Uploaded} سجل — تم التحقق من {result.TotalEntries} سجل"
-            : $"آخر مزامنة سحابية ناجحة: {result.CompletedAtUtc.ToLocalTime():yyyy-MM-dd HH:mm} — لا تغييرات معلقة — تم التحقق من {result.TotalEntries} سجل";
+            ? UiText.Format("T136", completedAt, result.Uploaded, result.TotalEntries)
+            : UiText.Format("T137", completedAt, result.TotalEntries);
         await ReloadAsync();
         await WriteBackupAndUpdateAsync();
         return result;
@@ -307,8 +310,8 @@ public sealed class MainStateViewModel : ObservableObject
     private void SetBackupStatus(BackupInfo info)
     {
         BackupStatus = info.Exists
-            ? $"آخر نسخة: {info.UpdatedAtUtc?.ToLocalTime():yyyy-MM-dd HH:mm} — {info.EntriesCount} سجل"
-            : "لا توجد نسخة محلية بعد";
+            ? UiText.Format("T138", info.UpdatedAtUtc?.ToLocalTime().ToString("g") ?? string.Empty, info.EntriesCount)
+            : UiText.Get("T131");
     }
 
     private static long ParseEntryAmount(string? input, string fieldName)
@@ -321,7 +324,7 @@ public sealed class MainStateViewModel : ObservableObject
 
         if (!Money.TryParse(input, out var amount))
         {
-            throw new InvalidOperationException($"حقل «{fieldName}» يحتوي على مبلغ غير صحيح أو سالب.");
+            throw new InvalidOperationException(UiText.Format("T139", fieldName));
         }
 
         return amount;
@@ -382,6 +385,7 @@ public sealed class MainStateViewModel : ObservableObject
         OnPropertyChanged(nameof(CurrentMonthGrossText));
         OnPropertyChanged(nameof(CurrentMonthAverageNetText));
         OnPropertyChanged(nameof(CurrentMonthSalesText));
+        OnPropertyChanged(nameof(CurrentMonthExpensesText));
         OnPropertyChanged(nameof(CurrentYearNetText));
         OnPropertyChanged(nameof(TotalExpensesText));
         RaiseReportSummary();
@@ -416,7 +420,7 @@ public sealed class MainStateViewModel : ObservableObject
     }
 
     private AuthSession RequireSession() =>
-        _session ?? throw new InvalidOperationException("لا توجد جلسة مستخدم نشطة.");
+        _session ?? throw new InvalidOperationException(UiText.Get("T140"));
 
     private async Task RunBusyAsync(Func<Task> action)
     {

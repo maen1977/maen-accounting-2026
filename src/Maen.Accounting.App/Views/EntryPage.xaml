@@ -3,30 +3,31 @@
     x:Class="Maen.Accounting.App.Views.EntryPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    Title="إدخال">
+    xmlns:local="clr-namespace:Maen.Accounting.App"
+    Title="{local:Tr Key=T009}">
     <ScrollView>
         <VerticalStackLayout Padding="18" Spacing="14" MaximumWidthRequest="760" HorizontalOptions="Center">
-            <Label Text="السجل اليومي" Style="{StaticResource TitleLabel}" />
-            <Label Text="يُحفظ سجل واحد لكل تاريخ، وأي تعديل يُسجّل بإصدار جديد للمزامنة الآمنة." Style="{StaticResource MutedLabel}" />
+            <Label Text="{local:Tr Key=T035}" Style="{StaticResource TitleLabel}" />
+            <Label Text="{local:Tr Key=T104}" Style="{StaticResource MutedLabel}" />
 
             <Border Style="{StaticResource CardBorder}">
                 <VerticalStackLayout Spacing="12">
-                    <Label Text="التاريخ" FontAttributes="Bold" />
+                    <Label Text="{local:Tr Key=T021}" FontAttributes="Bold" />
                     <DatePicker Date="{Binding EntryDate}" MinimumDate="2020-01-01" MaximumDate="2100-12-31" />
-                    <Label Text="إجمالي المبيعات" FontAttributes="Bold" />
+                    <Label Text="{local:Tr Key=T005}" FontAttributes="Bold" />
                     <Entry Text="{Binding SalesInput}" Keyboard="Numeric" Placeholder="0.00" FlowDirection="LeftToRight" />
-                    <Label Text="تكلفة القطع" FontAttributes="Bold" />
+                    <Label Text="{local:Tr Key=T059}" FontAttributes="Bold" />
                     <Entry Text="{Binding CostInput}" Keyboard="Numeric" Placeholder="0.00" FlowDirection="LeftToRight" />
-                    <Label Text="المشتريات والمصروفات اليومية" FontAttributes="Bold" />
+                    <Label Text="{local:Tr Key=T047}" FontAttributes="Bold" />
                     <Entry Text="{Binding ExpensesInput}" Keyboard="Numeric" Placeholder="0.00" FlowDirection="LeftToRight" />
-                    <Label Text="ملاحظات" FontAttributes="Bold" />
+                    <Label Text="{local:Tr Key=T093}" FontAttributes="Bold" />
                     <Editor Text="{Binding NotesInput}" Placeholder="ملاحظات اختيارية" AutoSize="TextChanges" MinimumHeightRequest="90" />
                 </VerticalStackLayout>
             </Border>
 
             <Border Style="{StaticResource CardBorder}" BackgroundColor="#EAF8F2">
                 <Grid ColumnDefinitions="*,Auto">
-                    <Label Text="صافي الربح المتوقع" FontAttributes="Bold" />
+                    <Label Text="{local:Tr Key=T069}" FontAttributes="Bold" />
                     <Label Grid.Column="1" Text="{Binding PreviewNetText}" FontSize="24" FontAttributes="Bold" TextColor="{StaticResource PrimaryDark}" />
                 </Grid>
             </Border>

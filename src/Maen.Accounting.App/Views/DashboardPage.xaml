@@ -1,47 +1,77 @@
-<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage
     x:Class="Maen.Accounting.App.Views.DashboardPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    Title="الرئيسية">
+    xmlns:local="clr-namespace:Maen.Accounting.App"
+    Title="{local:Tr Key=T032}">
     <RefreshView IsRefreshing="{Binding IsBusy, Mode=OneWay}" Refreshing="OnRefresh">
         <ScrollView>
-            <VerticalStackLayout Padding="18" Spacing="16" MaximumWidthRequest="1100" HorizontalOptions="Center">
-                <Label Text="نظرة مالية" Style="{StaticResource TitleLabel}" />
-                <Label Text="ملخص مباشر مبني على سجلاتك المحلية الحالية" Style="{StaticResource MutedLabel}" />
+            <VerticalStackLayout Padding="18,20,18,28" Spacing="18" MaximumWidthRequest="1100" HorizontalOptions="Center">
+                <Border Style="{StaticResource HeroCard}">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                        <VerticalStackLayout Spacing="7">
+                            <Label Text="{local:Tr Key=T099}" TextColor="#D7FAE8" FontSize="14" />
+                            <Label Text="{local:Tr Key=T092}" TextColor="White" FontSize="27" FontAttributes="Bold" />
+                            <Label Text="{local:Tr Key=T094}" TextColor="#D7FAE8" FontSize="13" />
+                        </VerticalStackLayout>
+                        <Border Grid.Column="1" BackgroundColor="#2BBF83" Opacity="0.9" WidthRequest="64" HeightRequest="64" StrokeThickness="0" VerticalOptions="Center">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="20" />
+                            </Border.StrokeShape>
+                            <Label Text="{local:Tr Key=T085}" TextColor="White" FontSize="32" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                        </Border>
+                    </Grid>
+                </Border>
 
                 <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="12">
-                    <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource CardBorder}">
-                        <VerticalStackLayout Spacing="6"><Label Text="صافي الشهر" Style="{StaticResource MutedLabel}"/><Label Text="{Binding CurrentMonthNetText}" FontSize="22" FontAttributes="Bold" TextColor="{StaticResource PrimaryDark}"/></VerticalStackLayout>
+                    <Border Grid.Row="0" Grid.Column="0" BackgroundColor="#EAF8F2" Stroke="#B7EBD4" StrokeThickness="1" Padding="16">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="20" /></Border.StrokeShape>
+                        <VerticalStackLayout Spacing="7"><Label Text="{local:Tr Key=T071}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding CurrentMonthNetText}" FontSize="22" FontAttributes="Bold" TextColor="{StaticResource PrimaryDark}"/></VerticalStackLayout>
                     </Border>
-                    <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource CardBorder}">
-                        <VerticalStackLayout Spacing="6"><Label Text="مبيعات الشهر" Style="{StaticResource MutedLabel}"/><Label Text="{Binding CurrentMonthSalesText}" FontSize="22" FontAttributes="Bold"/></VerticalStackLayout>
+                    <Border Grid.Row="0" Grid.Column="1" BackgroundColor="#EFF6FF" Stroke="#BFDBFE" StrokeThickness="1" Padding="16">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="20" /></Border.StrokeShape>
+                        <VerticalStackLayout Spacing="7"><Label Text="{local:Tr Key=T086}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding CurrentMonthSalesText}" FontSize="22" FontAttributes="Bold" TextColor="#1D4ED8"/></VerticalStackLayout>
                     </Border>
-                    <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource CardBorder}">
-                        <VerticalStackLayout Spacing="6"><Label Text="صافي السنة" Style="{StaticResource MutedLabel}"/><Label Text="{Binding CurrentYearNetText}" FontSize="22" FontAttributes="Bold"/></VerticalStackLayout>
+                    <Border Grid.Row="1" Grid.Column="0" BackgroundColor="#FFF7ED" Stroke="#FED7AA" StrokeThickness="1" Padding="16">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="20" /></Border.StrokeShape>
+                        <VerticalStackLayout Spacing="7"><Label Text="{local:Tr Key=T070}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding CurrentYearNetText}" FontSize="22" FontAttributes="Bold" TextColor="#C2410C"/></VerticalStackLayout>
                     </Border>
-                    <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource CardBorder}">
-                        <VerticalStackLayout Spacing="6"><Label Text="إجمالي المصروفات" Style="{StaticResource MutedLabel}"/><Label Text="{Binding TotalExpensesText}" FontSize="22" FontAttributes="Bold"/></VerticalStackLayout>
+                    <Border Grid.Row="1" Grid.Column="1" BackgroundColor="#FFF1F2" Stroke="#FECDD3" StrokeThickness="1" Padding="16">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="20" /></Border.StrokeShape>
+                        <VerticalStackLayout Spacing="7"><Label Text="{local:Tr Key=T008}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding TotalExpensesText}" FontSize="22" FontAttributes="Bold" TextColor="#BE123C"/></VerticalStackLayout>
                     </Border>
-                    <Border Grid.Row="2" Grid.Column="0" Style="{StaticResource CardBorder}">
-                        <VerticalStackLayout Spacing="6"><Label Text="الربح الإجمالي للشهر" Style="{StaticResource MutedLabel}"/><Label Text="{Binding CurrentMonthGrossText}" FontSize="22" FontAttributes="Bold"/></VerticalStackLayout>
+                    <Border Grid.Row="2" Grid.Column="0" BackgroundColor="#F5F3FF" Stroke="#DDD6FE" StrokeThickness="1" Padding="16">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="20" /></Border.StrokeShape>
+                        <VerticalStackLayout Spacing="7"><Label Text="{local:Tr Key=T034}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding CurrentMonthGrossText}" FontSize="22" FontAttributes="Bold" TextColor="#6D28D9"/></VerticalStackLayout>
                     </Border>
-                    <Border Grid.Row="2" Grid.Column="1" Style="{StaticResource CardBorder}">
-                        <VerticalStackLayout Spacing="6"><Label Text="متوسط صافي السجل" Style="{StaticResource MutedLabel}"/><Label Text="{Binding CurrentMonthAverageNetText}" FontSize="22" FontAttributes="Bold"/></VerticalStackLayout>
+                    <Border Grid.Row="2" Grid.Column="1" BackgroundColor="#F0FDFA" Stroke="#99F6E4" StrokeThickness="1" Padding="16">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="20" /></Border.StrokeShape>
+                        <VerticalStackLayout Spacing="7"><Label Text="{local:Tr Key=T088}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding CurrentMonthAverageNetText}" FontSize="22" FontAttributes="Bold" TextColor="#0F766E"/></VerticalStackLayout>
                     </Border>
                 </Grid>
 
-                <Button Text="إضافة سجل جديد" Clicked="OnAddClicked" />
-                <Label Text="أحدث السجلات" Style="{StaticResource SectionTitle}" Margin="0,8,0,0" />
-                <CollectionView ItemsSource="{Binding RecentEntries}" EmptyView="لا توجد سجلات بعد.">
+                <Button Text="{local:Tr Key=T010}" Clicked="OnAddClicked" Style="{StaticResource PrimaryButton}" HeightRequest="54" />
+
+                <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
+                    <VerticalStackLayout Spacing="3">
+                        <Label Text="{local:Tr Key=T002}" Style="{StaticResource SectionTitle}" />
+                        <Label Text="{local:Tr Key=T094}" Style="{StaticResource MutedLabel}" />
+                    </VerticalStackLayout>
+                    <Border Grid.Column="1" BackgroundColor="{StaticResource PrimaryLight}" Padding="12,8" StrokeThickness="0" VerticalOptions="Center">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="14" /></Border.StrokeShape>
+                        <Label Text="{local:Tr Key=T097}" TextColor="{StaticResource PrimaryDark}" FontSize="12" FontAttributes="Bold" />
+                    </Border>
+                </Grid>
+
+                <CollectionView ItemsSource="{Binding RecentEntries}" EmptyView="{local:Tr Key=T078}">
                     <CollectionView.ItemTemplate>
                         <DataTemplate>
-                            <Border Style="{StaticResource CardBorder}" Margin="0,0,0,10">
+                            <Border Style="{StaticResource CardBorder}" Margin="0,0,0,10" Padding="16">
                                 <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12">
                                     <Label Text="{Binding DateText}" FontAttributes="Bold" />
                                     <Label Grid.Column="1" Text="{Binding NetText}" FontSize="19" FontAttributes="Bold" TextColor="{StaticResource PrimaryDark}" />
-                                    <Label Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding NotesText}" Style="{StaticResource MutedLabel}" LineBreakMode="TailTruncation" />
-                                    <Button Grid.Row="2" Grid.ColumnSpan="2" Text="تعديل" Style="{StaticResource SecondaryButton}" CommandParameter="{Binding .}" Clicked="OnEditClicked" Margin="0,8,0,0" />
+                                    <Label Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding NotesText}" Style="{StaticResource MutedLabel}" LineBreakMode="TailTruncation" Margin="0,5,0,0" />
+                                    <Button Grid.Row="2" Grid.ColumnSpan="2" Text="{local:Tr Key=T058}" Style="{StaticResource SecondaryButton}" CommandParameter="{Binding .}" Clicked="OnEditClicked" Margin="0,10,0,0" />
                                 </Grid>
                             </Border>
                         </DataTemplate>

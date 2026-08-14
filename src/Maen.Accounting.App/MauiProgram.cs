@@ -25,6 +25,7 @@ public static class MauiProgram
         });
         builder.Services.AddSingleton<FirebaseOptions>();
         builder.Services.AddSingleton<AuthSessionStore>();
+        builder.Services.AddSingleton<AppPreferencesService>();
         builder.Services.AddSingleton<FirebaseAuthService>();
         builder.Services.AddSingleton<AuthTokenProvider>();
         builder.Services.AddSingleton<DeviceIdentityService>();
@@ -40,13 +41,17 @@ public static class MauiProgram
         builder.Services.AddSingleton<SessionCoordinator>();
 
         builder.Services.AddTransient<LoginPage>();
+        builder.Services.AddTransient<OnboardingPage>();
         builder.Services.AddTransient<DashboardPage>();
+        builder.Services.AddTransient<PersonalDashboardPage>();
         builder.Services.AddTransient<AccountingPage>();
         builder.Services.AddTransient<BusinessPage>();
         builder.Services.AddTransient<EntryPage>();
+        builder.Services.AddTransient<PersonalEntryPage>();
         builder.Services.AddTransient<ReportsPage>();
         builder.Services.AddTransient<SettingsPage>();
         builder.Services.AddTransient<MainTabbedPage>();
+        builder.Services.AddTransient<PersonalTabbedPage>();
 
         return builder.Build();
     }

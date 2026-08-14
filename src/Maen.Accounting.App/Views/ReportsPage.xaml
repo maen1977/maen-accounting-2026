@@ -3,29 +3,30 @@
     x:Class="Maen.Accounting.App.Views.ReportsPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    Title="التقارير">
+    xmlns:local="clr-namespace:Maen.Accounting.App"
+    Title="{local:Tr Key=T022}">
     <Grid RowDefinitions="Auto,*" Padding="18" MaximumWidthRequest="1100" HorizontalOptions="Center">
         <VerticalStackLayout Spacing="12">
-            <Label Text="التقارير" Style="{StaticResource TitleLabel}" />
+            <Label Text="{local:Tr Key=T022}" Style="{StaticResource TitleLabel}" />
             <DatePicker Date="{Binding ReportMonth}" Format="MMMM yyyy" />
             <SearchBar Text="{Binding SearchText}" Placeholder="ابحث بالتاريخ أو الملاحظات" />
             <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="10">
-                <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="صافي الشهر" Style="{StaticResource MutedLabel}"/><Label Text="{Binding ReportNetText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
-                <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="المبيعات" Style="{StaticResource MutedLabel}"/><Label Text="{Binding ReportSalesText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
-                <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="المصروفات" Style="{StaticResource MutedLabel}"/><Label Text="{Binding ReportExpensesText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
-                <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="عدد السجلات" Style="{StaticResource MutedLabel}"/><Label Text="{Binding ReportCountText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
-                <Border Grid.Row="2" Grid.Column="0" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="الربح الإجمالي" Style="{StaticResource MutedLabel}"/><Label Text="{Binding ReportGrossText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
-                <Border Grid.Row="2" Grid.Column="1" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="متوسط صافي السجل" Style="{StaticResource MutedLabel}"/><Label Text="{Binding ReportAverageNetText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
-                <Border Grid.Row="3" Grid.Column="0" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="الحسابات" Style="{StaticResource MutedLabel}"/><Label Text="{Binding AccountingAccountsText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
-                <Border Grid.Row="3" Grid.Column="1" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="القيود المرحّلة" Style="{StaticResource MutedLabel}"/><Label Text="{Binding PostedJournalCountText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
+                <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T071}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding ReportNetText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
+                <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T043}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding ReportSalesText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
+                <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T048}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding ReportExpensesText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
+                <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T072}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding ReportCountText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
+                <Border Grid.Row="2" Grid.Column="0" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T033}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding ReportGrossText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
+                <Border Grid.Row="2" Grid.Column="1" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T088}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding ReportAverageNetText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
+                <Border Grid.Row="3" Grid.Column="0" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T026}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding AccountingAccountsText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
+                <Border Grid.Row="3" Grid.Column="1" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T042}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding PostedJournalCountText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
             </Grid>
             <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                <Border Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="إجمالي الفواتير المرحّلة" Style="{StaticResource MutedLabel}"/><Label Text="{Binding PostedInvoiceTotalText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
-                <Border Grid.Column="1" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="إجمالي المدفوعات" Style="{StaticResource MutedLabel}"/><Label Text="{Binding PaymentsTotalText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
+                <Border Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T004}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding PostedInvoiceTotalText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
+                <Border Grid.Column="1" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T006}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding PaymentsTotalText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
             </Grid>
         </VerticalStackLayout>
 
-        <CollectionView Grid.Row="1" ItemsSource="{Binding ReportEntries}" Margin="0,14,0,0" EmptyView="لا توجد سجلات في هذا الشهر.">
+        <CollectionView Grid.Row="1" ItemsSource="{Binding ReportEntries}" Margin="0,14,0,0" EmptyView="{local:Tr Key=T079}">
             <CollectionView.ItemTemplate>
                 <DataTemplate>
                     <Border Style="{StaticResource CardBorder}" Margin="0,0,0,10">
@@ -41,8 +42,8 @@
                                 <Label Grid.Column="2" Text="{Binding ExpensesText, StringFormat='مصروف: {0}'}" FontSize="12" />
                             </Grid>
                             <Grid ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,6,0,0">
-                                <Button Text="تعديل" Style="{StaticResource SecondaryButton}" CommandParameter="{Binding .}" Clicked="OnEditClicked" />
-                                <Button Grid.Column="1" Text="حذف" Style="{StaticResource DangerButton}" CommandParameter="{Binding .}" Clicked="OnDeleteClicked" />
+                                <Button Text="{local:Tr Key=T058}" Style="{StaticResource SecondaryButton}" CommandParameter="{Binding .}" Clicked="OnEditClicked" />
+                                <Button Grid.Column="1" Text="{local:Tr Key=T061}" Style="{StaticResource DangerButton}" CommandParameter="{Binding .}" Clicked="OnDeleteClicked" />
                             </Grid>
                         </VerticalStackLayout>
                     </Border>

@@ -1,0 +1,64 @@
+<ContentPage
+    x:Class="Maen.Accounting.App.Views.OnboardingPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:local="clr-namespace:Maen.Accounting.App"
+    FlowDirection="RightToLeft">
+    <ScrollView>
+        <VerticalStackLayout Padding="20,28,20,34" Spacing="20" MaximumWidthRequest="720" HorizontalOptions="Center">
+            <Border BackgroundColor="{StaticResource Primary}" StrokeThickness="0" Padding="24">
+                <Border.StrokeShape><RoundRectangle CornerRadius="28" /></Border.StrokeShape>
+                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="18">
+                    <Border BackgroundColor="#FFFFFF" Opacity="0.16" WidthRequest="72" HeightRequest="72" StrokeThickness="0">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="22" /></Border.StrokeShape>
+                        <Label x:Name="LogoLabel" Text="{local:Tr Key=T085}" TextColor="White" FontSize="38" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                    </Border>
+                    <VerticalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
+                        <Label x:Name="BrandLabel" Text="{local:Tr Key=T092}" TextColor="White" FontSize="28" FontAttributes="Bold" />
+                        <Label x:Name="BrandSubtitleLabel" Text="{local:Tr Key=T098}" TextColor="#D7FAE8" FontSize="14" />
+                    </VerticalStackLayout>
+                </Grid>
+            </Border>
+
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                <Border BackgroundColor="{StaticResource PrimaryLight}" WidthRequest="42" HeightRequest="42" StrokeThickness="0">
+                    <Border.StrokeShape><RoundRectangle CornerRadius="14" /></Border.StrokeShape>
+                    <Label x:Name="StepNumberLabel" Text="1" TextColor="{StaticResource PrimaryDark}" FontSize="19" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                </Border>
+                <VerticalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
+                    <Label x:Name="WelcomeLabel" Text="{local:Tr Key=T089}" FontSize="25" FontAttributes="Bold" />
+                    <Label x:Name="StepLabel" Text="{local:Tr Key=T013}" TextColor="{StaticResource PrimaryDark}" FontSize="14" FontAttributes="Bold" />
+                </VerticalStackLayout>
+            </Grid>
+
+            <Label x:Name="IntroLabel" Text="{local:Tr Key=T014}" TextColor="{StaticResource TextSecondary}" FontSize="15" LineBreakMode="WordWrap" />
+
+            <Border x:Name="LanguageSection" Style="{StaticResource CardBorder}">
+                <VerticalStackLayout Spacing="16">
+                    <Label x:Name="LanguageTitleLabel" Text="{local:Tr Key=T013}" FontSize="19" FontAttributes="Bold" />
+                    <Label x:Name="LanguageHintLabel" Text="" TextColor="{StaticResource TextSecondary}" FontSize="13" />
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                        <Button x:Name="ArabicButton" Text="{local:Tr Key=T037}" Clicked="OnArabicClicked" Style="{StaticResource PrimaryButton}" HeightRequest="54" />
+                        <Button x:Name="EnglishButton" Grid.Column="1" Text="{local:Tr Key=T001}" Clicked="OnEnglishClicked" Style="{StaticResource SecondaryButton}" HeightRequest="54" />
+                    </Grid>
+                    <Button x:Name="LanguageContinueButton" Text="{local:Tr Key=T087}" Clicked="OnLanguageContinueClicked" Style="{StaticResource PrimaryButton}" HeightRequest="54" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border x:Name="AccountSection" IsVisible="False" Style="{StaticResource CardBorder}">
+                <VerticalStackLayout Spacing="16">
+                    <Label x:Name="ExperienceTitleLabel" Text="{local:Tr Key=T015}" FontSize="19" FontAttributes="Bold" />
+                    <Label x:Name="ExperienceHintLabel" Text="{local:Tr Key=T103}" TextColor="{StaticResource TextSecondary}" FontSize="13" />
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                        <Button x:Name="PersonalButton" Text="{local:Tr Key=T027}" Clicked="OnPersonalClicked" Style="{StaticResource SecondaryButton}" HeightRequest="86" />
+                        <Button x:Name="BusinessButton" Grid.Column="1" Text="{local:Tr Key=T036}" Clicked="OnBusinessClicked" Style="{StaticResource PrimaryButton}" HeightRequest="86" />
+                    </Grid>
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                        <Button x:Name="BackButton" Text="" Clicked="OnBackClicked" Style="{StaticResource SecondaryButton}" HeightRequest="52" />
+                        <Button x:Name="ContinueButton" Grid.Column="1" Text="{local:Tr Key=T087}" Clicked="OnContinueClicked" Style="{StaticResource PrimaryButton}" HeightRequest="52" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

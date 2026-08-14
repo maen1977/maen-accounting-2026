@@ -3,14 +3,15 @@
     x:Class="Maen.Accounting.App.Views.SettingsPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    Title="الإعدادات">
+    xmlns:local="clr-namespace:Maen.Accounting.App"
+    Title="{local:Tr Key=T018}">
     <ScrollView>
         <VerticalStackLayout Padding="18" Spacing="14" MaximumWidthRequest="760" HorizontalOptions="Center">
-            <Label Text="الإعدادات والنسخ" Style="{StaticResource TitleLabel}" />
+            <Label Text="{local:Tr Key=T019}" Style="{StaticResource TitleLabel}" />
 
             <Border Style="{StaticResource CardBorder}">
                 <VerticalStackLayout Spacing="8">
-                    <Label Text="الحساب" Style="{StaticResource SectionTitle}" />
+                    <Label Text="{local:Tr Key=T023}" Style="{StaticResource SectionTitle}" />
                     <Label Text="{Binding UserEmail}" FlowDirection="LeftToRight" HorizontalTextAlignment="End" />
                     <Label Text="{Binding AccountModeText}" Style="{StaticResource MutedLabel}" />
                 </VerticalStackLayout>
@@ -18,31 +19,39 @@
 
             <Border Style="{StaticResource CardBorder}">
                 <VerticalStackLayout Spacing="10">
-                    <Label Text="المزامنة" Style="{StaticResource SectionTitle}" />
-                    <Label Text="{Binding SyncStatus}" Style="{StaticResource MutedLabel}" />
-                    <Button Text="مزامنة الآن" IsVisible="{Binding IsCloudAccount}" Clicked="OnSyncClicked" />
-                    <Label Text="المزامنة تقارن وقت وإصدار كل سجل، ولا تستبدل قاعدة كاملة بقاعدة أقدم." Style="{StaticResource MutedLabel}" />
+                    <Label Text="{local:Tr Key=T123}" Style="{StaticResource SectionTitle}" />
+                    <Label Text="{local:Tr Key=T124}" Style="{StaticResource MutedLabel}" />
+                    <Button Text="{local:Tr Key=T125}" Style="{StaticResource SecondaryButton}" Clicked="OnChooseExperienceClicked" />
                 </VerticalStackLayout>
             </Border>
 
             <Border Style="{StaticResource CardBorder}">
                 <VerticalStackLayout Spacing="10">
-                    <Label Text="النسخة الاحتياطية" Style="{StaticResource SectionTitle}" />
+                    <Label Text="{local:Tr Key=T045}" Style="{StaticResource SectionTitle}" />
+                    <Label Text="{Binding SyncStatus}" Style="{StaticResource MutedLabel}" />
+                    <Button Text="{local:Tr Key=T091}" IsVisible="{Binding IsCloudAccount}" Clicked="OnSyncClicked" />
+                    <Label Text="{local:Tr Key=T046}" Style="{StaticResource MutedLabel}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource CardBorder}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="{local:Tr Key=T049}" Style="{StaticResource SectionTitle}" />
                     <Label Text="{Binding BackupStatus}" Style="{StaticResource MutedLabel}" />
-                    <Button Text="تصدير نسخة JSON" Style="{StaticResource SecondaryButton}" Clicked="OnExportClicked" />
-                    <Button Text="استيراد نسخة Flutter أو MAUI" Style="{StaticResource SecondaryButton}" Clicked="OnImportClicked" />
+                    <Button Text="{local:Tr Key=T057}" Style="{StaticResource SecondaryButton}" Clicked="OnExportClicked" />
+                    <Button Text="{local:Tr Key=T017}" Style="{StaticResource SecondaryButton}" Clicked="OnImportClicked" />
                 </VerticalStackLayout>
             </Border>
 
             <Border Style="{StaticResource CardBorder}">
                 <VerticalStackLayout Spacing="8">
-                    <Label Text="الخصوصية" Style="{StaticResource SectionTitle}" />
-                    <Label Text="لا يرسل التطبيق عنوان IP لتحديد الموقع، ولا يطلب GPS، ولا يجلب الطقس أو أسعار السوق. الاتصال الخارجي مقتصر على تسجيل الدخول والمزامنة التي يختارها المستخدم." Style="{StaticResource MutedLabel}" />
+                    <Label Text="{local:Tr Key=T028}" Style="{StaticResource SectionTitle}" />
+                    <Label Text="{local:Tr Key=T083}" Style="{StaticResource MutedLabel}" />
                 </VerticalStackLayout>
             </Border>
 
             <ActivityIndicator IsVisible="{Binding IsBusy}" IsRunning="{Binding IsBusy}" Color="{StaticResource Primary}" />
-            <Button Text="تسجيل الخروج" Style="{StaticResource DangerButton}" Clicked="OnSignOutClicked" />
+            <Button Text="{local:Tr Key=T055}" Style="{StaticResource DangerButton}" Clicked="OnSignOutClicked" />
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>

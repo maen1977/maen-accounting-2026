@@ -2,36 +2,37 @@
     x:Class="Maen.Accounting.App.Views.LoginPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    Title="الدخول">
+    xmlns:local="clr-namespace:Maen.Accounting.App"
+    Title="{local:Tr Key=T029}">
     <ScrollView>
         <VerticalStackLayout Padding="24,48" Spacing="18" MaximumWidthRequest="560" HorizontalOptions="Center">
             <Image Source="maen_logo.png" WidthRequest="110" HeightRequest="110" />
-            <Label Text="معن للمحاسبة" Style="{StaticResource TitleLabel}" HorizontalTextAlignment="Center" />
-            <Label Text="سجلات مالية يومية دقيقة مع فصل كامل بين الحسابات" Style="{StaticResource MutedLabel}" HorizontalTextAlignment="Center" />
+            <Label Text="{local:Tr Key=T092}" Style="{StaticResource TitleLabel}" HorizontalTextAlignment="Center" />
+            <Label Text="{local:Tr Key=T068}" Style="{StaticResource MutedLabel}" HorizontalTextAlignment="Center" />
 
             <Border Style="{StaticResource CardBorder}" Margin="0,14,0,0">
                 <VerticalStackLayout Spacing="10">
-                    <Label Text="ابدأ بدون تسجيل" Style="{StaticResource SectionTitle}" />
-                    <Label Text="يفتح البرنامج مباشرة دون بريد أو كلمة مرور. تبقى البيانات على هذا الجهاز فقط." Style="{StaticResource MutedLabel}" />
-                    <Button x:Name="LocalButton" Text="الدخول محليًا بدون تسجيل" Style="{StaticResource SecondaryButton}" Clicked="OnLocalClicked" />
+                    <Label Text="{local:Tr Key=T012}" Style="{StaticResource SectionTitle}" />
+                    <Label Text="{local:Tr Key=T102}" Style="{StaticResource MutedLabel}" />
+                    <Button x:Name="LocalButton" Text="{local:Tr Key=T031}" Style="{StaticResource SecondaryButton}" Clicked="OnLocalClicked" />
                 </VerticalStackLayout>
             </Border>
 
             <Border Style="{StaticResource CardBorder}">
                 <VerticalStackLayout Spacing="12">
-                    <Label Text="الدخول السحابي" Style="{StaticResource SectionTitle}" />
-                    <Label Text="استخدم البريد وكلمة المرور للمزامنة والنسخ الاحتياطي السحابي." Style="{StaticResource MutedLabel}" />
-                    <Label Text="البريد الإلكتروني" FontAttributes="Bold" />
+                    <Label Text="{local:Tr Key=T030}" Style="{StaticResource SectionTitle}" />
+                    <Label Text="{local:Tr Key=T016}" Style="{StaticResource MutedLabel}" />
+                    <Label Text="{local:Tr Key=T020}" FontAttributes="Bold" />
                     <Entry x:Name="EmailEntry" Keyboard="Email" Placeholder="name@example.com" FlowDirection="LeftToRight" />
-                    <Label Text="كلمة المرور" FontAttributes="Bold" />
+                    <Label Text="{local:Tr Key=T076}" FontAttributes="Bold" />
                     <Entry x:Name="PasswordEntry" IsPassword="True" Placeholder="6 أحرف على الأقل" FlowDirection="LeftToRight" />
-                    <Label x:Name="ConfirmLabel" Text="تأكيد كلمة المرور" FontAttributes="Bold" IsVisible="False" />
+                    <Label x:Name="ConfirmLabel" Text="{local:Tr Key=T051}" FontAttributes="Bold" IsVisible="False" />
                     <Entry x:Name="ConfirmEntry" IsPassword="True" Placeholder="أعد كتابة كلمة المرور" IsVisible="False" FlowDirection="LeftToRight" />
                     <ActivityIndicator x:Name="BusyIndicator" IsVisible="False" IsRunning="False" Color="{StaticResource Primary}" />
                     <Label x:Name="StatusLabel" TextColor="{StaticResource Danger}" />
-                    <Button x:Name="SubmitButton" Text="تسجيل الدخول" Clicked="OnSubmitClicked" />
-                    <Button x:Name="ForgotPasswordButton" Text="نسيت كلمة المرور؟" Style="{StaticResource SecondaryButton}" Clicked="OnForgotPasswordClicked" />
-                    <Button x:Name="ModeButton" Text="إنشاء حساب جديد" Style="{StaticResource SecondaryButton}" Clicked="OnModeClicked" />
+                    <Button x:Name="SubmitButton" Text="{local:Tr Key=T056}" Clicked="OnSubmitClicked" />
+                    <Button x:Name="ForgotPasswordButton" Text="{local:Tr Key=T096}" Style="{StaticResource SecondaryButton}" Clicked="OnForgotPasswordClicked" />
+                    <Button x:Name="ModeButton" Text="{local:Tr Key=T011}" Style="{StaticResource SecondaryButton}" Clicked="OnModeClicked" />
                 </VerticalStackLayout>
             </Border>
         </VerticalStackLayout>

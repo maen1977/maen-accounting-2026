@@ -13,6 +13,7 @@ public sealed class SessionCoordinator
     private readonly AuthSessionStore _sessionStore;
     private readonly FirebaseAuthService _authService;
     private readonly UserDatabaseFactory _databaseFactory;
+    private readonly AppPreferencesService _preferences;
     private static readonly TimeSpan StartupInitializationTimeout = TimeSpan.FromSeconds(30);
     private Window? _window;
 
@@ -20,17 +21,26 @@ public sealed class SessionCoordinator
         IServiceProvider services,
         AuthSessionStore sessionStore,
         FirebaseAuthService authService,
-        UserDatabaseFactory databaseFactory)
+        UserDatabaseFactory databaseFactory,
+        AppPreferencesService preferences)
     {
         _services = services;
         _sessionStore = sessionStore;
         _authService = authService;
         _databaseFactory = databaseFactory;
+        _preferences = preferences;
     }
 
     public async Task StartAsync(Window window)
     {
         _window = window;
+        if (!_preferences.IsConfigured)
+        {
+            ShowOnboarding();
+            return;
+        }
+
+        _preferences.ApplyCulture();
         var session = await _sessionStore.LoadAsync();
         if (session is { IsLocal: false } && session.NeedsRefresh(DateTimeOffset.UtcNow))
         {
@@ -62,6 +72,13 @@ public sealed class SessionCoordinator
         await ShowMainAsync(session);
     }
 
+    public void ShowOnboarding()
+    {
+        var onboarding = _services.GetRequiredService<OnboardingPage>();
+        onboarding.Completed += OnOnboardingCompleted;
+        SetPage(onboarding);
+    }
+
     public void ShowLogin()
     {
         _databaseFactory.ClearActiveConnection();
@@ -79,15 +96,26 @@ public sealed class SessionCoordinator
         state.SignedOut += OnSignedOut;
 
         // تبديل الشاشة قبل تحميل البيانات يمنع بقاء شاشة البداية في حالة دوران صامتة.
-        SetPage(_services.GetRequiredService<MainTabbedPage>());
+        // تبقى بيانات الشركات كما هي، لكن الحساب الفردي يحصل على مسار أبسط بلا أقسام تجارية متداخلة.
+        var isPersonalExperience = _preferences.Experience == AccountExperience.Personal;
+        SetPage(isPersonalExperience
+            ? _services.GetRequiredService<PersonalTabbedPage>()
+            : _services.GetRequiredService<MainTabbedPage>());
 
         try
         {
-            await Task.WhenAll(
-                state.InitializeAsync(session),
-                accounting.InitializeAsync(session),
-                business.InitializeAsync(session))
-                .WaitAsync(StartupInitializationTimeout);
+            if (isPersonalExperience)
+            {
+                await state.InitializeAsync(session).WaitAsync(StartupInitializationTimeout);
+            }
+            else
+            {
+                await Task.WhenAll(
+                    state.InitializeAsync(session),
+                    accounting.InitializeAsync(session),
+                    business.InitializeAsync(session))
+                    .WaitAsync(StartupInitializationTimeout);
+            }
         }
         catch (TimeoutException)
         {
@@ -106,6 +134,19 @@ public sealed class SessionCoordinator
         if (_window?.Page is Page page)
         {
             await page.DisplayAlertAsync("تنبيه تحميل البيانات", message, "حسنًا");
+        }
+    }
+
+    private async void OnOnboardingCompleted(object? sender, EventArgs args)
+    {
+        if (sender is OnboardingPage onboarding)
+        {
+            onboarding.Completed -= OnOnboardingCompleted;
+        }
+
+        if (_window is not null)
+        {
+            await StartAsync(_window);
         }
     }
 

@@ -1,34 +1,34 @@
 using Maen.Accounting.App.ViewModels;
-using Microsoft.Maui.Controls.PlatformConfiguration;
 using Microsoft.Maui.Controls.PlatformConfiguration.AndroidSpecific;
 using AndroidTabbedPage = Microsoft.Maui.Controls.PlatformConfiguration.AndroidSpecific.TabbedPage;
 
 namespace Maen.Accounting.App.Views;
 
-public sealed class MainTabbedPage : Microsoft.Maui.Controls.TabbedPage
+public sealed class PersonalTabbedPage : Microsoft.Maui.Controls.TabbedPage
 {
-    private readonly EntryPage _entryPage;
+    private readonly PersonalEntryPage _entryPage;
 
-    public MainTabbedPage(
-        MainStateViewModel state,
-        DashboardPage dashboardPage,
-        AccountingPage accountingPage,
-        BusinessPage businessPage,
-        EntryPage entryPage,
+    public PersonalTabbedPage(
+        PersonalDashboardPage dashboardPage,
+        PersonalEntryPage entryPage,
         ReportsPage reportsPage,
-        SettingsPage settingsPage)
+        SettingsPage settingsPage,
+        MainStateViewModel state)
     {
-        FlowDirection = FlowDirection.RightToLeft;
+        _entryPage = entryPage;
+        Title = UiText.Get("T105");
         BarBackgroundColor = Color.FromArgb("#0B172A");
         BarTextColor = Colors.White;
         SelectedTabColor = Color.FromArgb("#48D597");
         UnselectedTabColor = Color.FromArgb("#A8B4C7");
         AndroidTabbedPage.SetToolbarPlacement(this, ToolbarPlacement.Bottom);
-        _entryPage = entryPage;
+
+        dashboardPage.Title = UiText.Get("T032");
+        entryPage.Title = UiText.Get("T110");
+        reportsPage.Title = UiText.Get("T022");
+        settingsPage.Title = UiText.Get("T018");
 
         Children.Add(dashboardPage);
-        Children.Add(accountingPage);
-        Children.Add(businessPage);
         Children.Add(entryPage);
         Children.Add(reportsPage);
         Children.Add(settingsPage);

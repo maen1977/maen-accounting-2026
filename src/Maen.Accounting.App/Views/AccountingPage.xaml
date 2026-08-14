@@ -3,14 +3,15 @@
     x:Class="Maen.Accounting.App.Views.AccountingPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    Title="المحاسبة">
+    xmlns:local="clr-namespace:Maen.Accounting.App"
+    Title="{local:Tr Key=T044}">
     <Grid RowDefinitions="Auto,Auto,*" Padding="18" MaximumWidthRequest="1100" HorizontalOptions="Center">
         <VerticalStackLayout Spacing="8">
-            <Label Text="مركز المحاسبة" Style="{StaticResource TitleLabel}" />
-            <Label Text="دليل الحسابات وميزان المراجعة والقيود المرحّلة" Style="{StaticResource MutedLabel}" />
+            <Label Text="{local:Tr Key=T090}" Style="{StaticResource TitleLabel}" />
+            <Label Text="{local:Tr Key=T067}" Style="{StaticResource MutedLabel}" />
             <Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,6,0,0">
-                <Button Text="تحديث" Style="{StaticResource SecondaryButton}" Clicked="OnRefreshClicked" />
-                <Button Grid.Column="1" Text="ترحيل السجلات القديمة" Style="{StaticResource PrimaryButton}" Clicked="OnMigrateClicked" />
+                <Button Text="{local:Tr Key=T052}" Style="{StaticResource SecondaryButton}" Clicked="OnRefreshClicked" />
+                <Button Grid.Column="1" Text="{local:Tr Key=T053}" Style="{StaticResource PrimaryButton}" Clicked="OnMigrateClicked" />
             </Grid>
             <ActivityIndicator IsVisible="{Binding IsBusy}" IsRunning="{Binding IsBusy}" Color="{StaticResource PrimaryDark}" />
             <Label Text="{Binding StatusMessage}" Style="{StaticResource MutedLabel}" />
@@ -19,19 +20,19 @@
         <Grid Grid.Row="1" ColumnDefinitions="*,*,*" ColumnSpacing="10" Margin="0,14,0,0">
             <Border Style="{StaticResource CardBorder}">
                 <VerticalStackLayout>
-                    <Label Text="إجمالي المدين" Style="{StaticResource MutedLabel}" />
+                    <Label Text="{local:Tr Key=T007}" Style="{StaticResource MutedLabel}" />
                     <Label Text="{Binding TotalDebitText}" FontSize="18" FontAttributes="Bold" />
                 </VerticalStackLayout>
             </Border>
             <Border Grid.Column="1" Style="{StaticResource CardBorder}">
                 <VerticalStackLayout>
-                    <Label Text="إجمالي الدائن" Style="{StaticResource MutedLabel}" />
+                    <Label Text="{local:Tr Key=T003}" Style="{StaticResource MutedLabel}" />
                     <Label Text="{Binding TotalCreditText}" FontSize="18" FontAttributes="Bold" />
                 </VerticalStackLayout>
             </Border>
             <Border Grid.Column="2" Style="{StaticResource CardBorder}">
                 <VerticalStackLayout>
-                    <Label Text="حالة الميزان" Style="{StaticResource MutedLabel}" />
+                    <Label Text="{local:Tr Key=T060}" Style="{StaticResource MutedLabel}" />
                     <Label Text="{Binding BalanceStatusText}" FontSize="15" FontAttributes="Bold" TextColor="{StaticResource PrimaryDark}" />
                 </VerticalStackLayout>
             </Border>
@@ -41,20 +42,20 @@
             <VerticalStackLayout Spacing="10">
                 <Border Style="{StaticResource CardBorder}">
                     <VerticalStackLayout Spacing="8">
-                        <Label Text="قيد يومية جديد" FontSize="18" FontAttributes="Bold" />
+                        <Label Text="{local:Tr Key=T075}" FontSize="18" FontAttributes="Bold" />
                         <DatePicker Date="{Binding JournalDate}" Format="yyyy-MM-dd" />
                         <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
-                            <Picker Title="الحساب المدين" ItemsSource="{Binding Accounts}" SelectedItem="{Binding SelectedDebitAccount}" ItemDisplayBinding="{Binding DisplayText}" />
-                            <Picker Grid.Column="1" Title="الحساب الدائن" ItemsSource="{Binding Accounts}" SelectedItem="{Binding SelectedCreditAccount}" ItemDisplayBinding="{Binding DisplayText}" />
+                            <Picker Title="{local:Tr Key=T025}" ItemsSource="{Binding Accounts}" SelectedItem="{Binding SelectedDebitAccount}" ItemDisplayBinding="{Binding DisplayText}" />
+                            <Picker Grid.Column="1" Title="{local:Tr Key=T024}" ItemsSource="{Binding Accounts}" SelectedItem="{Binding SelectedCreditAccount}" ItemDisplayBinding="{Binding DisplayText}" />
                         </Grid>
                         <Entry Text="{Binding JournalAmountInput}" Keyboard="Numeric" Placeholder="المبلغ" />
                         <Entry Text="{Binding JournalDescription}" Placeholder="بيان القيد" />
-                        <Button Text="ترحيل القيد" Style="{StaticResource PrimaryButton}" Clicked="OnSaveJournalClicked" />
+                        <Button Text="{local:Tr Key=T054}" Style="{StaticResource PrimaryButton}" Clicked="OnSaveJournalClicked" />
                     </VerticalStackLayout>
                 </Border>
 
-                <Label Text="دليل الحسابات" FontSize="18" FontAttributes="Bold" />
-                <CollectionView ItemsSource="{Binding Accounts}" HeightRequest="300" EmptyView="لا توجد حسابات.">
+                <Label Text="{local:Tr Key=T066}" FontSize="18" FontAttributes="Bold" />
+                <CollectionView ItemsSource="{Binding Accounts}" HeightRequest="300" EmptyView="{local:Tr Key=T077}">
                     <CollectionView.ItemTemplate>
                         <DataTemplate>
                             <Border Style="{StaticResource CardBorder}" Margin="0,0,0,8">
@@ -64,7 +65,7 @@
                                         <Label Text="{Binding Name}" FontAttributes="Bold" />
                                         <Label Text="{Binding TypeText}" Style="{StaticResource MutedLabel}" FontSize="12" />
                                     </VerticalStackLayout>
-                                    <Label Grid.Column="2" Text="نشط" TextColor="{StaticResource PrimaryDark}" FontSize="12" />
+                                    <Label Grid.Column="2" Text="{local:Tr Key=T097}" TextColor="{StaticResource PrimaryDark}" FontSize="12" />
                                 </Grid>
                             </Border>
                         </DataTemplate>
@@ -72,10 +73,10 @@
                 </CollectionView>
 
                 <Grid ColumnDefinitions="*,Auto" Margin="0,10,0,0">
-                    <Label Text="ميزان المراجعة" FontSize="18" FontAttributes="Bold" />
+                    <Label Text="{local:Tr Key=T095}" FontSize="18" FontAttributes="Bold" />
                     <Label Grid.Column="1" Text="{Binding PostedEntriesText, StringFormat='قيود مرحّلة: {0}'}" Style="{StaticResource MutedLabel}" />
                 </Grid>
-                <CollectionView ItemsSource="{Binding TrialBalanceRows}" HeightRequest="330" EmptyView="لا توجد قيود مرحّلة بعد.">
+                <CollectionView ItemsSource="{Binding TrialBalanceRows}" HeightRequest="330" EmptyView="{local:Tr Key=T081}">
                     <CollectionView.ItemTemplate>
                         <DataTemplate>
                             <Border Style="{StaticResource CardBorder}" Margin="0,0,0,8">
