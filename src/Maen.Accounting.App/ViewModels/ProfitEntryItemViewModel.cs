@@ -1,5 +1,6 @@
 using Maen.Accounting.Core.Models;
 using Maen.Accounting.Core.Services;
+using Maen.Accounting.App;
 
 namespace Maen.Accounting.App.ViewModels;
 
@@ -13,7 +14,7 @@ public sealed class ProfitEntryItemViewModel
         CostText = Money.Format(model.CostMinor);
         ExpensesText = Money.Format(model.ExpensesMinor);
         NetText = Money.Format(model.NetProfitMinor);
-        NotesText = string.IsNullOrWhiteSpace(model.Notes) ? "لا توجد ملاحظات" : model.Notes;
+        NotesText = string.IsNullOrWhiteSpace(model.Notes) ? UiText.Get("T141") : model.Notes;
     }
 
     public ProfitEntry Model { get; }

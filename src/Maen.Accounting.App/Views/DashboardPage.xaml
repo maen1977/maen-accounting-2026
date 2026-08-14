@@ -50,6 +50,39 @@
                     </Border>
                 </Grid>
 
+                <Border Style="{StaticResource CardBorder}">
+                    <VerticalStackLayout Spacing="14">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <VerticalStackLayout Spacing="3">
+                                <Label Text="{local:Tr Key=T090}" Style="{StaticResource SectionTitle}" />
+                                <Label Text="{local:Tr Key=T067}" Style="{StaticResource MutedLabel}" />
+                            </VerticalStackLayout>
+                            <Border Grid.Column="1" BackgroundColor="#EAF8F2" Padding="10,6" StrokeThickness="0" VerticalOptions="Center">
+                                <Border.StrokeShape><RoundRectangle CornerRadius="12" /></Border.StrokeShape>
+                                <Label Text="{local:Tr Key=T097}" TextColor="#087A55" FontSize="12" FontAttributes="Bold" />
+                            </Border>
+                        </Grid>
+                        <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                            <Border Grid.Row="0" Grid.Column="0" BackgroundColor="#F5F3FF" Padding="12" StrokeThickness="0">
+                                <Border.StrokeShape><RoundRectangle CornerRadius="14" /></Border.StrokeShape>
+                                <VerticalStackLayout Spacing="3"><Label Text="{local:Tr Key=T026}" Style="{StaticResource MetricCaption}"/><Label Text="{Binding AccountingAccountsText}" TextColor="#6D28D9" FontAttributes="Bold" FontSize="19"/></VerticalStackLayout>
+                            </Border>
+                            <Border Grid.Row="0" Grid.Column="1" BackgroundColor="#EFF6FF" Padding="12" StrokeThickness="0">
+                                <Border.StrokeShape><RoundRectangle CornerRadius="14" /></Border.StrokeShape>
+                                <VerticalStackLayout Spacing="3"><Label Text="{local:Tr Key=T042}" Style="{StaticResource MetricCaption}"/><Label Text="{Binding PostedJournalCountText}" TextColor="#1D4ED8" FontAttributes="Bold" FontSize="19"/></VerticalStackLayout>
+                            </Border>
+                            <Border Grid.Row="1" Grid.Column="0" BackgroundColor="#FFF7ED" Padding="12" StrokeThickness="0">
+                                <Border.StrokeShape><RoundRectangle CornerRadius="14" /></Border.StrokeShape>
+                                <VerticalStackLayout Spacing="3"><Label Text="{local:Tr Key=T004}" Style="{StaticResource MetricCaption}"/><Label Text="{Binding PostedInvoiceTotalText}" TextColor="#C2410C" FontAttributes="Bold" FontSize="19"/></VerticalStackLayout>
+                            </Border>
+                            <Border Grid.Row="1" Grid.Column="1" BackgroundColor="#F0FDFA" Padding="12" StrokeThickness="0">
+                                <Border.StrokeShape><RoundRectangle CornerRadius="14" /></Border.StrokeShape>
+                                <VerticalStackLayout Spacing="3"><Label Text="{local:Tr Key=T006}" Style="{StaticResource MetricCaption}"/><Label Text="{Binding PaymentsTotalText}" TextColor="#0F766E" FontAttributes="Bold" FontSize="19"/></VerticalStackLayout>
+                            </Border>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
                 <Button Text="{local:Tr Key=T010}" Clicked="OnAddClicked" Style="{StaticResource PrimaryButton}" HeightRequest="54" />
 
                 <Grid ColumnDefinitions="*,Auto" Margin="0,6,0,0">
