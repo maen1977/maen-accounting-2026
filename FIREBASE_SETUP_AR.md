@@ -17,13 +17,19 @@
 users/{firebaseUid}/entries/{entryId}
 ```
 
-انشر القواعد:
+قواعد `firestore.rules` تسمح للمستخدم المصادق بقراءة وكتابة المستندات التي يكون `userId` فيها مساوياً لمعرف Firebase الخاص به فقط. ولا تسمح بالحذف المباشر؛ الحذف يتم عبر `isDeleted = true` للحفاظ على التزامن بين الأجهزة.
+
+### نشر القواعد على المشروع الصحيح
+
+ملف `.firebaserc` يحدد المشروع `maen-accountings` لتجنب النشر إلى مشروع آخر. من جهاز يملك صلاحية إدارة مشروع Firebase نفّذ:
 
 ```bash
+firebase login
+firebase use maen-accountings
 firebase deploy --only firestore:rules
 ```
 
-القواعد تمنع حذف المستندات مباشرة؛ الحذف يتم عبر `isDeleted = true` للحفاظ على التزامن بين الأجهزة.
+لا تستبدل القواعد بقاعدة عامة مثل `allow read, write: if true;`؛ ذلك يعرّض بيانات جميع المستخدمين للخطر. إذا ظهر في التطبيق `HTTP 403 — Missing or insufficient permissions`، فهذا يعني غالباً أن القواعد الموجودة في Console لم تُنشر بعد أو أنها مختلفة عن ملف `firestore.rules` في المستودع. بعد نشرها، سجّل الخروج والدخول مرة واحدة ثم اضغط «مزامنة الآن».
 
 ## بيانات النسخة القديمة
 
