@@ -21,7 +21,7 @@ public partial class BusinessPage : ContentPage
         }
         catch (Exception exception)
         {
-            await DisplayAlertAsync("تعذر التحديث", exception.Message, "حسنًا");
+            await DisplayAlertAsync(UiText.Get("T291"), exception.Message, UiText.Get("T122"));
         }
     }
 
@@ -33,7 +33,7 @@ public partial class BusinessPage : ContentPage
         }
         catch (Exception exception)
         {
-            await DisplayAlertAsync("تعذر حفظ جهة الاتصال", exception.Message, "حسنًا");
+            await DisplayAlertAsync(UiText.Get("T292"), exception.Message, UiText.Get("T122"));
         }
     }
 
@@ -45,7 +45,7 @@ public partial class BusinessPage : ContentPage
         }
         catch (Exception exception)
         {
-            await DisplayAlertAsync("تعذر حفظ الفاتورة", exception.Message, "حسنًا");
+            await DisplayAlertAsync(UiText.Get("T293"), exception.Message, UiText.Get("T122"));
         }
     }
 
@@ -57,7 +57,7 @@ public partial class BusinessPage : ContentPage
         }
         catch (Exception exception)
         {
-            await DisplayAlertAsync("تعذر حفظ العملية", exception.Message, "حسنًا");
+            await DisplayAlertAsync(UiText.Get("T294"), exception.Message, UiText.Get("T122"));
         }
     }
 }

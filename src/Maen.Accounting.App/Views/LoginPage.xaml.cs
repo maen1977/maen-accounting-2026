@@ -22,8 +22,8 @@ public partial class LoginPage : ContentPage
         ConfirmLabel.IsVisible = _registerMode;
         ConfirmEntry.IsVisible = _registerMode;
         ForgotPasswordButton.IsVisible = !_registerMode;
-        SubmitButton.Text = _registerMode ? "إنشاء الحساب" : "تسجيل الدخول";
-        ModeButton.Text = _registerMode ? "لدي حساب بالفعل" : "إنشاء حساب جديد";
+        SubmitButton.Text = _registerMode ? UiText.Get("T218") : UiText.Get("T056");
+        ModeButton.Text = _registerMode ? UiText.Get("T219") : UiText.Get("T011");
         SetStatus(string.Empty);
     }
 
@@ -33,7 +33,7 @@ public partial class LoginPage : ContentPage
         var password = PasswordEntry.Text ?? string.Empty;
         if (_registerMode && password != (ConfirmEntry.Text ?? string.Empty))
         {
-            SetStatus("كلمتا المرور غير متطابقتين.");
+            SetStatus(UiText.Get("T222"));
             return;
         }
 
@@ -51,16 +51,14 @@ public partial class LoginPage : ContentPage
         var email = EmailEntry.Text?.Trim() ?? string.Empty;
         if (string.IsNullOrWhiteSpace(email) || !email.Contains('@', StringComparison.Ordinal))
         {
-            SetStatus("اكتب بريدك الإلكتروني أولاً ثم اضغط «نسيت كلمة المرور؟».");
+            SetStatus(UiText.Get("T223"));
             return;
         }
 
         await RunBusyAsync(async () =>
         {
             await _authService.SendPasswordResetEmailAsync(email);
-            SetStatus(
-                "إذا كان البريد مسجلاً لدينا، فستصلك رسالة استرجاع خلال دقائق. افحص مجلد Spam أو الرسائل غير المرغوبة.",
-                success: true);
+            SetStatus(UiText.Get("T224"), success: true);
         });
     }
 

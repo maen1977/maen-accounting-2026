@@ -20,7 +20,7 @@ public partial class AccountingPage : ContentPage
         }
         catch (Exception exception)
         {
-            await DisplayAlertAsync("تعذر تحديث المحاسبة", exception.Message, "حسنًا");
+            await DisplayAlertAsync(UiText.Get("T284"), exception.Message, UiText.Get("T122"));
         }
     }
 
@@ -32,17 +32,17 @@ public partial class AccountingPage : ContentPage
         }
         catch (Exception exception)
         {
-            await DisplayAlertAsync("تعذر ترحيل القيد", exception.Message, "حسنًا");
+            await DisplayAlertAsync(UiText.Get("T285"), exception.Message, UiText.Get("T122"));
         }
     }
 
     private async void OnMigrateClicked(object? sender, EventArgs e)
     {
         if (!await DisplayAlertAsync(
-                "ترحيل السجلات القديمة",
-                "سيتم إنشاء قيود محاسبية متوازنة من السجلات اليومية الحالية دون حذفها. هل تريد المتابعة؟",
-                "ترحيل",
-                "إلغاء"))
+                UiText.Get("T286"),
+                UiText.Get("T287"),
+                UiText.Get("T288"),
+                UiText.Get("T289")))
         {
             return;
         }
@@ -53,7 +53,7 @@ public partial class AccountingPage : ContentPage
         }
         catch (Exception exception)
         {
-            await DisplayAlertAsync("تعذر الترحيل", exception.Message, "حسنًا");
+            await DisplayAlertAsync(UiText.Get("T290"), exception.Message, UiText.Get("T122"));
         }
     }
 }

@@ -37,7 +37,7 @@ public sealed class FirestoreSyncService
             var session = await _tokenProvider.GetValidSessionAsync(cancellationToken);
             if (session.IsLocal)
             {
-                throw new InvalidOperationException("الوضع المحلي لا يستخدم المزامنة السحابية.");
+                throw new InvalidOperationException(UiText.Get("T308"));
             }
 
             var local = await _repository.GetAllForSyncAsync(session.UserId);
@@ -60,7 +60,7 @@ public sealed class FirestoreSyncService
                     remoteEntry.UpdatedAtUtc < entry.UpdatedAtUtc)
                 {
                     throw new InvalidOperationException(
-                        $"تم إرسال السجل {entry.EntryDate:yyyy-MM-dd}، لكن تعذر التحقق من وجوده في السحابة بعد الرفع.");
+                        UiText.Format("T309", entry.EntryDate.ToString("yyyy-MM-dd")));
                 }
             }
 
@@ -87,7 +87,7 @@ public sealed class FirestoreSyncService
             var payload = await response.Content.ReadAsStringAsync(cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
-                throw CreateFirestoreException("تنزيل البيانات السحابية", response.StatusCode, payload);
+                throw CreateFirestoreException(UiText.Get("T310"), response.StatusCode, payload);
             }
             using var document = JsonDocument.Parse(payload);
             if (document.RootElement.TryGetProperty("documents", out var documents))
@@ -123,7 +123,7 @@ public sealed class FirestoreSyncService
         {
             var payload = await response.Content.ReadAsStringAsync(cancellationToken);
             throw CreateFirestoreException(
-                $"رفع سجل {entry.EntryDate:yyyy-MM-dd}",
+                UiText.Format("T311", entry.EntryDate.ToString("yyyy-MM-dd")),
                 response.StatusCode,
                 payload);
         }
@@ -179,7 +179,7 @@ public sealed class FirestoreSyncService
         var detail = ExtractFirestoreError(payload);
         var suffix = string.IsNullOrWhiteSpace(detail) ? string.Empty : $": {detail}";
         return new InvalidOperationException(
-            $"تعذر {operation} (HTTP {(int)statusCode}){suffix}");
+            UiText.Format("T312", operation, (int)statusCode, suffix));
     }
 
     private static string ExtractFirestoreError(string payload)

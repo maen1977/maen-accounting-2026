@@ -35,7 +35,7 @@ public sealed class BusinessRepository
         UserIsolation.EnsureOwner(userId, contact.UserId);
         if (string.IsNullOrWhiteSpace(contact.Name))
         {
-            throw new ArgumentException("اسم العميل أو المورد مطلوب.");
+            throw new ArgumentException(UiText.Get("T267"));
         }
 
         var database = await _databaseFactory.GetAsync(userId);

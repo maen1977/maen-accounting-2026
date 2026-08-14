@@ -20,7 +20,7 @@ public sealed class AuthTokenProvider
         try
         {
             var session = await _store.LoadAsync()
-                ?? throw new InvalidOperationException("انتهت جلسة المستخدم.");
+                ?? throw new InvalidOperationException(UiText.Get("T313"));
             if (!session.NeedsRefresh(DateTimeOffset.UtcNow))
             {
                 return session;

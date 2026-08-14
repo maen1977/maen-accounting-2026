@@ -76,7 +76,8 @@ public sealed class AccountingViewModel : ObservableObject
 
     public string TotalDebitText { get; private set; } = Money.Format(0);
     public string TotalCreditText { get; private set; } = Money.Format(0);
-    public string BalanceStatusText { get; private set; } = "غير محمّل";
+    public string BalanceStatusText { get; private set; } = UiText.Get("T260");
+    public string PostedEntriesSummaryText => UiText.Format("T259", PostedEntriesText);
     public string PostedEntriesText { get; private set; } = "0";
 
     public async Task InitializeAsync(AuthSession session)
@@ -95,22 +96,22 @@ public sealed class AccountingViewModel : ObservableObject
         var session = RequireSession();
         if (!Money.TryParse(JournalAmountInput, out var amount) || amount <= 0)
         {
-            throw new InvalidOperationException("أدخل مبلغاً موجباً وصحيحاً للقيد.");
+            throw new InvalidOperationException(UiText.Get("T246"));
         }
 
         if (SelectedDebitAccount is null || SelectedCreditAccount is null)
         {
-            throw new InvalidOperationException("اختر الحساب المدين والحساب الدائن.");
+            throw new InvalidOperationException(UiText.Get("T247"));
         }
 
         if (SelectedDebitAccount.AccountId == SelectedCreditAccount.AccountId)
         {
-            throw new InvalidOperationException("يجب اختيار حسابين مختلفين للقيد.");
+            throw new InvalidOperationException(UiText.Get("T248"));
         }
 
         if (string.IsNullOrWhiteSpace(JournalDescription))
         {
-            throw new InvalidOperationException("بيان القيد مطلوب.");
+            throw new InvalidOperationException(UiText.Get("T249"));
         }
 
         await RunBusyAsync(async () =>
@@ -137,7 +138,7 @@ public sealed class AccountingViewModel : ObservableObject
             await ReloadCoreAsync();
             JournalAmountInput = string.Empty;
             JournalDescription = string.Empty;
-            StatusMessage = "تم ترحيل القيد بنجاح مع توازن المدين والدائن.";
+            StatusMessage = UiText.Get("T242");
         });
     }
 
@@ -149,8 +150,8 @@ public sealed class AccountingViewModel : ObservableObject
             var count = await _repository.MigrateLegacyProfitEntriesAsync(session.UserId, _deviceIdentity.GetOrCreate());
             await ReloadCoreAsync();
             StatusMessage = count == 0
-                ? "لا توجد سجلات قديمة جديدة للترحيل."
-                : $"تم ترحيل {count} سجل قديم إلى قيود محاسبية متوازنة.";
+                ? UiText.Get("T243")
+                : UiText.Format("T244", count);
             return count;
         });
     }
@@ -179,19 +180,20 @@ public sealed class AccountingViewModel : ObservableObject
 
         TotalDebitText = Money.Format(trialBalance.TotalDebitMinor);
         TotalCreditText = Money.Format(trialBalance.TotalCreditMinor);
-        BalanceStatusText = trialBalance.IsBalanced ? "الميزان متوازن" : "يوجد فرق يحتاج مراجعة";
+        BalanceStatusText = trialBalance.IsBalanced ? UiText.Get("T200") : UiText.Get("T199");
         PostedEntriesText = entries.Count(static entry => entry.Status == JournalEntryStatus.Posted).ToString();
         OnPropertyChanged(nameof(TotalDebitText));
         OnPropertyChanged(nameof(TotalCreditText));
         OnPropertyChanged(nameof(BalanceStatusText));
         OnPropertyChanged(nameof(PostedEntriesText));
+        OnPropertyChanged(nameof(PostedEntriesSummaryText));
     }
 
     private static bool HasActivity(AccountBalance balance) =>
         balance.TotalDebitMinor != 0 || balance.TotalCreditMinor != 0;
 
     private AuthSession RequireSession() =>
-        _session ?? throw new InvalidOperationException("لا توجد جلسة مستخدم نشطة.");
+        _session ?? throw new InvalidOperationException(UiText.Get("T245"));
 
     private async Task RunBusyAsync(Func<Task> action)
     {
@@ -232,12 +234,12 @@ public sealed class AccountItemViewModel(Account account)
     public string DisplayText => $"{account.Code} — {account.Name}";
     public string TypeText => account.Type switch
     {
-        AccountType.Asset => "أصل",
-        AccountType.Liability => "التزام",
-        AccountType.Equity => "حقوق ملكية",
-        AccountType.Revenue => "إيراد",
-        AccountType.Expense => "مصروف",
-        _ => "حساب"
+        AccountType.Asset => UiText.Get("T250"),
+        AccountType.Liability => UiText.Get("T251"),
+        AccountType.Equity => UiText.Get("T252"),
+        AccountType.Revenue => UiText.Get("T253"),
+        AccountType.Expense => UiText.Get("T254"),
+        _ => UiText.Get("T255")
     };
 }
 
@@ -248,5 +250,8 @@ public sealed class TrialBalanceItemViewModel(AccountBalance balance)
     public string DebitText => Money.Format(balance.DebitBalanceMinor);
     public string CreditText => Money.Format(balance.CreditBalanceMinor);
     public string BalanceText => Money.Format(Math.Abs(balance.NetMinor));
-    public string NatureText => balance.NetMinor >= 0 ? "مدين" : "دائن";
+    public string NatureText => balance.NetMinor >= 0 ? UiText.Get("T306") : UiText.Get("T307");
+    public string BalanceSummaryText => UiText.Format("T256", BalanceText);
+    public string DebitSummaryText => UiText.Format("T257", DebitText);
+    public string CreditSummaryText => UiText.Format("T258", CreditText);
 }

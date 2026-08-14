@@ -23,10 +23,10 @@
                         <Label Text="{local:Tr Key=T073}" FontSize="18" FontAttributes="Bold" />
                         <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
                             <Picker Title="{local:Tr Key=T050}" ItemsSource="{Binding ContactTypes}" SelectedItem="{Binding SelectedContactType}" ItemDisplayBinding="{Binding Label}" />
-                            <Entry Grid.Column="1" Text="{Binding ContactNameInput}" Placeholder="الاسم" />
+                            <Entry Grid.Column="1" Text="{Binding ContactNameInput}" Placeholder="{local:Tr Key=T299}" />
                         </Grid>
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                            <Entry Text="{Binding ContactPhoneInput}" Placeholder="الهاتف" Keyboard="Telephone" />
+                            <Entry Text="{Binding ContactPhoneInput}" Placeholder="{local:Tr Key=T300}" Keyboard="Telephone" />
                             <Button Grid.Column="1" Text="{local:Tr Key=T062}" Style="{StaticResource PrimaryButton}" Clicked="OnSaveContactClicked" />
                         </Grid>
                     </VerticalStackLayout>
@@ -56,11 +56,11 @@
                         </Grid>
                         <DatePicker Date="{Binding InvoiceDate}" Format="yyyy-MM-dd" />
                         <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
-                            <Entry Text="{Binding InvoiceNumberInput}" Placeholder="رقم الفاتورة" />
-                            <Entry Grid.Column="1" Text="{Binding InvoiceAmountInput}" Placeholder="المبلغ" Keyboard="Numeric" />
-                            <Entry Grid.Column="2" Text="{Binding InvoiceTaxInput}" Placeholder="الضريبة" Keyboard="Numeric" />
+                            <Entry Text="{Binding InvoiceNumberInput}" Placeholder="{local:Tr Key=T301}" />
+                            <Entry Grid.Column="1" Text="{Binding InvoiceAmountInput}" Placeholder="{local:Tr Key=T297}" Keyboard="Numeric" />
+                            <Entry Grid.Column="2" Text="{Binding InvoiceTaxInput}" Placeholder="{local:Tr Key=T302}" Keyboard="Numeric" />
                         </Grid>
-                        <Entry Text="{Binding InvoiceDescriptionInput}" Placeholder="وصف الفاتورة" />
+                        <Entry Text="{Binding InvoiceDescriptionInput}" Placeholder="{local:Tr Key=T303}" />
                         <Button Text="{local:Tr Key=T064}" Style="{StaticResource PrimaryButton}" Clicked="OnSaveInvoiceClicked" />
                     </VerticalStackLayout>
                 </Border>
@@ -93,8 +93,8 @@
                         </Grid>
                         <DatePicker Date="{Binding PaymentDate}" Format="yyyy-MM-dd" />
                         <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
-                            <Entry Text="{Binding PaymentNumberInput}" Placeholder="رقم العملية" />
-                            <Entry Grid.Column="1" Text="{Binding PaymentAmountInput}" Placeholder="المبلغ" Keyboard="Numeric" />
+                            <Entry Text="{Binding PaymentNumberInput}" Placeholder="{local:Tr Key=T304}" />
+                            <Entry Grid.Column="1" Text="{Binding PaymentAmountInput}" Placeholder="{local:Tr Key=T297}" Keyboard="Numeric" />
                         </Grid>
                         <Button Text="{local:Tr Key=T063}" Style="{StaticResource PrimaryButton}" Clicked="OnSavePaymentClicked" />
                     </VerticalStackLayout>

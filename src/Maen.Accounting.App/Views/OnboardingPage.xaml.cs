@@ -87,7 +87,7 @@ public partial class OnboardingPage : ContentPage
         WelcomeLabel.Text = UiText.Get("T089");
         IntroLabel.Text = UiText.Get("T014");
         LanguageTitleLabel.Text = UiText.Get("T013");
-        LanguageHintLabel.Text = english ? "Your language controls the entire app interface." : "اختيارك سيطبّق على جميع شاشات التطبيق.";
+        LanguageHintLabel.Text = UiText.Get("T216");
         ExperienceTitleLabel.Text = UiText.Get("T015");
         ExperienceHintLabel.Text = UiText.Get("T103");
         PersonalButton.Text = UiText.Get("T027");
@@ -96,7 +96,7 @@ public partial class OnboardingPage : ContentPage
         EnglishButton.Text = UiText.Get("T001");
         LanguageContinueButton.Text = UiText.Get("T087");
         ContinueButton.Text = UiText.Get("T087");
-        BackButton.Text = english ? "Back" : "رجوع";
+        BackButton.Text = UiText.Get("T217");
         StepLabel.Text = UiText.Get(_languageStepComplete ? "T015" : "T013");
     }
 

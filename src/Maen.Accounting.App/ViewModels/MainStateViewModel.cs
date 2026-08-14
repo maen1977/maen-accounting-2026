@@ -360,7 +360,7 @@ public sealed class MainStateViewModel : ObservableObject
             await _repository.UpsertAsync(session.UserId, deleted);
             await WriteBackupAndUpdateAsync();
             await ReloadAsync();
-            StatusMessage = "تم حذف السجل محليًا.";
+            StatusMessage = UiText.Get("T315");
             if (!session.IsLocal)
             {
                 try
@@ -368,15 +368,15 @@ public sealed class MainStateViewModel : ObservableObject
                     var syncResult = await SyncInternalAsync();
                     var completedAt = syncResult.CompletedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
                     StatusMessage = syncResult.Uploaded > 0
-                        ? $"تم الحذف محليًا وتمت مزامنة التغيير السحابي بنجاح — رُفع {syncResult.Uploaded} سجل — {completedAt}."
-                        : $"تم الحذف محليًا وتمت مزامنة التغيير السحابي بنجاح — {completedAt}.";
+                        ? UiText.Format("T316", syncResult.Uploaded, completedAt)
+                        : UiText.Format("T317", completedAt);
                 }
                 catch (Exception exception)
                 {
                     var detail = exception.Message.Trim();
                     StatusMessage = string.IsNullOrWhiteSpace(detail)
-                        ? "تم الحذف محليًا، لكن تعذرت المزامنة. اضغط مزامنة الآن لإعادة المحاولة."
-                        : $"تم الحذف محليًا، لكن تعذرت المزامنة: {detail}";
+                        ? UiText.Get("T318")
+                        : UiText.Format("T319", detail);
                     SyncStatus = StatusMessage;
                 }
             }
@@ -415,7 +415,7 @@ public sealed class MainStateViewModel : ObservableObject
             var count = await _backupService.ImportAsync(session, filePath);
             SetBackupStatus(await _backupService.ReadInfoAsync(session.UserId));
             await ReloadAsync();
-            StatusMessage = $"تم استيراد {count} سجلًا.";
+            StatusMessage = UiText.Format("T320", count);
             return count;
         });
     }

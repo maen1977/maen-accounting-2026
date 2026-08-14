@@ -25,9 +25,9 @@
                     <Label Text="{local:Tr Key=T020}" FontAttributes="Bold" />
                     <Entry x:Name="EmailEntry" Keyboard="Email" Placeholder="name@example.com" FlowDirection="LeftToRight" />
                     <Label Text="{local:Tr Key=T076}" FontAttributes="Bold" />
-                    <Entry x:Name="PasswordEntry" IsPassword="True" Placeholder="6 أحرف على الأقل" FlowDirection="LeftToRight" />
+                    <Entry x:Name="PasswordEntry" IsPassword="True" Placeholder="{local:Tr Key=T220}" FlowDirection="LeftToRight" />
                     <Label x:Name="ConfirmLabel" Text="{local:Tr Key=T051}" FontAttributes="Bold" IsVisible="False" />
-                    <Entry x:Name="ConfirmEntry" IsPassword="True" Placeholder="أعد كتابة كلمة المرور" IsVisible="False" FlowDirection="LeftToRight" />
+                    <Entry x:Name="ConfirmEntry" IsPassword="True" Placeholder="{local:Tr Key=T221}" IsVisible="False" FlowDirection="LeftToRight" />
                     <ActivityIndicator x:Name="BusyIndicator" IsVisible="False" IsRunning="False" Color="{StaticResource Primary}" />
                     <Label x:Name="StatusLabel" TextColor="{StaticResource Danger}" />
                     <Button x:Name="SubmitButton" Text="{local:Tr Key=T056}" Clicked="OnSubmitClicked" />

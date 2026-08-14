@@ -15,7 +15,7 @@ public partial class DashboardPage : ContentPage
     private async void OnRefresh(object? sender, EventArgs e)
     {
         try { await _state.ReloadAsync(); }
-        catch (Exception exception) { await DisplayAlertAsync("تعذر التحديث", exception.Message, "حسنًا"); }
+        catch (Exception exception) { await DisplayAlertAsync(UiText.Get("T291"), exception.Message, UiText.Get("T122")); }
         finally { if (sender is RefreshView refreshView) refreshView.IsRefreshing = false; }
     }
 

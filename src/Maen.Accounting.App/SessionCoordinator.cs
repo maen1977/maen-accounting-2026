@@ -119,13 +119,11 @@ public sealed class SessionCoordinator
         }
         catch (TimeoutException)
         {
-            await ShowStartupAlertAsync(
-                "تم فتح البرنامج، لكن تحميل بعض البيانات استغرق وقتًا أطول من المتوقع. يمكنك متابعة العمل وتحديث الصفحات لاحقًا.");
+            await ShowStartupAlertAsync(UiText.Get("T226"));
         }
         catch (Exception exception)
         {
-            await ShowStartupAlertAsync(
-                $"تم فتح البرنامج، لكن تعذر تحميل بعض البيانات. يمكنك متابعة العمل ثم إعادة المحاولة من داخل الصفحات.\n\nالتفاصيل: {exception.Message}");
+            await ShowStartupAlertAsync(UiText.Format("T227", exception.Message));
         }
     }
 
@@ -133,7 +131,7 @@ public sealed class SessionCoordinator
     {
         if (_window?.Page is Page page)
         {
-            await page.DisplayAlertAsync("تنبيه تحميل البيانات", message, "حسنًا");
+            await page.DisplayAlertAsync(UiText.Get("T225"), message, UiText.Get("T122"));
         }
     }
 
@@ -160,7 +158,7 @@ public sealed class SessionCoordinator
         {
             if (_window?.Page is Page page)
             {
-                await page.DisplayAlertAsync("تعذر فتح البرنامج", exception.Message, "حسنًا");
+                await page.DisplayAlertAsync(UiText.Get("T228"), exception.Message, UiText.Get("T122"));
             }
         }
     }
@@ -171,7 +169,7 @@ public sealed class SessionCoordinator
     {
         if (_window is null)
         {
-            throw new InvalidOperationException("Application window is not ready.");
+            throw new InvalidOperationException(UiText.Get("T241"));
         }
         _window.Page = page;
     }

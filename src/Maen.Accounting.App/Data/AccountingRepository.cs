@@ -35,7 +35,7 @@ public sealed class AccountingRepository
         UserIsolation.EnsureOwner(userId, account.UserId);
         if (string.IsNullOrWhiteSpace(account.Code) || string.IsNullOrWhiteSpace(account.Name))
         {
-            throw new ArgumentException("رمز الحساب واسم الحساب مطلوبان.");
+            throw new ArgumentException(UiText.Get("T314"));
         }
 
         var database = await _databaseFactory.GetAsync(userId);

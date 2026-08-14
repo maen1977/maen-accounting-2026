@@ -82,7 +82,7 @@ public sealed class FirebaseAuthService
         }
 
         var dto = JsonSerializer.Deserialize<RefreshResponse>(payload, JsonOptions)
-            ?? throw new InvalidOperationException("تعذّر قراءة جلسة Firebase المجددة.");
+            ??             throw new InvalidOperationException(UiText.Get("T238"));
         return current with
         {
             UserId = dto.UserId,
@@ -97,7 +97,7 @@ public sealed class FirebaseAuthService
         var deviceId = _deviceIdentityService.GetOrCreate();
         return new AuthSession(
             UserIsolation.LocalDeviceUserId(deviceId),
-            "محلي - هذا الجهاز",
+            UiText.Get("T240"),
             string.Empty,
             string.Empty,
             DateTimeOffset.MaxValue,
@@ -126,7 +126,7 @@ public sealed class FirebaseAuthService
         var normalized = UserIsolation.NormalizeEmail(email);
         if (password.Length < 6)
         {
-            throw new InvalidOperationException("كلمة المرور يجب أن تتكون من 6 أحرف على الأقل.");
+            throw new InvalidOperationException(UiText.Get("T229"));
         }
 
         using var response = await _httpClient.PostAsJsonAsync(
@@ -142,7 +142,7 @@ public sealed class FirebaseAuthService
         }
 
         var dto = JsonSerializer.Deserialize<AuthResponse>(payload, JsonOptions)
-            ?? throw new InvalidOperationException("تعذّر قراءة نتيجة تسجيل الدخول.");
+            ?? throw new InvalidOperationException(UiText.Get("T239"));
         return new AuthSession(
             dto.LocalId,
             dto.Email ?? normalized,
@@ -159,14 +159,14 @@ public sealed class FirebaseAuthService
     {
         return ReadFirebaseErrorCode(payload) switch
         {
-            "EMAIL_EXISTS" => "هذا البريد مستخدم مسبقًا.",
-            "INVALID_LOGIN_CREDENTIALS" or "INVALID_PASSWORD" => "بيانات الدخول غير صحيحة.",
-            "EMAIL_NOT_FOUND" => "لا يوجد حساب بهذا البريد.",
-            "INVALID_EMAIL" => "صيغة البريد الإلكتروني غير صحيحة.",
-            "WEAK_PASSWORD" => "كلمة المرور ضعيفة.",
-            "USER_DISABLED" => "هذا الحساب موقوف.",
-            "TOO_MANY_ATTEMPTS_TRY_LATER" => "محاولات كثيرة. حاول لاحقًا.",
-            _ => "تعذّر إكمال المصادقة مع Firebase."
+            "EMAIL_EXISTS" => UiText.Get("T230"),
+            "INVALID_LOGIN_CREDENTIALS" or "INVALID_PASSWORD" => UiText.Get("T231"),
+            "EMAIL_NOT_FOUND" => UiText.Get("T232"),
+            "INVALID_EMAIL" => UiText.Get("T233"),
+            "WEAK_PASSWORD" => UiText.Get("T234"),
+            "USER_DISABLED" => UiText.Get("T235"),
+            "TOO_MANY_ATTEMPTS_TRY_LATER" => UiText.Get("T236"),
+            _ => UiText.Get("T237")
         };
     }
 

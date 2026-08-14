@@ -39,13 +39,13 @@ public sealed class BusinessViewModel : ObservableObject
     }
 
     public static IReadOnlyList<ContactTypeOption> ContactTypes { get; } =
-    [new(ContactType.Customer, "عميل"), new(ContactType.Supplier, "مورد")];
+    [new(ContactType.Customer), new(ContactType.Supplier)];
 
     public static IReadOnlyList<InvoiceTypeOption> InvoiceTypes { get; } =
-    [new(InvoiceType.Sales, "فاتورة مبيعات"), new(InvoiceType.Purchase, "فاتورة مشتريات")];
+    [new(InvoiceType.Sales), new(InvoiceType.Purchase)];
 
     public static IReadOnlyList<PaymentTypeOption> PaymentTypes { get; } =
-    [new(PaymentType.CustomerReceipt, "قبض من عميل"), new(PaymentType.SupplierPayment, "دفعة لمورد")];
+    [new(PaymentType.CustomerReceipt), new(PaymentType.SupplierPayment)];
 
     public ObservableCollection<ContactItemViewModel> Contacts { get; } = [];
     public ObservableCollection<InvoiceItemViewModel> Invoices { get; } = [];
@@ -97,7 +97,7 @@ public sealed class BusinessViewModel : ObservableObject
     public async Task SaveContactAsync()
     {
         var session = RequireSession();
-        if (string.IsNullOrWhiteSpace(ContactNameInput)) throw new InvalidOperationException("اسم العميل أو المورد مطلوب.");
+        if (string.IsNullOrWhiteSpace(ContactNameInput)) throw new InvalidOperationException(UiText.Get("T267"));
         await RunBusyAsync(async () =>
         {
             var now = DateTimeOffset.UtcNow;
@@ -105,7 +105,7 @@ public sealed class BusinessViewModel : ObservableObject
                 $"contact-{Guid.NewGuid():N}", session.UserId, SelectedContactType.Type, ContactNameInput.Trim(), ContactPhoneInput.Trim(), CreatedAtUtc: now, UpdatedAtUtc: now, DeviceId: _deviceIdentity.GetOrCreate()));
             ContactNameInput = string.Empty;
             ContactPhoneInput = string.Empty;
-            StatusMessage = "تم حفظ العميل أو المورد.";
+            StatusMessage = UiText.Get("T268");
             await ReloadCoreAsync();
         });
     }
@@ -113,10 +113,10 @@ public sealed class BusinessViewModel : ObservableObject
     public async Task SaveInvoiceAsync()
     {
         var session = RequireSession();
-        if (SelectedInvoiceContact is null) throw new InvalidOperationException("اختر العميل أو المورد.");
-        if (!Money.TryParse(InvoiceAmountInput, out var amount) || amount <= 0) throw new InvalidOperationException("أدخل مبلغ الفاتورة بشكل صحيح.");
-        if (!Money.TryParse(InvoiceTaxInput, out var tax) || tax < 0) throw new InvalidOperationException("أدخل الضريبة بشكل صحيح.");
-        if (string.IsNullOrWhiteSpace(InvoiceNumberInput) || string.IsNullOrWhiteSpace(InvoiceDescriptionInput)) throw new InvalidOperationException("رقم الفاتورة ووصفها مطلوبان.");
+        if (SelectedInvoiceContact is null) throw new InvalidOperationException(UiText.Get("T269"));
+        if (!Money.TryParse(InvoiceAmountInput, out var amount) || amount <= 0) throw new InvalidOperationException(UiText.Get("T270"));
+        if (!Money.TryParse(InvoiceTaxInput, out var tax) || tax < 0) throw new InvalidOperationException(UiText.Get("T271"));
+        if (string.IsNullOrWhiteSpace(InvoiceNumberInput) || string.IsNullOrWhiteSpace(InvoiceDescriptionInput)) throw new InvalidOperationException(UiText.Get("T272"));
         await RunBusyAsync(async () =>
         {
             var now = DateTimeOffset.UtcNow;
@@ -130,7 +130,7 @@ public sealed class BusinessViewModel : ObservableObject
             InvoiceAmountInput = string.Empty;
             InvoiceTaxInput = "0";
             InvoiceDescriptionInput = string.Empty;
-            StatusMessage = "تم حفظ الفاتورة وترحيل قيدها.";
+            StatusMessage = UiText.Get("T273");
             await ReloadCoreAsync();
         });
     }
@@ -138,9 +138,9 @@ public sealed class BusinessViewModel : ObservableObject
     public async Task SavePaymentAsync()
     {
         var session = RequireSession();
-        if (SelectedPaymentContact is null) throw new InvalidOperationException("اختر العميل أو المورد.");
-        if (!Money.TryParse(PaymentAmountInput, out var amount) || amount <= 0) throw new InvalidOperationException("أدخل مبلغ الدفعة بشكل صحيح.");
-        if (string.IsNullOrWhiteSpace(PaymentNumberInput)) throw new InvalidOperationException("رقم الدفعة مطلوب.");
+        if (SelectedPaymentContact is null) throw new InvalidOperationException(UiText.Get("T269"));
+        if (!Money.TryParse(PaymentAmountInput, out var amount) || amount <= 0) throw new InvalidOperationException(UiText.Get("T274"));
+        if (string.IsNullOrWhiteSpace(PaymentNumberInput)) throw new InvalidOperationException(UiText.Get("T275"));
         await RunBusyAsync(async () =>
         {
             var now = DateTimeOffset.UtcNow;
@@ -151,7 +151,7 @@ public sealed class BusinessViewModel : ObservableObject
             await _repository.UpsertPaymentAsync(session.UserId, payment);
             PaymentNumberInput = string.Empty;
             PaymentAmountInput = string.Empty;
-            StatusMessage = "تم حفظ الدفعة وترحيل قيدها.";
+            StatusMessage = UiText.Get("T276");
             await ReloadCoreAsync();
         });
     }
@@ -172,7 +172,7 @@ public sealed class BusinessViewModel : ObservableObject
         SelectedPaymentContact ??= Contacts.FirstOrDefault();
     }
 
-    private AuthSession RequireSession() => _session ?? throw new InvalidOperationException("لا توجد جلسة مستخدم نشطة.");
+    private AuthSession RequireSession() => _session ?? throw new InvalidOperationException(UiText.Get("T245"));
 
     private async Task RunBusyAsync(Func<Task> action)
     {
@@ -182,16 +182,27 @@ public sealed class BusinessViewModel : ObservableObject
     }
 }
 
-public sealed record ContactTypeOption(ContactType Type, string Label);
-public sealed record InvoiceTypeOption(InvoiceType Type, string Label);
-public sealed record PaymentTypeOption(PaymentType Type, string Label);
+public sealed record ContactTypeOption(ContactType Type)
+{
+    public string Label => Type == ContactType.Customer ? UiText.Get("T261") : UiText.Get("T262");
+}
+
+public sealed record InvoiceTypeOption(InvoiceType Type)
+{
+    public string Label => Type == InvoiceType.Sales ? UiText.Get("T263") : UiText.Get("T264");
+}
+
+public sealed record PaymentTypeOption(PaymentType Type)
+{
+    public string Label => Type == PaymentType.CustomerReceipt ? UiText.Get("T265") : UiText.Get("T266");
+}
 
 public sealed class ContactItemViewModel(AccountingContact contact)
 {
     public string ContactId => contact.ContactId;
     public string Name => contact.Name;
     public string Phone => contact.Phone;
-    public string TypeText => contact.Type == ContactType.Customer ? "عميل" : "مورد";
+    public string TypeText => contact.Type == ContactType.Customer ? UiText.Get("T261") : UiText.Get("T262");
     public string DisplayText => $"{Name} — {TypeText}";
 }
 
@@ -199,17 +210,17 @@ public sealed class InvoiceItemViewModel(Invoice invoice, IReadOnlyList<Accounti
 {
     public string Number => invoice.Number;
     public string DateText => invoice.IssueDate.ToString("yyyy-MM-dd");
-    public string TypeText => invoice.Type == InvoiceType.Sales ? "مبيعات" : "مشتريات";
-    public string ContactText => contacts.FirstOrDefault(contact => contact.ContactId == invoice.ContactId)?.Name ?? "غير معروف";
+    public string TypeText => invoice.Type == InvoiceType.Sales ? UiText.Get("T277") : UiText.Get("T278");
+    public string ContactText => contacts.FirstOrDefault(contact => contact.ContactId == invoice.ContactId)?.Name ?? UiText.Get("T279");
     public string TotalText => Money.Format(invoice.TotalMinor);
-    public string StatusText => invoice.Status == InvoiceStatus.Posted ? "مرحّلة" : "مسودة";
+    public string StatusText => invoice.Status == InvoiceStatus.Posted ? UiText.Get("T280") : UiText.Get("T281");
 }
 
 public sealed class PaymentItemViewModel(Payment payment, IReadOnlyList<AccountingContact> contacts)
 {
     public string Number => payment.Number;
     public string DateText => payment.PaymentDate.ToString("yyyy-MM-dd");
-    public string TypeText => payment.Type == PaymentType.CustomerReceipt ? "قبض" : "دفع";
-    public string ContactText => contacts.FirstOrDefault(contact => contact.ContactId == payment.ContactId)?.Name ?? "غير معروف";
+    public string TypeText => payment.Type == PaymentType.CustomerReceipt ? UiText.Get("T282") : UiText.Get("T283");
+    public string ContactText => contacts.FirstOrDefault(contact => contact.ContactId == payment.ContactId)?.Name ?? UiText.Get("T279");
     public string AmountText => Money.Format(payment.AmountMinor);
 }

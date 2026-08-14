@@ -19,11 +19,11 @@ public partial class EntryPage : ContentPage
         try
         {
             await _state.SaveCurrentAsync();
-            await DisplayAlertAsync("تم الحفظ", _state.StatusMessage, "حسنًا");
+            await DisplayAlertAsync(UiText.Get("T295"), _state.StatusMessage, UiText.Get("T122"));
         }
         catch (Exception exception)
         {
-            await DisplayAlertAsync("تعذر الحفظ", exception.Message, "حسنًا");
+            await DisplayAlertAsync(UiText.Get("T296"), exception.Message, UiText.Get("T122"));
         }
         finally
         {

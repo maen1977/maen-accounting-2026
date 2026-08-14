@@ -48,8 +48,8 @@
                             <Picker Title="{local:Tr Key=T025}" ItemsSource="{Binding Accounts}" SelectedItem="{Binding SelectedDebitAccount}" ItemDisplayBinding="{Binding DisplayText}" />
                             <Picker Grid.Column="1" Title="{local:Tr Key=T024}" ItemsSource="{Binding Accounts}" SelectedItem="{Binding SelectedCreditAccount}" ItemDisplayBinding="{Binding DisplayText}" />
                         </Grid>
-                        <Entry Text="{Binding JournalAmountInput}" Keyboard="Numeric" Placeholder="المبلغ" />
-                        <Entry Text="{Binding JournalDescription}" Placeholder="بيان القيد" />
+                        <Entry Text="{Binding JournalAmountInput}" Keyboard="Numeric" Placeholder="{local:Tr Key=T297}" />
+                        <Entry Text="{Binding JournalDescription}" Placeholder="{local:Tr Key=T298}" />
                         <Button Text="{local:Tr Key=T054}" Style="{StaticResource PrimaryButton}" Clicked="OnSaveJournalClicked" />
                     </VerticalStackLayout>
                 </Border>
@@ -74,7 +74,7 @@
 
                 <Grid ColumnDefinitions="*,Auto" Margin="0,10,0,0">
                     <Label Text="{local:Tr Key=T095}" FontSize="18" FontAttributes="Bold" />
-                    <Label Grid.Column="1" Text="{Binding PostedEntriesText, StringFormat='قيود مرحّلة: {0}'}" Style="{StaticResource MutedLabel}" />
+                    <Label Grid.Column="1" Text="{Binding PostedEntriesSummaryText}" Style="{StaticResource MutedLabel}" />
                 </Grid>
                 <CollectionView ItemsSource="{Binding TrialBalanceRows}" HeightRequest="330" EmptyView="{local:Tr Key=T081}">
                     <CollectionView.ItemTemplate>
@@ -84,10 +84,10 @@
                                     <Label Text="{Binding Code}" FontAttributes="Bold" />
                                     <VerticalStackLayout Grid.Column="1" Spacing="2">
                                         <Label Text="{Binding Name}" FontAttributes="Bold" />
-                                        <Label Text="{Binding NatureText, StringFormat='الرصيد: {0}'}" Style="{StaticResource MutedLabel}" FontSize="12" />
+                                        <Label Text="{Binding BalanceSummaryText}" Style="{StaticResource MutedLabel}" FontSize="12" />
                                     </VerticalStackLayout>
-                                    <Label Grid.Column="2" Text="{Binding DebitText, StringFormat='مدين {0}'}" FontSize="12" />
-                                    <Label Grid.Column="3" Text="{Binding CreditText, StringFormat='دائن {0}'}" FontSize="12" />
+                                    <Label Grid.Column="2" Text="{Binding DebitSummaryText}" FontSize="12" />
+                                    <Label Grid.Column="3" Text="{Binding CreditSummaryText}" FontSize="12" />
                                 </Grid>
                             </Border>
                         </DataTemplate>
