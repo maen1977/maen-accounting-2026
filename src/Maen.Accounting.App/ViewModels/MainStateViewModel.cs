@@ -190,7 +190,11 @@ public sealed class MainStateViewModel : ObservableObject
             {
                 try
                 {
-                    await SyncInternalAsync();
+                    var syncResult = await SyncInternalAsync();
+                    var completedAt = syncResult.CompletedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
+                    StatusMessage = syncResult.Uploaded > 0
+                        ? $"تم الحفظ محليًا وتمت المزامنة السحابية بنجاح — رُفع {syncResult.Uploaded} سجل، وتم التحقق من {syncResult.TotalEntries} سجل — {completedAt}."
+                        : $"تم الحفظ محليًا وتمت المزامنة السحابية بنجاح — السجل موجود ومؤكد في السحابة — تم التحقق من {syncResult.TotalEntries} سجل — {completedAt}.";
                 }
                 catch (Exception exception)
                 {
@@ -218,7 +222,11 @@ public sealed class MainStateViewModel : ObservableObject
             {
                 try
                 {
-                    await SyncInternalAsync();
+                    var syncResult = await SyncInternalAsync();
+                    var completedAt = syncResult.CompletedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
+                    StatusMessage = syncResult.Uploaded > 0
+                        ? $"تم الحذف محليًا وتمت مزامنة التغيير السحابي بنجاح — رُفع {syncResult.Uploaded} سجل — {completedAt}."
+                        : $"تم الحذف محليًا وتمت مزامنة التغيير السحابي بنجاح — {completedAt}.";
                 }
                 catch (Exception exception)
                 {
@@ -241,8 +249,10 @@ public sealed class MainStateViewModel : ObservableObject
 
         await RunBusyAsync(async () =>
         {
-            await SyncInternalAsync();
-            StatusMessage = "اكتملت المزامنة دون استبدال البيانات الأحدث.";
+            var syncResult = await SyncInternalAsync();
+            StatusMessage = syncResult.Uploaded > 0
+                ? $"اكتملت المزامنة السحابية بنجاح — رُفع {syncResult.Uploaded} سجل، وتم التحقق من {syncResult.TotalEntries} سجل."
+                : $"اكتملت المزامنة السحابية بنجاح — تم التحقق من {syncResult.TotalEntries} سجل ولم توجد تغييرات معلقة.";
         });
     }
 
@@ -277,12 +287,15 @@ public sealed class MainStateViewModel : ObservableObject
         SignedOut?.Invoke(this, EventArgs.Empty);
     }
 
-    private async Task SyncInternalAsync()
+    private async Task<SyncResult> SyncInternalAsync()
     {
         var result = await _syncService.SyncAsync();
-        SyncStatus = $"آخر مزامنة: {result.CompletedAtUtc.ToLocalTime():yyyy-MM-dd HH:mm} — رفع {result.Uploaded}";
+        SyncStatus = result.Uploaded > 0
+            ? $"آخر مزامنة سحابية ناجحة: {result.CompletedAtUtc.ToLocalTime():yyyy-MM-dd HH:mm} — رُفع {result.Uploaded} سجل — تم التحقق من {result.TotalEntries} سجل"
+            : $"آخر مزامنة سحابية ناجحة: {result.CompletedAtUtc.ToLocalTime():yyyy-MM-dd HH:mm} — لا تغييرات معلقة — تم التحقق من {result.TotalEntries} سجل";
         await ReloadAsync();
         await WriteBackupAndUpdateAsync();
+        return result;
     }
 
     private async Task WriteBackupAndUpdateAsync()
