@@ -21,8 +21,8 @@ public sealed class MainStateViewModel : ObservableObject
     private AuthSession? _session;
     private ProfitEntry? _editingEntry;
     private DateTime _entryDate = DateTime.Today;
-    private string _salesInput = string.Empty;
-    private string _costInput = string.Empty;
+    private string _salesInput = "0";
+    private string _costInput = "0";
     private string _expensesInput = "0";
     private string _notesInput = string.Empty;
     private DateTime _reportMonth = new(DateTime.Today.Year, DateTime.Today.Month, 1);
@@ -133,8 +133,8 @@ public sealed class MainStateViewModel : ObservableObject
     {
         _editingEntry = null;
         EntryDate = DateTime.Today;
-        SalesInput = string.Empty;
-        CostInput = string.Empty;
+        SalesInput = "0";
+        CostInput = "0";
         ExpensesInput = "0";
         NotesInput = string.Empty;
         OnPropertyChanged(nameof(SaveButtonText));
@@ -156,12 +156,9 @@ public sealed class MainStateViewModel : ObservableObject
     public async Task SaveCurrentAsync()
     {
         var session = RequireSession();
-        if (!Money.TryParse(SalesInput, out var sales) ||
-            !Money.TryParse(CostInput, out var cost) ||
-            !Money.TryParse(ExpensesInput, out var expenses))
-        {
-            throw new InvalidOperationException("أدخل أرقامًا مالية صحيحة وغير سالبة.");
-        }
+        var sales = ParseEntryAmount(SalesInput, "إجمالي المبيعات");
+        var cost = ParseEntryAmount(CostInput, "تكلفة القطع");
+        var expenses = ParseEntryAmount(ExpensesInput, "المشتريات والمصروفات اليومية");
 
         await RunBusyAsync(async () =>
         {
@@ -195,9 +192,13 @@ public sealed class MainStateViewModel : ObservableObject
                 {
                     await SyncInternalAsync();
                 }
-                catch
+                catch (Exception exception)
                 {
-                    StatusMessage = "تم الحفظ محليًا، وتعذرت المزامنة حاليًا.";
+                    var detail = exception.Message.Trim();
+                    StatusMessage = string.IsNullOrWhiteSpace(detail)
+                        ? "تم الحفظ محليًا، لكن تعذرت المزامنة. اضغط مزامنة الآن لإعادة المحاولة."
+                        : $"تم الحفظ محليًا، لكن تعذرت المزامنة: {detail}";
+                    SyncStatus = StatusMessage;
                 }
             }
         });
@@ -215,7 +216,18 @@ public sealed class MainStateViewModel : ObservableObject
             StatusMessage = "تم حذف السجل محليًا.";
             if (!session.IsLocal)
             {
-                try { await SyncInternalAsync(); } catch { StatusMessage = "تم الحذف محليًا، وتعذرت المزامنة حاليًا."; }
+                try
+                {
+                    await SyncInternalAsync();
+                }
+                catch (Exception exception)
+                {
+                    var detail = exception.Message.Trim();
+                    StatusMessage = string.IsNullOrWhiteSpace(detail)
+                        ? "تم الحذف محليًا، لكن تعذرت المزامنة. اضغط مزامنة الآن لإعادة المحاولة."
+                        : $"تم الحذف محليًا، لكن تعذرت المزامنة: {detail}";
+                    SyncStatus = StatusMessage;
+                }
             }
         });
     }
@@ -286,12 +298,28 @@ public sealed class MainStateViewModel : ObservableObject
             : "لا توجد نسخة محلية بعد";
     }
 
+    private static long ParseEntryAmount(string? input, string fieldName)
+    {
+        // الحقل الفارغ في السجل اليومي يعني صفراً؛ أما الفقرات المدخلة فتُتحقق بدقة.
+        if (string.IsNullOrWhiteSpace(input))
+        {
+            return 0;
+        }
+
+        if (!Money.TryParse(input, out var amount))
+        {
+            throw new InvalidOperationException($"حقل «{fieldName}» يحتوي على مبلغ غير صحيح أو سالب.");
+        }
+
+        return amount;
+    }
+
     private void ResetEditor()
     {
         _editingEntry = null;
         EntryDate = DateTime.Today;
-        SalesInput = string.Empty;
-        CostInput = string.Empty;
+        SalesInput = "0";
+        CostInput = "0";
         ExpensesInput = "0";
         NotesInput = string.Empty;
         OnPropertyChanged(nameof(SaveButtonText));

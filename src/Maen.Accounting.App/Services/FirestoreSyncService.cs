@@ -70,14 +70,9 @@ public sealed class FirestoreSyncService
             using var request = CreateRequest(HttpMethod.Get, uri, session.IdToken);
             using var response = await _httpClient.SendAsync(request, cancellationToken);
             var payload = await response.Content.ReadAsStringAsync(cancellationToken);
-            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-            {
-                return result;
-            }
-
             if (!response.IsSuccessStatusCode)
             {
-                throw new InvalidOperationException($"تعذر تنزيل البيانات السحابية (رمز {(int)response.StatusCode}).");
+                throw CreateFirestoreException("تنزيل البيانات السحابية", response.StatusCode, payload);
             }
             using var document = JsonDocument.Parse(payload);
             if (document.RootElement.TryGetProperty("documents", out var documents))
@@ -111,8 +106,11 @@ public sealed class FirestoreSyncService
         using var response = await _httpClient.SendAsync(request, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
-            throw new InvalidOperationException(
-                $"فشلت مزامنة سجل {entry.EntryDate:yyyy-MM-dd} (رمز {(int)response.StatusCode}).");
+            var payload = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw CreateFirestoreException(
+                $"رفع سجل {entry.EntryDate:yyyy-MM-dd}",
+                response.StatusCode,
+                payload);
         }
     }
 
@@ -157,6 +155,48 @@ public sealed class FirestoreSyncService
 
     private static object StringField(string value) => new { stringValue = value };
     private static object IntegerField(long value) => new { integerValue = value.ToString(System.Globalization.CultureInfo.InvariantCulture) };
+
+    private static InvalidOperationException CreateFirestoreException(
+        string operation,
+        System.Net.HttpStatusCode statusCode,
+        string payload)
+    {
+        var detail = ExtractFirestoreError(payload);
+        var suffix = string.IsNullOrWhiteSpace(detail) ? string.Empty : $": {detail}";
+        return new InvalidOperationException(
+            $"تعذر {operation} (HTTP {(int)statusCode}){suffix}");
+    }
+
+    private static string ExtractFirestoreError(string payload)
+    {
+        if (string.IsNullOrWhiteSpace(payload))
+        {
+            return string.Empty;
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(payload);
+            if (document.RootElement.TryGetProperty("error", out var error))
+            {
+                if (error.TryGetProperty("message", out var message))
+                {
+                    return message.GetString() ?? string.Empty;
+                }
+
+                if (error.TryGetProperty("status", out var status))
+                {
+                    return status.GetString() ?? string.Empty;
+                }
+            }
+        }
+        catch (JsonException)
+        {
+            // تُعاد رسالة HTTP العامة عندما لا يكون الرد بصيغة JSON.
+        }
+
+        return string.Empty;
+    }
 
     private static ProfitEntry ParseDocument(JsonElement document, string expectedUserId)
     {
