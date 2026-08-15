@@ -99,7 +99,7 @@ public static class UiText
         ["T089"] = ("مرحباً بك", "Welcome"),
         ["T090"] = ("مركز المحاسبة", "Accounting center"),
         ["T091"] = ("مزامنة الآن", "Sync now"),
-        ["T092"] = ("معن للمحاسبة", "Maen Accounting"),
+        ["T092"] = ("Maen Accounting", "Maen Accounting"),
         ["T093"] = ("ملاحظات", "Notes"),
         ["T094"] = ("ملخص مباشر مبني على سجلاتك المحلية الحالية", "A live summary based on your current local entries"),
         ["T095"] = ("ميزان المراجعة", "Trial balance"),

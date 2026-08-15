@@ -8,7 +8,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-APP_LABEL = 'Maen Accountings'
+APP_LABEL = 'Maen Accounting'
 GOOGLE_SERVICES_PLUGIN_VERSION = '4.4.2'
 PACKAGE_NAME = 'com.example.profit_tracker'
 
@@ -175,7 +175,7 @@ def run_launcher_icons(root: Path) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description='Prepare local Android files for Maen Accountings.')
+    parser = argparse.ArgumentParser(description='Prepare local Android files for Maen Accounting.')
     parser.add_argument('--skip-pub-get', action='store_true')
     parser.add_argument('--skip-icons', action='store_true')
     args = parser.parse_args()

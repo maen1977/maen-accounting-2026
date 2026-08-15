@@ -67,7 +67,6 @@ translations = {
     "متوسط صافي السجل": "Average entry net",
     "مركز المحاسبة": "Accounting center",
     "مزامنة الآن": "Sync now",
-    "معن للمحاسبة": "Maen Accounting",
     "ملاحظات": "Notes",
     "ملخص مباشر مبني على سجلاتك المحلية الحالية": "A live summary based on your current local entries",
     "ميزان المراجعة": "Trial balance",
