@@ -10,6 +10,8 @@
             <Color x:Key="PrimaryLight">#EAF8F2</Color>
             <Color x:Key="Surface">#FFFFFF</Color>
             <Color x:Key="Background">#F8FAFC</Color>
+            <!-- Compatibility alias used by the personal-account pages. -->
+            <Color x:Key="AppBackground">#F8FAFC</Color>
             <Color x:Key="TextPrimary">#1E293B</Color>
             <Color x:Key="TextSecondary">#64748B</Color>
             <Color x:Key="Danger">#E11D48</Color>
@@ -60,6 +62,25 @@
                 <Setter Property="BackgroundColor" Value="{StaticResource Primary}" />
                 <Setter Property="StrokeThickness" Value="0" />
                 <Setter Property="Padding" Value="24" />
+            </Style>
+            <Style x:Key="MetricCard" TargetType="Border" BasedOn="{StaticResource CardBorder}">
+                <Setter Property="Padding" Value="14" />
+                <Setter Property="StrokeShape">
+                    <RoundRectangle CornerRadius="18" />
+                </Setter>
+            </Style>
+            <Style x:Key="MetricCaption" TargetType="Label" BasedOn="{StaticResource MutedLabel}">
+                <Setter Property="FontSize" Value="12" />
+            </Style>
+            <Style x:Key="EmptyStateBorder" TargetType="Border" BasedOn="{StaticResource CardBorder}">
+                <Setter Property="Padding" Value="24" />
+                <Setter Property="HorizontalOptions" Value="Fill" />
+            </Style>
+            <Style x:Key="ListItemBorder" TargetType="Border" BasedOn="{StaticResource CardBorder}">
+                <Setter Property="Padding" Value="14" />
+                <Setter Property="StrokeShape">
+                    <RoundRectangle CornerRadius="18" />
+                </Setter>
             </Style>
             <Style TargetType="Entry">
                 <Setter Property="BackgroundColor" Value="White" />
