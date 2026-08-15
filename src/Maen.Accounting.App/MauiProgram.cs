@@ -1,5 +1,10 @@
 using System.Globalization;
 using Microsoft.Extensions.DependencyInjection;
+#if WINDOWS
+using Microsoft.Maui.Handlers;
+using Microsoft.UI.Windowing;
+using WinRT.Interop;
+#endif
 using Maen.Accounting.App.Data;
 using Maen.Accounting.App.Services;
 using Maen.Accounting.App.ViewModels;
@@ -17,7 +22,22 @@ public static class MauiProgram
 
         var builder = MauiApp.CreateBuilder();
         builder.UseMauiApp<App>();
-
+#if WINDOWS
+        WindowHandler.Mapper.AppendToMapping("MaenAccountingWindowIcon", (handler, _) =>
+        {
+            if (handler.PlatformView is Microsoft.UI.Xaml.Window nativeWindow)
+            {
+                var hwnd = WindowNative.GetWindowHandle(nativeWindow);
+                var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
+                var appWindow = AppWindow.GetFromWindowId(windowId);
+                var iconPath = Path.Combine(AppContext.BaseDirectory, "appicon.ico");
+                if (File.Exists(iconPath))
+                {
+                    appWindow.SetIcon(iconPath);
+                }
+            }
+        });
+#endif
 
         builder.Services.AddSingleton(new HttpClient
         {

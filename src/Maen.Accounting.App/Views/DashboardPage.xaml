@@ -14,11 +14,11 @@
                             <Label Text="{local:Tr Key=T092}" TextColor="White" FontSize="27" FontAttributes="Bold" />
                             <Label Text="{local:Tr Key=T094}" TextColor="#D7FAE8" FontSize="13" />
                         </VerticalStackLayout>
-                        <Border Grid.Column="1" BackgroundColor="#2BBF83" Opacity="0.9" WidthRequest="64" HeightRequest="64" StrokeThickness="0" VerticalOptions="Center">
+                        <Border Grid.Column="1" BackgroundColor="White" WidthRequest="68" HeightRequest="68" StrokeThickness="0" VerticalOptions="Center" Padding="3">
                             <Border.StrokeShape>
                                 <RoundRectangle CornerRadius="20" />
                             </Border.StrokeShape>
-                            <Label Text="{local:Tr Key=T085}" TextColor="White" FontSize="32" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                            <Image Source="maen_logo.png" Aspect="AspectFit" />
                         </Border>
                     </Grid>
                 </Border>

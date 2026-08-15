@@ -16,7 +16,10 @@ public partial class App : Application
 
     protected override Window CreateWindow(IActivationState? activationState)
     {
-        _window = new Window(new SplashPage());
+        _window = new Window(new SplashPage())
+        {
+            Title = "Maen Accounting"
+        };
         _ = StartAsync();
         return _window;
     }

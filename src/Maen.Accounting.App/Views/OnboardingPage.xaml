@@ -11,7 +11,7 @@
                 <Grid ColumnDefinitions="Auto,*" ColumnSpacing="18">
                     <Border BackgroundColor="#FFFFFF" Opacity="0.16" WidthRequest="72" HeightRequest="72" StrokeThickness="0">
                         <Border.StrokeShape><RoundRectangle CornerRadius="22" /></Border.StrokeShape>
-                        <Label x:Name="LogoLabel" Text="{local:Tr Key=T085}" TextColor="White" FontSize="38" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                        <Image Source="maen_logo.png" WidthRequest="72" HeightRequest="72" Aspect="AspectFit" />
                     </Border>
                     <VerticalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
                         <Label x:Name="BrandLabel" Text="{local:Tr Key=T092}" TextColor="White" FontSize="28" FontAttributes="Bold" />

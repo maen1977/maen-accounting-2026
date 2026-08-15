@@ -15,9 +15,9 @@
                             <Label Text="{Binding CurrentMonthNetText}" TextColor="White" FontSize="33" FontAttributes="Bold" Margin="0,8,0,0" />
                             <Label Text="{local:Tr Key=T107}" TextColor="#D7FAE8" FontSize="13" />
                         </VerticalStackLayout>
-                        <Border Grid.Column="1" BackgroundColor="#2BBF83" WidthRequest="66" HeightRequest="66" StrokeThickness="0" VerticalOptions="Center">
+                        <Border Grid.Column="1" BackgroundColor="White" WidthRequest="70" HeightRequest="70" StrokeThickness="0" VerticalOptions="Center" Padding="3">
                             <Border.StrokeShape><RoundRectangle CornerRadius="22" /></Border.StrokeShape>
-                            <Label Text="{local:Tr Key=T085}" TextColor="White" FontSize="31" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                            <Image Source="maen_logo.png" Aspect="AspectFit" />
                         </Border>
                     </Grid>
                 </Border>

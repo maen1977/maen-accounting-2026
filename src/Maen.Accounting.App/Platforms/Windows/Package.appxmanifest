@@ -4,10 +4,10 @@
   xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
   xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest"
   IgnorableNamespaces="uap mp">
-  <Identity Name="Maen.Accounting" Publisher="CN=Maen" Version="2.0.0.0" />
+  <Identity Name="Maen.Accounting" Publisher="CN=Maen" Version="2.1.1.0" />
   <mp:PhoneIdentity PhoneProductId="E886A6F2-30DD-4A67-9F28-430B3B25EB10" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
   <Properties>
-    <DisplayName>معن للمحاسبة</DisplayName>
+    <DisplayName>Maen Accounting</DisplayName>
     <PublisherDisplayName>Maen</PublisherDisplayName>
     <Logo>appicon.png</Logo>
   </Properties>
@@ -17,7 +17,7 @@
   <Resources><Resource Language="x-generate" /></Resources>
   <Applications>
     <Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="$targetentrypoint$">
-      <uap:VisualElements DisplayName="معن للمحاسبة" Description="سجلات مالية يومية" Square150x150Logo="appicon.png" Square44x44Logo="appicon.png" BackgroundColor="#0B172A">
+      <uap:VisualElements DisplayName="Maen Accounting" Description="Professional accounting for personal and business finances" Square150x150Logo="appicon.png" Square44x44Logo="appicon.png" BackgroundColor="#0B172A">
         <uap:DefaultTile Wide310x150Logo="appicon.png" />
         <uap:SplashScreen Image="appicon.png" BackgroundColor="#0B172A" />
       </uap:VisualElements>

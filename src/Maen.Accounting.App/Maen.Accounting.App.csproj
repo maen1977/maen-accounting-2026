@@ -10,9 +10,9 @@
     <Nullable>enable</Nullable>
     <ApplicationTitle>Maen Accounting</ApplicationTitle>
     <ApplicationId>com.maen.accounting</ApplicationId>
-    <ApplicationDisplayVersion>2.1.0</ApplicationDisplayVersion>
-    <ApplicationVersion>2</ApplicationVersion>
-    <WindowsPackageType>None</WindowsPackageType>
+    <ApplicationDisplayVersion>2.1.1</ApplicationDisplayVersion>
+    <ApplicationVersion>3</ApplicationVersion>
+    <WindowsPackageType>MSIX</WindowsPackageType>
     <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">21.0</SupportedOSPlatformVersion>
     <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>
     <TargetPlatformMinVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</TargetPlatformMinVersion>
@@ -23,6 +23,8 @@
     <MauiSplashScreen Include="Resources/Splash/splash.png" Color="#0B172A" BaseSize="256,256" />
     <MauiImage Include="Resources/Images/*" />
     <MauiAsset Include="Resources/Raw/**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
+    <Content Include="Platforms/Windows/appicon.png" Link="appicon.png" Condition="$([MSBuild]::IsOSPlatform('windows'))" />
+    <Content Include="Platforms/Windows/appicon.ico" Link="appicon.ico" CopyToOutputDirectory="PreserveNewest" Condition="$([MSBuild]::IsOSPlatform('windows'))" />
   </ItemGroup>
 
   <ItemGroup>
