@@ -24,7 +24,6 @@
     <MauiImage Include="Resources/Images/*" />
     <MauiAsset Include="Resources/Raw/**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
     <Content Include="Platforms/Windows/appicon.png" Link="appicon.png" Condition="$([MSBuild]::IsOSPlatform('windows'))" />
-    <Content Include="Platforms/Windows/appicon.ico" Link="appicon.ico" CopyToOutputDirectory="PreserveNewest" Condition="$([MSBuild]::IsOSPlatform('windows'))" />
   </ItemGroup>
 
   <ItemGroup>
