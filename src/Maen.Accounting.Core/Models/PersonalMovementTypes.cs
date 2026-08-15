@@ -11,5 +11,7 @@ public static class PersonalMovementTypes
     public const string Withdrawal = "withdrawal";
     public const string Transfer = "transfer";
     public const string DebtPayment = "debt_payment";
+    public const string BankDeposit = "bank_deposit";
+    public const string BankWithdrawal = "bank_withdrawal";
     public const string Other = "other";
 }

@@ -39,6 +39,7 @@ public sealed class UserDatabaseFactory
             await connection.CreateTableAsync<InvoiceRow>();
             await connection.CreateTableAsync<InvoiceLineRow>();
             await connection.CreateTableAsync<PaymentRow>();
+            await EnsurePaymentColumnsAsync(connection);
             await connection.ExecuteAsync(
                 "DROP INDEX IF EXISTS ux_profit_entries_user_date;" +
                 "CREATE INDEX IF NOT EXISTS ix_profit_entries_user_date " +
@@ -69,6 +70,20 @@ public sealed class UserDatabaseFactory
         finally
         {
             _gate.Release();
+        }
+    }
+
+    private static async Task EnsurePaymentColumnsAsync(SQLiteAsyncConnection connection)
+    {
+        var columns = await connection.QueryAsync<SqliteColumnInfo>("PRAGMA table_info(payments);");
+        var existing = columns
+            .Select(static column => column.Name)
+            .Where(static name => !string.IsNullOrWhiteSpace(name))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        if (!existing.Contains(nameof(PaymentRow.AccountCode)))
+        {
+            await connection.ExecuteAsync("ALTER TABLE payments ADD COLUMN AccountCode TEXT NOT NULL DEFAULT '1000';");
         }
     }
 

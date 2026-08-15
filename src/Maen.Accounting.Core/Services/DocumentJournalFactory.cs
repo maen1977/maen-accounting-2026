@@ -70,20 +70,23 @@ public static class DocumentJournalFactory
     public static JournalEntry CreatePaymentJournal(Payment payment, string deviceId = "")
     {
         BusinessDocumentValidator.EnsureValidPayment(payment);
-        var cash = DefaultChartOfAccounts.IdForCode(DefaultChartOfAccounts.CashCode);
+        var paymentAccountCode = payment.AccountCode is DefaultChartOfAccounts.BankCode or DefaultChartOfAccounts.CashCode
+            ? payment.AccountCode
+            : DefaultChartOfAccounts.CashCode;
+        var paymentAccount = DefaultChartOfAccounts.IdForCode(paymentAccountCode);
         var receivableOrPayable = payment.Type == PaymentType.CustomerReceipt
             ? DefaultChartOfAccounts.IdForCode(DefaultChartOfAccounts.ReceivablesCode)
             : DefaultChartOfAccounts.IdForCode(DefaultChartOfAccounts.PayablesCode);
         var lines = payment.Type == PaymentType.CustomerReceipt
             ? new List<JournalLine>
             {
-                new($"{payment.PaymentId}-cash", cash, DebitMinor: payment.AmountMinor, Description: "إثبات تحصيل من عميل"),
+                new($"{payment.PaymentId}-payment-account", paymentAccount, DebitMinor: payment.AmountMinor, Description: "إثبات تحصيل من عميل"),
                 new($"{payment.PaymentId}-receivable", receivableOrPayable, CreditMinor: payment.AmountMinor, Description: "تخفيض ذمم عميل")
             }
             :
             [
                 new JournalLine($"{payment.PaymentId}-payable", receivableOrPayable, DebitMinor: payment.AmountMinor, Description: "تخفيض ذمم مورد"),
-                new JournalLine($"{payment.PaymentId}-cash", cash, CreditMinor: payment.AmountMinor, Description: "إثبات دفعة لمورد")
+                new JournalLine($"{payment.PaymentId}-payment-account", paymentAccount, CreditMinor: payment.AmountMinor, Description: "إثبات دفعة لمورد")
             ];
 
         var entry = new JournalEntry(

@@ -46,6 +46,8 @@ public sealed class ProfitEntryItemViewModel
         PersonalMovementTypes.Withdrawal => UiText.Get("T335"),
         PersonalMovementTypes.Transfer => UiText.Get("T147"),
         PersonalMovementTypes.DebtPayment => UiText.Get("T336"),
+        PersonalMovementTypes.BankDeposit => UiText.Get("T364"),
+        PersonalMovementTypes.BankWithdrawal => UiText.Get("T365"),
         _ => UiText.Get("T148")
     };
 }

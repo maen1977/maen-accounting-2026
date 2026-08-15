@@ -362,6 +362,19 @@ public static class UiText
         ["T360"] = ("مستحق في", "Due"),
         ["T361"] = ("إيداع", "Deposit"),
         ["T362"] = ("الإيداعات", "Deposits"),
+        ["T363"] = ("حساب البنك", "Bank account"),
+        ["T364"] = ("إيداع في البنك", "Bank deposit"),
+        ["T365"] = ("سحب من البنك", "Bank withdrawal"),
+        ["T366"] = ("رصيد البنك", "Bank balance"),
+        ["T367"] = ("إيداعات البنك هذا الشهر", "Bank deposits this month"),
+        ["T368"] = ("سحوبات البنك هذا الشهر", "Bank withdrawals this month"),
+        ["T369"] = ("حركة الحساب البنكي", "Bank account activity"),
+        ["T370"] = ("البنك", "Bank"),
+        ["T371"] = ("الصندوق", "Cash"),
+        ["T372"] = ("حساب البنك للشركات", "Business bank account"),
+        ["T373"] = ("حساب العملية", "Transaction account"),
+        ["T374"] = ("استخدم البنك", "Use bank"),
+        ["T375"] = ("استخدم الصندوق", "Use cash"),
     };
 
     public static string Get(string key)

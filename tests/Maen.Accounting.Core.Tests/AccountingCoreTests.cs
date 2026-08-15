@@ -10,8 +10,9 @@ public sealed class AccountingCoreTests
     {
         var accounts = DefaultChartOfAccounts.Create("user-1");
 
-        Assert.Equal(11, accounts.Count);
+        Assert.Equal(12, accounts.Count);
         Assert.Contains(accounts, account => account.Code == DefaultChartOfAccounts.CashCode && account.Type == AccountType.Asset);
+        Assert.Contains(accounts, account => account.Code == DefaultChartOfAccounts.BankCode && account.Type == AccountType.Asset);
         Assert.Contains(accounts, account => account.Code == DefaultChartOfAccounts.SalesRevenueCode && account.Type == AccountType.Revenue);
         Assert.All(accounts, account => Assert.True(account.IsSystem));
     }
@@ -111,6 +112,25 @@ public sealed class AccountingCoreTests
         Assert.Equal(5_000, journal.TotalDebitMinor);
         Assert.Equal(journal.TotalDebitMinor, journal.TotalCreditMinor);
         Assert.Equal(2, journal.Lines.Count);
+    }
+
+    [Fact]
+    public void Customer_receipt_can_post_to_bank_account()
+    {
+        var payment = new Payment(
+            "payment-bank-1",
+            "user-1",
+            "REC-BANK-001",
+            PaymentType.CustomerReceipt,
+            new DateOnly(2026, 1, 21),
+            "customer-1",
+            7_500,
+            AccountCode: DefaultChartOfAccounts.BankCode);
+
+        var journal = DocumentJournalFactory.CreatePaymentJournal(payment);
+
+        Assert.Contains(journal.Lines, line => line.AccountId == DefaultChartOfAccounts.IdForCode(DefaultChartOfAccounts.BankCode) && line.DebitMinor == 7_500);
+        Assert.DoesNotContain(journal.Lines, line => line.AccountId == DefaultChartOfAccounts.IdForCode(DefaultChartOfAccounts.CashCode));
     }
 
     [Fact]

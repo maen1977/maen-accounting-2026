@@ -109,7 +109,8 @@ public sealed class MainStateViewModel : ObservableObject
     {
         UiText.Get("T332"), UiText.Get("T334"), UiText.Get("T333"),
         UiText.Get("T145"), UiText.Get("T144"),
-        UiText.Get("T335"), UiText.Get("T147"), UiText.Get("T336"), UiText.Get("T148")
+        UiText.Get("T335"), UiText.Get("T147"), UiText.Get("T336"),
+        UiText.Get("T364"), UiText.Get("T365"), UiText.Get("T148")
     };
     public IReadOnlyList<string> Directions => new[] { UiText.Get("T151"), UiText.Get("T150") };
     public string AmountInput { get => _amountInput; set { if (SetProperty(ref _amountInput, value)) UpdatePersonalAmounts(); } }
@@ -214,6 +215,9 @@ public sealed class MainStateViewModel : ObservableObject
     public string CurrentMonthWithdrawalsText => Money.Format(CurrentMonthModels().Where(static entry => entry.MovementType == PersonalMovementTypes.Withdrawal).Sum(static entry => entry.EffectiveAmountMinor));
     public string CurrentMonthDebtPaymentsText => Money.Format(CurrentMonthModels().Where(static entry => entry.MovementType == PersonalMovementTypes.DebtPayment).Sum(static entry => entry.EffectiveAmountMinor));
     public string CurrentMonthAvailableBalanceText => Money.Format(CurrentMonthModels().Sum(static entry => entry.SalesMinor - entry.CostMinor - entry.ExpensesMinor));
+    public string BankBalanceText => Money.Format(Models().Where(static entry => !entry.IsDeleted).Sum(GetBankImpactMinor));
+    public string CurrentMonthBankDepositsText => Money.Format(CurrentMonthModels().Select(GetBankImpactMinor).Where(static amount => amount > 0).Sum());
+    public string CurrentMonthBankWithdrawalsText => Money.Format(CurrentMonthModels().Select(GetBankImpactMinor).Where(static amount => amount < 0).Sum(amount => -amount));
     public string CurrentMonthEntryCountText => SummarizeCurrentMonth().EntriesCount.ToString();
     public double CurrentMonthSpendingProgress
     {
@@ -361,10 +365,15 @@ public sealed class MainStateViewModel : ObservableObject
         }
 
         var movementType = ResolveMovementType(SelectedMovementType);
+        if (movementType is PersonalMovementTypes.BankDeposit or PersonalMovementTypes.BankWithdrawal)
+        {
+            WalletInput = "bank";
+        }
+
         var notes = string.IsNullOrWhiteSpace(NotesInput)
             ? SelectedMovementType
             : $"{SelectedMovementType}: {NotesInput.Trim()}";
-        if (movementType == PersonalMovementTypes.Transfer)
+        if (movementType is PersonalMovementTypes.Transfer or PersonalMovementTypes.BankDeposit or PersonalMovementTypes.BankWithdrawal)
         {
             SalesInput = "0";
             CostInput = "0";
@@ -611,6 +620,8 @@ public sealed class MainStateViewModel : ObservableObject
         var value when value == UiText.Get("T335") => PersonalMovementTypes.Withdrawal,
         var value when value == UiText.Get("T147") => PersonalMovementTypes.Transfer,
         var value when value == UiText.Get("T336") => PersonalMovementTypes.DebtPayment,
+        var value when value == UiText.Get("T364") => PersonalMovementTypes.BankDeposit,
+        var value when value == UiText.Get("T365") => PersonalMovementTypes.BankWithdrawal,
         _ => PersonalMovementTypes.Other
     };
 
@@ -625,6 +636,8 @@ public sealed class MainStateViewModel : ObservableObject
         PersonalMovementTypes.Withdrawal => UiText.Get("T335"),
         PersonalMovementTypes.Transfer => UiText.Get("T147"),
         PersonalMovementTypes.DebtPayment => UiText.Get("T336"),
+        PersonalMovementTypes.BankDeposit => UiText.Get("T364"),
+        PersonalMovementTypes.BankWithdrawal => UiText.Get("T365"),
         _ => UiText.Get("T148")
     };
 
@@ -637,6 +650,17 @@ public sealed class MainStateViewModel : ObservableObject
 
     private bool IsTransferMovement() => ResolveMovementType(SelectedMovementType) == PersonalMovementTypes.Transfer;
 
+    private static long GetBankImpactMinor(ProfitEntry entry)
+    {
+        if (!IsBankWallet(entry)) return 0;
+        if (entry.MovementType == PersonalMovementTypes.BankDeposit || entry.IsIncome) return entry.EffectiveAmountMinor;
+        if (entry.MovementType == PersonalMovementTypes.BankWithdrawal || entry.IsOutflow) return -entry.EffectiveAmountMinor;
+        return 0;
+    }
+
+    private static bool IsBankWallet(ProfitEntry entry) =>
+        string.Equals(entry.Wallet, "bank", StringComparison.OrdinalIgnoreCase);
+
     private void UpdatePersonalAmounts()
     {
         var movementType = ResolveMovementType(SelectedMovementType);
@@ -646,7 +670,7 @@ public sealed class MainStateViewModel : ObservableObject
             CostInput = "0";
             ExpensesInput = "0";
         }
-        else if (movementType == PersonalMovementTypes.Transfer)
+        else if (movementType is PersonalMovementTypes.Transfer or PersonalMovementTypes.BankDeposit or PersonalMovementTypes.BankWithdrawal)
         {
             SalesInput = "0";
             CostInput = "0";
@@ -778,6 +802,9 @@ public sealed class MainStateViewModel : ObservableObject
         OnPropertyChanged(nameof(CurrentMonthWithdrawalsText));
         OnPropertyChanged(nameof(CurrentMonthDebtPaymentsText));
         OnPropertyChanged(nameof(CurrentMonthAvailableBalanceText));
+        OnPropertyChanged(nameof(BankBalanceText));
+        OnPropertyChanged(nameof(CurrentMonthBankDepositsText));
+        OnPropertyChanged(nameof(CurrentMonthBankWithdrawalsText));
         OnPropertyChanged(nameof(CurrentMonthEntryCountText));
         OnPropertyChanged(nameof(CurrentMonthSpendingProgress));
         OnPropertyChanged(nameof(CurrentMonthSpendingPercentText));

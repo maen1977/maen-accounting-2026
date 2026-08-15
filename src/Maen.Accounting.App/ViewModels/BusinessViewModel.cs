@@ -27,6 +27,7 @@ public sealed class BusinessViewModel : ObservableObject
     private ContactTypeOption _selectedContactType = ContactTypes[0];
     private InvoiceTypeOption _selectedInvoiceType = InvoiceTypes[0];
     private PaymentTypeOption _selectedPaymentType = PaymentTypes[0];
+    private PaymentAccountOption _selectedPaymentAccount = PaymentAccounts[0];
     private ContactItemViewModel? _selectedInvoiceContact;
     private ContactItemViewModel? _selectedPaymentContact;
     private DateTime _invoiceDate = DateTime.Today;
@@ -48,6 +49,9 @@ public sealed class BusinessViewModel : ObservableObject
     public static IReadOnlyList<PaymentTypeOption> PaymentTypes { get; } =
     [new(PaymentType.CustomerReceipt), new(PaymentType.SupplierPayment)];
 
+    public static IReadOnlyList<PaymentAccountOption> PaymentAccounts { get; } =
+    [new(DefaultChartOfAccounts.CashCode), new(DefaultChartOfAccounts.BankCode)];
+
     public ObservableCollection<ContactItemViewModel> Contacts { get; } = [];
     public ObservableCollection<InvoiceItemViewModel> Invoices { get; } = [];
     public ObservableCollection<PaymentItemViewModel> Payments { get; } = [];
@@ -68,6 +72,7 @@ public sealed class BusinessViewModel : ObservableObject
     public ContactTypeOption SelectedContactType { get => _selectedContactType; set => SetProperty(ref _selectedContactType, value); }
     public InvoiceTypeOption SelectedInvoiceType { get => _selectedInvoiceType; set => SetProperty(ref _selectedInvoiceType, value); }
     public PaymentTypeOption SelectedPaymentType { get => _selectedPaymentType; set => SetProperty(ref _selectedPaymentType, value); }
+    public PaymentAccountOption SelectedPaymentAccount { get => _selectedPaymentAccount; set => SetProperty(ref _selectedPaymentAccount, value); }
     public ContactItemViewModel? SelectedInvoiceContact { get => _selectedInvoiceContact; set => SetProperty(ref _selectedInvoiceContact, value); }
     public ContactItemViewModel? SelectedPaymentContact { get => _selectedPaymentContact; set => SetProperty(ref _selectedPaymentContact, value); }
 
@@ -93,6 +98,7 @@ public sealed class BusinessViewModel : ObservableObject
             foreach (var payment in payments) Payments.Add(new PaymentItemViewModel(payment, contacts));
             SelectedInvoiceContact ??= Contacts.FirstOrDefault();
             SelectedPaymentContact ??= Contacts.FirstOrDefault();
+            SelectedPaymentAccount ??= PaymentAccounts[0];
         });
     }
 
@@ -151,7 +157,8 @@ public sealed class BusinessViewModel : ObservableObject
             var payment = new Payment(
                 $"payment-{Guid.NewGuid():N}", session.UserId, PaymentNumberInput.Trim(), SelectedPaymentType.Type,
                 DateOnly.FromDateTime(PaymentDate), SelectedPaymentContact.ContactId, amount,
-                CreatedAtUtc: now, UpdatedAtUtc: now, DeviceId: _deviceIdentity.GetOrCreate());
+                CreatedAtUtc: now, UpdatedAtUtc: now, DeviceId: _deviceIdentity.GetOrCreate(),
+                AccountCode: SelectedPaymentAccount.Code);
             await _repository.UpsertPaymentAsync(session.UserId, payment);
             PaymentNumberInput = string.Empty;
             PaymentAmountInput = string.Empty;
@@ -201,6 +208,12 @@ public sealed record PaymentTypeOption(PaymentType Type)
     public string Label => Type == PaymentType.CustomerReceipt ? UiText.Get("T265") : UiText.Get("T266");
 }
 
+public sealed record PaymentAccountOption(string Code)
+{
+    public string Label => Code == DefaultChartOfAccounts.BankCode ? UiText.Get("T370") : UiText.Get("T371");
+    public string DisplayText => $"{Code} — {Label}";
+}
+
 public sealed class ContactItemViewModel(AccountingContact contact)
 {
     public string ContactId => contact.ContactId;
@@ -227,5 +240,6 @@ public sealed class PaymentItemViewModel(Payment payment, IReadOnlyList<Accounti
     public string DateText => payment.PaymentDate.ToString("yyyy-MM-dd");
     public string TypeText => payment.Type == PaymentType.CustomerReceipt ? UiText.Get("T282") : UiText.Get("T283");
     public string ContactText => contacts.FirstOrDefault(contact => contact.ContactId == payment.ContactId)?.Name ?? UiText.Get("T279");
+    public string AccountText => payment.AccountCode == DefaultChartOfAccounts.BankCode ? UiText.Get("T370") : UiText.Get("T371");
     public string AmountText => Money.Format(payment.AmountMinor);
 }

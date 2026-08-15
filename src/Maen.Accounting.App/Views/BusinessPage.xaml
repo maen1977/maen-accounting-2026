@@ -101,6 +101,7 @@
                             <Picker Title="{local:Tr Key=T100}" ItemsSource="{Binding PaymentTypes}" SelectedItem="{Binding SelectedPaymentType}" ItemDisplayBinding="{Binding Label}" />
                             <Picker Grid.Column="1" Title="{local:Tr Key=T041}" ItemsSource="{Binding Contacts}" SelectedItem="{Binding SelectedPaymentContact}" ItemDisplayBinding="{Binding DisplayText}" />
                         </Grid>
+                        <Picker Title="{local:Tr Key=T373}" ItemsSource="{Binding PaymentAccounts}" SelectedItem="{Binding SelectedPaymentAccount}" ItemDisplayBinding="{Binding DisplayText}" />
                         <DatePicker Date="{Binding PaymentDate}" Format="yyyy-MM-dd" />
                         <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
                             <Entry Text="{Binding PaymentNumberInput}" Placeholder="{local:Tr Key=T304}" />
@@ -117,6 +118,7 @@
                                     <VerticalStackLayout>
                                         <Label Text="{Binding Number}" FontAttributes="Bold" />
                                         <Label Text="{Binding ContactText}" Style="{StaticResource MutedLabel}" />
+                                        <Label Text="{Binding AccountText}" Style="{StaticResource MutedLabel}" FontSize="12" />
                                         <Label Text="{Binding DateText}" Style="{StaticResource MutedLabel}" FontSize="12" />
                                     </VerticalStackLayout>
                                     <VerticalStackLayout Grid.Column="1" HorizontalOptions="End">

@@ -30,6 +30,20 @@ public partial class PersonalEntryPage : ContentPage
         _state.SelectedDirection = UiText.Get("T150");
     }
 
+    private void OnBankDepositQuickClicked(object? sender, EventArgs e)
+    {
+        _state.SelectedMovementType = UiText.Get("T364");
+        _state.SelectedDirection = UiText.Get("T151");
+        _state.WalletInput = "bank";
+    }
+
+    private void OnBankWithdrawalQuickClicked(object? sender, EventArgs e)
+    {
+        _state.SelectedMovementType = UiText.Get("T365");
+        _state.SelectedDirection = UiText.Get("T150");
+        _state.WalletInput = "bank";
+    }
+
     private async void OnSaveClicked(object? sender, EventArgs e)
     {
         var button = sender as Button;

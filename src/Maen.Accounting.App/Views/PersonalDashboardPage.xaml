@@ -85,6 +85,32 @@
                 </Border>
 
                 <Border Style="{StaticResource CardBorder}">
+                    <VerticalStackLayout Spacing="10">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <VerticalStackLayout Spacing="3">
+                                <Label Text="{local:Tr Key=T363}" FontSize="18" FontAttributes="Bold" />
+                                <Label Text="{local:Tr Key=T369}" Style="{StaticResource MutedLabel}" />
+                            </VerticalStackLayout>
+                            <Label Grid.Column="1" Text="{Binding BankBalanceText}" TextColor="#075985" FontSize="24" FontAttributes="Bold" VerticalOptions="Center" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+                            <VerticalStackLayout Spacing="3">
+                                <Label Text="{local:Tr Key=T366}" Style="{StaticResource MetricCaption}" />
+                                <Label Text="{Binding BankBalanceText}" TextColor="#075985" FontAttributes="Bold" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1" Spacing="3">
+                                <Label Text="{local:Tr Key=T367}" Style="{StaticResource MetricCaption}" />
+                                <Label Text="{Binding CurrentMonthBankDepositsText}" TextColor="#137A53" FontAttributes="Bold" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="2" Spacing="3">
+                                <Label Text="{local:Tr Key=T368}" Style="{StaticResource MetricCaption}" />
+                                <Label Text="{Binding CurrentMonthBankWithdrawalsText}" TextColor="#C2413A" FontAttributes="Bold" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource CardBorder}">
                     <VerticalStackLayout Spacing="12">
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                             <VerticalStackLayout Spacing="4">

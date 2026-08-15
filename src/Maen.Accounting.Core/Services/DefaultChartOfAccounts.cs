@@ -5,6 +5,7 @@ namespace Maen.Accounting.Core.Services;
 public static class DefaultChartOfAccounts
 {
     public const string CashCode = "1000";
+    public const string BankCode = "1010";
     public const string ReceivablesCode = "1100";
     public const string InventoryCode = "1200";
     public const string PayablesCode = "2000";
@@ -23,6 +24,7 @@ public static class DefaultChartOfAccounts
         return
         [
             CreateAccount(userId, CashCode, "الصندوق", AccountType.Asset, 10, timestamp, deviceId),
+            CreateAccount(userId, BankCode, "البنك", AccountType.Asset, 15, timestamp, deviceId),
             CreateAccount(userId, ReceivablesCode, "العملاء", AccountType.Asset, 20, timestamp, deviceId),
             CreateAccount(userId, InventoryCode, "المخزون", AccountType.Asset, 30, timestamp, deviceId),
             CreateAccount(userId, PayablesCode, "الموردون", AccountType.Liability, 40, timestamp, deviceId),
