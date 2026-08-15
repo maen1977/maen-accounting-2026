@@ -22,6 +22,10 @@
 | `firestore.rules` | Firestore access rules for business and personal entries |
 | `docs/branding-audit.md` | Final branding changes and validation record |
 
+## Downloads
+
+The current verified release is available from [GitHub Releases](https://github.com/maen1977/maen-accounting-2026/releases/tag/v2.1.1). Download the Android APK for direct installation, the Android AAB for Google Play Console, or the Windows x64 ZIP for desktop use.
+
 ## Build commands
 
 The repository uses .NET SDK 10 and the Android workload. On an Android-capable development host:
@@ -40,8 +44,8 @@ Windows builds use the `net10.0-windows10.0.19041.0` target on a Windows host wi
 | --- | --- |
 | Application title | `Maen Accounting` |
 | Android package ID | `com.maen.accounting` |
-| Application version | `2.1.0` |
-| Android version code | `2` |
+| Application version | `2.1.1` |
+| Android version code | `3` |
 | Supported targets | Android and Windows |
 
-The Android Release validation completed with **31 passing tests**, a successful publish, and an APK label of `Maen Accounting`.
+The Android and Windows Release validation completed with **31 passing tests**, successful Android APK/AAB publishing, successful Windows x64 build, and an APK label of `Maen Accounting`.
