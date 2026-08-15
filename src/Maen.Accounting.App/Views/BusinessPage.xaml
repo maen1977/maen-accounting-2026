@@ -54,7 +54,16 @@
                             <Picker Title="{local:Tr Key=T101}" ItemsSource="{Binding InvoiceTypes}" SelectedItem="{Binding SelectedInvoiceType}" ItemDisplayBinding="{Binding Label}" />
                             <Picker Grid.Column="1" Title="{local:Tr Key=T041}" ItemsSource="{Binding Contacts}" SelectedItem="{Binding SelectedInvoiceContact}" ItemDisplayBinding="{Binding DisplayText}" />
                         </Grid>
-                        <DatePicker Date="{Binding InvoiceDate}" Format="yyyy-MM-dd" />
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                            <VerticalStackLayout Spacing="3">
+                                <Label Text="{local:Tr Key=T021}" Style="{StaticResource MutedLabel}" FontSize="12" />
+                                <DatePicker Date="{Binding InvoiceDate}" Format="yyyy-MM-dd" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1" Spacing="3">
+                                <Label Text="{local:Tr Key=T358}" Style="{StaticResource MutedLabel}" FontSize="12" />
+                                <DatePicker Date="{Binding InvoiceDueDate}" Format="yyyy-MM-dd" />
+                            </VerticalStackLayout>
+                        </Grid>
                         <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
                             <Entry Text="{Binding InvoiceNumberInput}" Placeholder="{local:Tr Key=T301}" />
                             <Entry Grid.Column="1" Text="{Binding InvoiceAmountInput}" Placeholder="{local:Tr Key=T297}" Keyboard="Numeric" />
@@ -73,6 +82,7 @@
                                         <Label Text="{Binding Number}" FontAttributes="Bold" />
                                         <Label Text="{Binding ContactText, StringFormat='{0} — {1}'}" Style="{StaticResource MutedLabel}" />
                                         <Label Text="{Binding DateText}" Style="{StaticResource MutedLabel}" FontSize="12" />
+                                        <Label Text="{Binding DueDateText}" Style="{StaticResource MutedLabel}" FontSize="12" />
                                     </VerticalStackLayout>
                                     <VerticalStackLayout Grid.Column="1" HorizontalOptions="End">
                                         <Label Text="{Binding TotalText}" FontAttributes="Bold" TextColor="{StaticResource PrimaryDark}" />

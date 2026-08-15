@@ -171,7 +171,12 @@ public sealed class FirestoreSyncService
         ["createdAtUtc"] = StringField(entry.CreatedAtUtc.ToString("O")),
         ["updatedAtUtc"] = StringField(entry.UpdatedAtUtc.ToString("O")),
         ["version"] = IntegerField(entry.Version),
-        ["deviceId"] = StringField(entry.DeviceId)
+        ["deviceId"] = StringField(entry.DeviceId),
+        ["amountMinor"] = IntegerField(entry.AmountMinor),
+        ["movementType"] = StringField(entry.MovementType),
+        ["category"] = StringField(entry.Category),
+        ["wallet"] = StringField(entry.Wallet),
+        ["counterparty"] = StringField(entry.Counterparty)
     };
 
     private static object StringField(string value) => new { stringValue = value };
@@ -223,6 +228,9 @@ public sealed class FirestoreSyncService
     {
         var fields = document.GetProperty("fields");
         string String(string name) => fields.GetProperty(name).GetProperty("stringValue").GetString() ?? string.Empty;
+        string OptionalString(string name, string fallback = "") => fields.TryGetProperty(name, out var field) && field.TryGetProperty("stringValue", out var value)
+            ? value.GetString() ?? fallback
+            : fallback;
         var accountScope = fields.TryGetProperty("accountScope", out var scopeField)
             ? scopeField.GetProperty("stringValue").GetString() ?? string.Empty
             : "business";
@@ -232,6 +240,9 @@ public sealed class FirestoreSyncService
         }
 
         long Integer(string name) => long.Parse(fields.GetProperty(name).GetProperty("integerValue").GetString()!, System.Globalization.CultureInfo.InvariantCulture);
+        long OptionalInteger(string name, long fallback) => fields.TryGetProperty(name, out var field) && field.TryGetProperty("integerValue", out var value)
+            ? long.Parse(value.GetString()!, System.Globalization.CultureInfo.InvariantCulture)
+            : fallback;
         bool Boolean(string name) => fields.GetProperty(name).GetProperty("booleanValue").GetBoolean();
 
         var userId = String("userId");
@@ -248,6 +259,11 @@ public sealed class FirestoreSyncService
             DateTimeOffset.Parse(String("createdAtUtc")),
             DateTimeOffset.Parse(String("updatedAtUtc")),
             checked((int)Integer("version")),
-            String("deviceId"));
+            String("deviceId"),
+            OptionalInteger("amountMinor", checked(Integer("salesMinor") + Integer("costMinor") + Integer("expensesMinor"))),
+            OptionalString("movementType", Integer("salesMinor") > 0 ? PersonalMovementTypes.OtherIncome : Integer("costMinor") > 0 ? PersonalMovementTypes.Purchase : Integer("expensesMinor") > 0 ? PersonalMovementTypes.Expense : PersonalMovementTypes.Other),
+            OptionalString("category"),
+            OptionalString("wallet", "main"),
+            OptionalString("counterparty"));
     }
 }

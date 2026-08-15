@@ -30,6 +30,7 @@ public sealed class BusinessViewModel : ObservableObject
     private ContactItemViewModel? _selectedInvoiceContact;
     private ContactItemViewModel? _selectedPaymentContact;
     private DateTime _invoiceDate = DateTime.Today;
+    private DateTime _invoiceDueDate = DateTime.Today;
     private DateTime _paymentDate = DateTime.Today;
 
     public BusinessViewModel(BusinessRepository repository, DeviceIdentityService deviceIdentity)
@@ -62,6 +63,7 @@ public sealed class BusinessViewModel : ObservableObject
     public string PaymentNumberInput { get => _paymentNumberInput; set => SetProperty(ref _paymentNumberInput, value); }
     public string PaymentAmountInput { get => _paymentAmountInput; set => SetProperty(ref _paymentAmountInput, value); }
     public DateTime InvoiceDate { get => _invoiceDate; set => SetProperty(ref _invoiceDate, value); }
+    public DateTime InvoiceDueDate { get => _invoiceDueDate; set => SetProperty(ref _invoiceDueDate, value); }
     public DateTime PaymentDate { get => _paymentDate; set => SetProperty(ref _paymentDate, value); }
     public ContactTypeOption SelectedContactType { get => _selectedContactType; set => SetProperty(ref _selectedContactType, value); }
     public InvoiceTypeOption SelectedInvoiceType { get => _selectedInvoiceType; set => SetProperty(ref _selectedInvoiceType, value); }
@@ -116,13 +118,14 @@ public sealed class BusinessViewModel : ObservableObject
         if (SelectedInvoiceContact is null) throw new InvalidOperationException(UiText.Get("T269"));
         if (!Money.TryParse(InvoiceAmountInput, out var amount) || amount <= 0) throw new InvalidOperationException(UiText.Get("T270"));
         if (!Money.TryParse(InvoiceTaxInput, out var tax) || tax < 0) throw new InvalidOperationException(UiText.Get("T271"));
+        if (InvoiceDueDate.Date < InvoiceDate.Date) throw new InvalidOperationException(UiText.Get("T359"));
         if (string.IsNullOrWhiteSpace(InvoiceNumberInput) || string.IsNullOrWhiteSpace(InvoiceDescriptionInput)) throw new InvalidOperationException(UiText.Get("T272"));
         await RunBusyAsync(async () =>
         {
             var now = DateTimeOffset.UtcNow;
             var invoice = new Invoice(
                 $"invoice-{Guid.NewGuid():N}", session.UserId, InvoiceNumberInput.Trim(), SelectedInvoiceType.Type,
-                DateOnly.FromDateTime(InvoiceDate), DateOnly.FromDateTime(InvoiceDate), SelectedInvoiceContact.ContactId,
+                DateOnly.FromDateTime(InvoiceDate), DateOnly.FromDateTime(InvoiceDueDate), SelectedInvoiceContact.ContactId,
                 [new InvoiceLine($"line-{Guid.NewGuid():N}", InvoiceDescriptionInput.Trim(), amount)], tax,
                 InvoiceStatus.Posted, CreatedAtUtc: now, UpdatedAtUtc: now, DeviceId: _deviceIdentity.GetOrCreate());
             await _repository.UpsertInvoiceAsync(session.UserId, invoice);
@@ -130,6 +133,7 @@ public sealed class BusinessViewModel : ObservableObject
             InvoiceAmountInput = string.Empty;
             InvoiceTaxInput = "0";
             InvoiceDescriptionInput = string.Empty;
+            InvoiceDueDate = InvoiceDate;
             StatusMessage = UiText.Get("T273");
             await ReloadCoreAsync();
         });
@@ -210,6 +214,7 @@ public sealed class InvoiceItemViewModel(Invoice invoice, IReadOnlyList<Accounti
 {
     public string Number => invoice.Number;
     public string DateText => invoice.IssueDate.ToString("yyyy-MM-dd");
+    public string DueDateText => $"{UiText.Get("T360")}: {invoice.DueDate:yyyy-MM-dd}";
     public string TypeText => invoice.Type == InvoiceType.Sales ? UiText.Get("T277") : UiText.Get("T278");
     public string ContactText => contacts.FirstOrDefault(contact => contact.ContactId == invoice.ContactId)?.Name ?? UiText.Get("T279");
     public string TotalText => Money.Format(invoice.TotalMinor);

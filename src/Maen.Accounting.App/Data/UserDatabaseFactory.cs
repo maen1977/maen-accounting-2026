@@ -31,6 +31,7 @@ public sealed class UserDatabaseFactory
                         SQLiteOpenFlags.FullMutex;
             var connection = new SQLiteAsyncConnection(path, flags);
             await connection.CreateTableAsync<ProfitEntryRow>();
+            await EnsureProfitEntryColumnsAsync(connection);
             await connection.CreateTableAsync<AccountRow>();
             await connection.CreateTableAsync<JournalEntryRow>();
             await connection.CreateTableAsync<JournalLineRow>();
@@ -39,7 +40,8 @@ public sealed class UserDatabaseFactory
             await connection.CreateTableAsync<InvoiceLineRow>();
             await connection.CreateTableAsync<PaymentRow>();
             await connection.ExecuteAsync(
-                "CREATE UNIQUE INDEX IF NOT EXISTS ux_profit_entries_user_date " +
+                "DROP INDEX IF EXISTS ux_profit_entries_user_date;" +
+                "CREATE INDEX IF NOT EXISTS ix_profit_entries_user_date " +
                 "ON profit_entries(UserId, EntryDate) WHERE IsDeleted = 0;" +
                 "CREATE UNIQUE INDEX IF NOT EXISTS ux_accounts_user_code " +
                 "ON accounts(UserId, Code);" +
@@ -68,6 +70,37 @@ public sealed class UserDatabaseFactory
         {
             _gate.Release();
         }
+    }
+
+    private static async Task EnsureProfitEntryColumnsAsync(SQLiteAsyncConnection connection)
+    {
+        var columns = await connection.QueryAsync<SqliteColumnInfo>("PRAGMA table_info(profit_entries);");
+        var existing = columns
+            .Select(static column => column.Name)
+            .Where(static name => !string.IsNullOrWhiteSpace(name))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var additions = new (string Name, string Definition)[]
+        {
+            (nameof(ProfitEntryRow.AmountMinor), "INTEGER NOT NULL DEFAULT 0"),
+            (nameof(ProfitEntryRow.MovementType), "TEXT NOT NULL DEFAULT 'other'"),
+            (nameof(ProfitEntryRow.Category), "TEXT NOT NULL DEFAULT ''"),
+            (nameof(ProfitEntryRow.Wallet), "TEXT NOT NULL DEFAULT 'main'"),
+            (nameof(ProfitEntryRow.Counterparty), "TEXT NOT NULL DEFAULT ''")
+        };
+
+        foreach (var (name, definition) in additions)
+        {
+            if (!existing.Contains(name))
+            {
+                await connection.ExecuteAsync($"ALTER TABLE profit_entries ADD COLUMN {name} {definition};");
+            }
+        }
+    }
+
+    private sealed class SqliteColumnInfo
+    {
+        public string Name { get; set; } = string.Empty;
     }
 
     public void ClearActiveConnection()

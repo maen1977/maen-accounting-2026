@@ -21,7 +21,8 @@ service cloud.firestore {
           'accountScope', 'entryId', 'userId', 'entryDate',
           'salesMinor', 'costMinor', 'expensesMinor',
           'notes', 'isDeleted', 'createdAtUtc', 'updatedAtUtc',
-          'version', 'deviceId'
+          'version', 'deviceId', 'amountMinor', 'movementType',
+          'category', 'wallet', 'counterparty'
         ])
         && request.resource.data.accountScope is string
         && scopeMatchesCollection()
@@ -41,7 +42,12 @@ service cloud.firestore {
         && request.resource.data.updatedAtUtc is string
         && request.resource.data.version is int
         && request.resource.data.version >= 1
-        && request.resource.data.deviceId is string;
+        && request.resource.data.deviceId is string
+        && (!request.resource.data.keys().hasAny(['amountMinor']) || (request.resource.data.amountMinor is int && request.resource.data.amountMinor >= 0))
+        && (!request.resource.data.keys().hasAny(['movementType']) || (request.resource.data.movementType is string && request.resource.data.movementType.size() <= 64))
+        && (!request.resource.data.keys().hasAny(['category']) || (request.resource.data.category is string && request.resource.data.category.size() <= 120))
+        && (!request.resource.data.keys().hasAny(['wallet']) || (request.resource.data.wallet is string && request.resource.data.wallet.size() <= 120))
+        && (!request.resource.data.keys().hasAny(['counterparty']) || (request.resource.data.counterparty is string && request.resource.data.counterparty.size() <= 200));
       }
 
       allow read: if signedInAsOwner() && allowedCollection();

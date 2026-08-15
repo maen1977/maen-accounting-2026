@@ -38,6 +38,53 @@
                 </Grid>
 
                 <Border Style="{StaticResource CardBorder}">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="{local:Tr Key=T353}" FontSize="18" FontAttributes="Bold" />
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="12" RowDefinitions="Auto,Auto">
+                            <Border Style="{StaticResource MetricCard}">
+                                <VerticalStackLayout Spacing="5">
+                                    <Label Text="{local:Tr Key=T338}" Style="{StaticResource MetricCaption}" />
+                                    <Label Text="{Binding CurrentMonthIncomeText}" TextColor="#137A53" FontSize="20" FontAttributes="Bold" />
+                                </VerticalStackLayout>
+                            </Border>
+                            <Border Grid.Column="1" Style="{StaticResource MetricCard}">
+                                <VerticalStackLayout Spacing="5">
+                                    <Label Text="{local:Tr Key=T337}" Style="{StaticResource MetricCaption}" />
+                                    <Label Text="{Binding CurrentMonthAvailableBalanceText}" TextColor="{StaticResource PrimaryDark}" FontSize="20" FontAttributes="Bold" />
+                                </VerticalStackLayout>
+                            </Border>
+                            <Border Grid.Row="1" Style="{StaticResource MetricCard}">
+                                <VerticalStackLayout Spacing="5">
+                                    <Label Text="{local:Tr Key=T339}" Style="{StaticResource MetricCaption}" />
+                                    <Label Text="{Binding CurrentMonthSalaryText}" TextColor="#137A53" FontSize="20" FontAttributes="Bold" />
+                                </VerticalStackLayout>
+                            </Border>
+                            <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource MetricCard}">
+                                <VerticalStackLayout Spacing="5">
+                                    <Label Text="{local:Tr Key=T340}" Style="{StaticResource MetricCaption}" />
+                                    <Label Text="{Binding CurrentMonthFreelanceText}" TextColor="#137A53" FontSize="20" FontAttributes="Bold" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </Grid>
+                        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+                            <VerticalStackLayout Spacing="3">
+                                <Label Text="{local:Tr Key=T341}" Style="{StaticResource MetricCaption}" />
+                                <Label Text="{Binding CurrentMonthPurchasesText}" TextColor="#C2413A" FontAttributes="Bold" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1" Spacing="3">
+                                <Label Text="{local:Tr Key=T342}" Style="{StaticResource MetricCaption}" />
+                                <Label Text="{Binding CurrentMonthWithdrawalsText}" TextColor="#C2413A" FontAttributes="Bold" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="2" Spacing="3">
+                                <Label Text="{local:Tr Key=T343}" Style="{StaticResource MetricCaption}" />
+                                <Label Text="{Binding CurrentMonthDebtPaymentsText}" TextColor="#C2413A" FontAttributes="Bold" />
+                            </VerticalStackLayout>
+                        </Grid>
+                        <Label Text="{local:Tr Key=T351}" Style="{StaticResource MutedLabel}" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource CardBorder}">
                     <VerticalStackLayout Spacing="12">
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
                             <VerticalStackLayout Spacing="4">
@@ -106,10 +153,11 @@
                                         <Label Text="{local:Tr Key=T085}" TextColor="#087A55" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
                                     </Border>
                                     <VerticalStackLayout Grid.Column="1" Spacing="3">
-                                        <Label Text="{Binding DateText}" FontAttributes="Bold" />
+                                        <Label Text="{Binding MovementTypeText}" FontAttributes="Bold" />
+                                        <Label Text="{Binding DateText}" Style="{StaticResource MutedLabel}" />
                                         <Label Text="{Binding NotesText}" Style="{StaticResource MutedLabel}" LineBreakMode="TailTruncation" />
                                     </VerticalStackLayout>
-                                    <Label Grid.Column="2" Text="{Binding NetText}" TextColor="{StaticResource PrimaryDark}" FontAttributes="Bold" VerticalOptions="Center" />
+                                    <Label Grid.Column="2" Text="{Binding AmountText}" TextColor="{StaticResource PrimaryDark}" FontAttributes="Bold" VerticalOptions="Center" />
                                 </Grid>
                             </Border>
                         </DataTemplate>

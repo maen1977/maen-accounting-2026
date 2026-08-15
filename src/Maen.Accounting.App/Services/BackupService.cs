@@ -51,7 +51,12 @@ public sealed class BackupService
                 entry.CreatedAtUtc,
                 entry.UpdatedAtUtc,
                 entry.Version,
-                entry.DeviceId
+                entry.DeviceId,
+                entry.AmountMinor,
+                entry.MovementType,
+                entry.Category,
+                entry.Wallet,
+                entry.Counterparty
             })
         };
 

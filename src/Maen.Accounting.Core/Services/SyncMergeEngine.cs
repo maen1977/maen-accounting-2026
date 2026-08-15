@@ -58,31 +58,7 @@ public static class SyncMergeEngine
             }
         }
 
-        ResolveDateConflicts(merged, toPush);
         return new SyncPlan(merged, toPush.GroupBy(static entry => entry.EntryId, StringComparer.Ordinal).Select(static group => group.Last()).ToArray(), localWins, remoteWins);
-    }
-
-    private static void ResolveDateConflicts(List<ProfitEntry> merged, List<ProfitEntry> toPush)
-    {
-        var activeGroups = merged
-            .Select((entry, index) => (entry, index))
-            .Where(static pair => !pair.entry.IsDeleted)
-            .GroupBy(static pair => pair.entry.EntryDate)
-            .Where(static group => group.Count() > 1);
-
-        foreach (var group in activeGroups)
-        {
-            var winner = group
-                .OrderByDescending(static pair => pair.entry, ProfitEntryRecencyComparer.Instance)
-                .First();
-
-            foreach (var loser in group.Where(pair => pair.index != winner.index))
-            {
-                var tombstone = loser.entry with { IsDeleted = true };
-                merged[loser.index] = tombstone;
-                toPush.Add(tombstone);
-            }
-        }
     }
 
     private sealed class ProfitEntryRecencyComparer : IComparer<ProfitEntry>

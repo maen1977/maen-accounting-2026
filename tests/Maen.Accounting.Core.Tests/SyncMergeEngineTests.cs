@@ -36,16 +36,17 @@ public sealed class SyncMergeEngineTests
 
 
     [Fact]
-    public void Two_active_records_for_same_date_are_resolved_deterministically()
+    public void Two_active_records_for_same_date_are_preserved()
     {
         var older = Entry("old", "user-a", 1, new DateTimeOffset(2026, 7, 1, 10, 0, 0, TimeSpan.Zero), "a");
         var newer = Entry("new", "user-a", 1, new DateTimeOffset(2026, 7, 1, 11, 0, 0, TimeSpan.Zero), "b");
 
         var plan = SyncMergeEngine.BuildPlan("user-a", new[] { older }, new[] { newer });
 
-        Assert.Single(plan.MergedEntries.Where(entry => !entry.IsDeleted));
-        Assert.Equal("new", plan.MergedEntries.Single(entry => !entry.IsDeleted).EntryId);
-        Assert.Contains(plan.EntriesToPush, entry => entry.EntryId == "old" && entry.IsDeleted);
+        Assert.Equal(2, plan.MergedEntries.Count(entry => !entry.IsDeleted));
+        Assert.Contains(plan.MergedEntries, entry => entry.EntryId == "old");
+        Assert.Contains(plan.MergedEntries, entry => entry.EntryId == "new");
+        Assert.Contains(plan.EntriesToPush, entry => entry.EntryId == "old" && !entry.IsDeleted);
     }
 
     private static ProfitEntry Entry(string id, string user, int version, DateTimeOffset updated, string device) => new(

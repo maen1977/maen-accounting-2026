@@ -12,10 +12,22 @@ public sealed record ProfitEntry(
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc,
     int Version,
-    string DeviceId)
+    string DeviceId,
+    long AmountMinor = 0,
+    string MovementType = "other",
+    string Category = "",
+    string Wallet = "main",
+    string Counterparty = "")
 {
     public long GrossProfitMinor => checked(SalesMinor - CostMinor);
     public long NetProfitMinor => checked(GrossProfitMinor - ExpensesMinor);
+
+    public long EffectiveAmountMinor => AmountMinor > 0
+        ? AmountMinor
+        : checked(SalesMinor + CostMinor + ExpensesMinor);
+
+    public bool IsIncome => SalesMinor > 0;
+    public bool IsOutflow => checked(CostMinor + ExpensesMinor) > 0;
 
     public ProfitEntry MarkDeleted(DateTimeOffset nowUtc, string deviceId) => this with
     {

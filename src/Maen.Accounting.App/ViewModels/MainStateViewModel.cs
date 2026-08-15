@@ -42,8 +42,11 @@ public sealed class MainStateViewModel : ObservableObject
     private string _syncStatus = UiText.Get("T130");
     private string _backupStatus = UiText.Get("T131");
     private string _amountInput = string.Empty;
-    private string _selectedMovementType = UiText.Get("T143");
+    private string _selectedMovementType = UiText.Get("T332");
     private string _selectedDirection = UiText.Get("T151");
+    private string _categoryInput = string.Empty;
+    private string _walletInput = string.Empty;
+    private string _counterpartyInput = string.Empty;
     private string _monthlyBudgetInput = Preferences.Default.Get("maen_personal_monthly_budget_v1", string.Empty);
 
     public MainStateViewModel(
@@ -104,14 +107,18 @@ public sealed class MainStateViewModel : ObservableObject
     public string SaveButtonText => _editingEntry is null ? UiText.Get("T128") : UiText.Get("T129");
     public IReadOnlyList<string> MovementTypes => new[]
     {
-        UiText.Get("T143"), UiText.Get("T144"), UiText.Get("T145"),
-        UiText.Get("T146"), UiText.Get("T147"), UiText.Get("T148")
+        UiText.Get("T332"), UiText.Get("T333"), UiText.Get("T334"),
+        UiText.Get("T144"), UiText.Get("T145"), UiText.Get("T146"),
+        UiText.Get("T335"), UiText.Get("T147"), UiText.Get("T336"), UiText.Get("T148")
     };
     public IReadOnlyList<string> Directions => new[] { UiText.Get("T151"), UiText.Get("T150") };
     public string AmountInput { get => _amountInput; set { if (SetProperty(ref _amountInput, value)) UpdatePersonalAmounts(); } }
-    public string SelectedMovementType { get => _selectedMovementType; set => SetProperty(ref _selectedMovementType, value); }
+    public string SelectedMovementType { get => _selectedMovementType; set { if (SetProperty(ref _selectedMovementType, value)) UpdatePersonalAmounts(); } }
     public string SelectedDirection { get => _selectedDirection; set { if (SetProperty(ref _selectedDirection, value)) UpdatePersonalAmounts(); } }
-    public string DirectionSummaryText => SelectedDirection;
+    public string CategoryInput { get => _categoryInput; set => SetProperty(ref _categoryInput, value); }
+    public string WalletInput { get => _walletInput; set => SetProperty(ref _walletInput, value); }
+    public string CounterpartyInput { get => _counterpartyInput; set => SetProperty(ref _counterpartyInput, value); }
+    public string DirectionSummaryText => IsTransferMovement() ? UiText.Get("T352") : SelectedDirection;
     public string MonthlyBudgetInput { get => _monthlyBudgetInput; set => SetProperty(ref _monthlyBudgetInput, value); }
     private long MonthlyBudgetMinor => Money.TryParse(_monthlyBudgetInput, out var amount) && amount >= 0 ? amount : 0;
     public string MonthlyBudgetText => MonthlyBudgetMinor <= 0 ? UiText.Get("T182") : Money.Format(MonthlyBudgetMinor);
@@ -192,6 +199,13 @@ public sealed class MainStateViewModel : ObservableObject
     public string CurrentMonthAverageNetText => Money.Format(SummarizeCurrentMonth().AverageNetMinor);
     public string CurrentMonthSalesText => Money.Format(SummarizeCurrentMonth().SalesMinor);
     public string CurrentMonthExpensesText => Money.Format(SummarizeCurrentMonth().ExpensesMinor);
+    public string CurrentMonthIncomeText => Money.Format(CurrentMonthModels().Sum(static entry => entry.SalesMinor));
+    public string CurrentMonthSalaryText => Money.Format(CurrentMonthModels().Where(static entry => entry.MovementType == PersonalMovementTypes.Salary).Sum(static entry => entry.EffectiveAmountMinor));
+    public string CurrentMonthFreelanceText => Money.Format(CurrentMonthModels().Where(static entry => entry.MovementType == PersonalMovementTypes.Freelance).Sum(static entry => entry.EffectiveAmountMinor));
+    public string CurrentMonthPurchasesText => Money.Format(CurrentMonthModels().Where(static entry => entry.MovementType == PersonalMovementTypes.Purchase).Sum(static entry => entry.EffectiveAmountMinor));
+    public string CurrentMonthWithdrawalsText => Money.Format(CurrentMonthModels().Where(static entry => entry.MovementType == PersonalMovementTypes.Withdrawal).Sum(static entry => entry.EffectiveAmountMinor));
+    public string CurrentMonthDebtPaymentsText => Money.Format(CurrentMonthModels().Where(static entry => entry.MovementType == PersonalMovementTypes.DebtPayment).Sum(static entry => entry.EffectiveAmountMinor));
+    public string CurrentMonthAvailableBalanceText => Money.Format(CurrentMonthModels().Sum(static entry => entry.SalesMinor - entry.CostMinor - entry.ExpensesMinor));
     public string CurrentMonthEntryCountText => SummarizeCurrentMonth().EntriesCount.ToString();
     public double CurrentMonthSpendingProgress
     {
@@ -301,6 +315,12 @@ public sealed class MainStateViewModel : ObservableObject
         SalesInput = "0";
         CostInput = "0";
         ExpensesInput = "0";
+        AmountInput = string.Empty;
+        SelectedMovementType = UiText.Get("T332");
+        SelectedDirection = UiText.Get("T151");
+        CategoryInput = string.Empty;
+        WalletInput = string.Empty;
+        CounterpartyInput = string.Empty;
         NotesInput = string.Empty;
         OnPropertyChanged(nameof(SaveButtonText));
         EntryEditorRequested?.Invoke(this, EventArgs.Empty);
@@ -310,6 +330,12 @@ public sealed class MainStateViewModel : ObservableObject
     {
         _editingEntry = item.Model;
         EntryDate = item.Model.EntryDate.ToDateTime(TimeOnly.MinValue);
+        AmountInput = Money.ToDecimal(item.Model.EffectiveAmountMinor).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
+        SelectedMovementType = DisplayMovementType(item.Model.MovementType);
+        SelectedDirection = item.Model.IsIncome ? UiText.Get("T151") : UiText.Get("T150");
+        CategoryInput = item.Model.Category;
+        WalletInput = item.Model.Wallet == "main" ? string.Empty : item.Model.Wallet;
+        CounterpartyInput = item.Model.Counterparty;
         SalesInput = Money.ToDecimal(item.Model.SalesMinor).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
         CostInput = Money.ToDecimal(item.Model.CostMinor).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
         ExpensesInput = Money.ToDecimal(item.Model.ExpensesMinor).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
@@ -320,18 +346,40 @@ public sealed class MainStateViewModel : ObservableObject
 
     public async Task SavePersonalCurrentAsync()
     {
-        if (!Money.TryParse(AmountInput, out var amountMinor) || amountMinor < 0)
+        if (!Money.TryParse(AmountInput, out var amountMinor) || amountMinor <= 0)
         {
             throw new InvalidOperationException(UiText.Format("T139", UiText.Get("T149")));
         }
 
-        var type = SelectedMovementType;
+        var movementType = ResolveMovementType(SelectedMovementType);
         var notes = string.IsNullOrWhiteSpace(NotesInput)
-            ? $"[{type}]"
-            : $"[{type}] {NotesInput.Trim()}";
-        SalesInput = SelectedDirection == UiText.Get("T151") ? Money.Format(amountMinor) : "0";
-        CostInput = "0";
-        ExpensesInput = SelectedDirection == UiText.Get("T150") ? Money.Format(amountMinor) : "0";
+            ? SelectedMovementType
+            : $"{SelectedMovementType}: {NotesInput.Trim()}";
+        if (movementType == PersonalMovementTypes.Transfer)
+        {
+            SalesInput = "0";
+            CostInput = "0";
+            ExpensesInput = "0";
+        }
+        else if (IsIncomeMovement(movementType) || (movementType == PersonalMovementTypes.Other && SelectedDirection == UiText.Get("T151")))
+        {
+            SalesInput = Money.Format(amountMinor);
+            CostInput = "0";
+            ExpensesInput = "0";
+        }
+        else if (movementType == PersonalMovementTypes.Purchase)
+        {
+            SalesInput = "0";
+            CostInput = Money.Format(amountMinor);
+            ExpensesInput = "0";
+        }
+        else
+        {
+            SalesInput = "0";
+            CostInput = "0";
+            ExpensesInput = Money.Format(amountMinor);
+        }
+
         NotesInput = notes;
         await SaveCurrentAsync();
     }
@@ -346,7 +394,9 @@ public sealed class MainStateViewModel : ObservableObject
         await RunBusyAsync(async () =>
         {
             var date = DateOnly.FromDateTime(EntryDate);
-            var existingByDate = await _repository.FindByDateAsync(session.UserId, date);
+            var existingByDate = IsBusinessExperience
+                ? await _repository.FindByDateAsync(session.UserId, date)
+                : null;
             var source = _editingEntry ?? existingByDate;
             var now = DateTimeOffset.UtcNow;
             var entry = new ProfitEntry(
@@ -361,7 +411,12 @@ public sealed class MainStateViewModel : ObservableObject
                 source?.CreatedAtUtc ?? now,
                 now,
                 checked((source?.Version ?? 0) + 1),
-                _deviceIdentity.GetOrCreate());
+                _deviceIdentity.GetOrCreate(),
+                IsBusinessExperience ? source?.AmountMinor ?? 0 : ParsePersonalAmountOrFallback(sales, cost, expenses),
+                IsBusinessExperience ? source?.MovementType ?? PersonalMovementTypes.Other : ResolveMovementType(SelectedMovementType),
+                CategoryInput.Trim(),
+                string.IsNullOrWhiteSpace(WalletInput) ? "main" : WalletInput.Trim(),
+                CounterpartyInput.Trim());
 
             await _repository.UpsertAsync(session.UserId, entry);
             await WriteBackupAndUpdateAsync();
@@ -519,28 +574,91 @@ public sealed class MainStateViewModel : ObservableObject
         CostInput = "0";
         ExpensesInput = "0";
         AmountInput = string.Empty;
-        SelectedMovementType = UiText.Get("T143");
+        SelectedMovementType = UiText.Get("T332");
         SelectedDirection = UiText.Get("T151");
+        CategoryInput = string.Empty;
+        WalletInput = string.Empty;
+        CounterpartyInput = string.Empty;
         NotesInput = string.Empty;
         OnPropertyChanged(nameof(SaveButtonText));
         OnPropertyChanged(nameof(DirectionSummaryText));
     }
 
+    private static bool IsIncomeMovement(string movementType) => movementType is
+        PersonalMovementTypes.Salary or
+        PersonalMovementTypes.Freelance or
+        PersonalMovementTypes.Sale or
+        PersonalMovementTypes.OtherIncome;
+
+    private static string ResolveMovementType(string displayValue) => displayValue switch
+    {
+        var value when value == UiText.Get("T332") => PersonalMovementTypes.Salary,
+        var value when value == UiText.Get("T333") => PersonalMovementTypes.Freelance,
+        var value when value == UiText.Get("T334") => PersonalMovementTypes.OtherIncome,
+        var value when value == UiText.Get("T143") => PersonalMovementTypes.Freelance,
+        var value when value == UiText.Get("T144") => PersonalMovementTypes.Sale,
+        var value when value == UiText.Get("T145") => PersonalMovementTypes.Purchase,
+        var value when value == UiText.Get("T146") => PersonalMovementTypes.Expense,
+        var value when value == UiText.Get("T335") => PersonalMovementTypes.Withdrawal,
+        var value when value == UiText.Get("T147") => PersonalMovementTypes.Transfer,
+        var value when value == UiText.Get("T336") => PersonalMovementTypes.DebtPayment,
+        _ => PersonalMovementTypes.Other
+    };
+
+    private static string DisplayMovementType(string movementType) => movementType switch
+    {
+        PersonalMovementTypes.Salary => UiText.Get("T332"),
+        PersonalMovementTypes.Freelance => UiText.Get("T333"),
+        PersonalMovementTypes.OtherIncome => UiText.Get("T334"),
+        PersonalMovementTypes.Sale => UiText.Get("T144"),
+        PersonalMovementTypes.Purchase => UiText.Get("T145"),
+        PersonalMovementTypes.Expense => UiText.Get("T146"),
+        PersonalMovementTypes.Withdrawal => UiText.Get("T335"),
+        PersonalMovementTypes.Transfer => UiText.Get("T147"),
+        PersonalMovementTypes.DebtPayment => UiText.Get("T336"),
+        _ => UiText.Get("T148")
+    };
+
+    private long ParsePersonalAmountOrFallback(long sales, long cost, long expenses)
+    {
+        return Money.TryParse(AmountInput, out var amount) && amount > 0
+            ? amount
+            : checked(sales + cost + expenses);
+    }
+
+    private bool IsTransferMovement() => ResolveMovementType(SelectedMovementType) == PersonalMovementTypes.Transfer;
+
     private void UpdatePersonalAmounts()
     {
+        var movementType = ResolveMovementType(SelectedMovementType);
         if (string.IsNullOrWhiteSpace(AmountInput))
         {
             SalesInput = "0";
+            CostInput = "0";
             ExpensesInput = "0";
         }
-        else if (SelectedDirection == UiText.Get("T151"))
+        else if (movementType == PersonalMovementTypes.Transfer)
+        {
+            SalesInput = "0";
+            CostInput = "0";
+            ExpensesInput = "0";
+        }
+        else if (IsIncomeMovement(movementType) || (movementType == PersonalMovementTypes.Other && SelectedDirection == UiText.Get("T151")))
         {
             SalesInput = AmountInput;
+            CostInput = "0";
+            ExpensesInput = "0";
+        }
+        else if (movementType == PersonalMovementTypes.Purchase)
+        {
+            SalesInput = "0";
+            CostInput = AmountInput;
             ExpensesInput = "0";
         }
         else
         {
             SalesInput = "0";
+            CostInput = "0";
             ExpensesInput = AmountInput;
         }
 
@@ -620,6 +738,11 @@ public sealed class MainStateViewModel : ObservableObject
     }
 
     private IEnumerable<ProfitEntry> Models() => Entries.Select(static item => item.Model);
+    private IEnumerable<ProfitEntry> CurrentMonthModels()
+    {
+        var now = DateTime.Today;
+        return Models().Where(entry => !entry.IsDeleted && entry.EntryDate.Year == now.Year && entry.EntryDate.Month == now.Month);
+    }
     private FinancialSummary SummarizeCurrentMonth()
     {
         var now = DateTime.Today;
@@ -639,6 +762,13 @@ public sealed class MainStateViewModel : ObservableObject
         OnPropertyChanged(nameof(CurrentMonthAverageNetText));
         OnPropertyChanged(nameof(CurrentMonthSalesText));
         OnPropertyChanged(nameof(CurrentMonthExpensesText));
+        OnPropertyChanged(nameof(CurrentMonthIncomeText));
+        OnPropertyChanged(nameof(CurrentMonthSalaryText));
+        OnPropertyChanged(nameof(CurrentMonthFreelanceText));
+        OnPropertyChanged(nameof(CurrentMonthPurchasesText));
+        OnPropertyChanged(nameof(CurrentMonthWithdrawalsText));
+        OnPropertyChanged(nameof(CurrentMonthDebtPaymentsText));
+        OnPropertyChanged(nameof(CurrentMonthAvailableBalanceText));
         OnPropertyChanged(nameof(CurrentMonthEntryCountText));
         OnPropertyChanged(nameof(CurrentMonthSpendingProgress));
         OnPropertyChanged(nameof(CurrentMonthSpendingPercentText));

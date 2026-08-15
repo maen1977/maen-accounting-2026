@@ -24,6 +24,11 @@ public sealed class ProfitEntryRow
     public long UpdatedAtUtcTicks { get; set; }
     public int Version { get; set; }
     public string DeviceId { get; set; } = string.Empty;
+    public long AmountMinor { get; set; }
+    public string MovementType { get; set; } = "other";
+    public string Category { get; set; } = string.Empty;
+    public string Wallet { get; set; } = "main";
+    public string Counterparty { get; set; } = string.Empty;
 
     public static ProfitEntryRow FromModel(ProfitEntry entry) => new()
     {
@@ -38,7 +43,12 @@ public sealed class ProfitEntryRow
         CreatedAtUtcTicks = entry.CreatedAtUtc.UtcDateTime.Ticks,
         UpdatedAtUtcTicks = entry.UpdatedAtUtc.UtcDateTime.Ticks,
         Version = entry.Version,
-        DeviceId = entry.DeviceId
+        DeviceId = entry.DeviceId,
+        AmountMinor = entry.AmountMinor,
+        MovementType = entry.MovementType,
+        Category = entry.Category,
+        Wallet = entry.Wallet,
+        Counterparty = entry.Counterparty
     };
 
     public ProfitEntry ToModel() => new(
@@ -53,5 +63,10 @@ public sealed class ProfitEntryRow
         new DateTimeOffset(CreatedAtUtcTicks, TimeSpan.Zero),
         new DateTimeOffset(UpdatedAtUtcTicks, TimeSpan.Zero),
         Version,
-        DeviceId);
+        DeviceId,
+        AmountMinor,
+        string.IsNullOrWhiteSpace(MovementType) ? "other" : MovementType,
+        Category,
+        string.IsNullOrWhiteSpace(Wallet) ? "main" : Wallet,
+        Counterparty);
 }

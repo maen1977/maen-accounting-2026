@@ -29,6 +29,20 @@
                     <Label Text="{local:Tr Key=T149}" FontAttributes="Bold" Margin="0,6,0,0" />
                     <Entry Text="{Binding AmountInput}" Keyboard="Numeric" Placeholder="0" FontSize="22" ClearButtonVisibility="WhileEditing" />
 
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12" Margin="0,6,0,0">
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="{local:Tr Key=T345}" FontAttributes="Bold" />
+                            <Entry Text="{Binding CategoryInput}" Placeholder="{local:Tr Key=T349}" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Grid.Column="1" Spacing="6">
+                            <Label Text="{local:Tr Key=T346}" FontAttributes="Bold" />
+                            <Entry Text="{Binding WalletInput}" Placeholder="{local:Tr Key=T348}" />
+                        </VerticalStackLayout>
+                    </Grid>
+
+                    <Label Text="{local:Tr Key=T347}" FontAttributes="Bold" Margin="0,6,0,0" />
+                    <Entry Text="{Binding CounterpartyInput}" Placeholder="{local:Tr Key=T350}" />
+
                     <Label Text="{local:Tr Key=T093}" FontAttributes="Bold" Margin="0,6,0,0" />
                     <Editor Text="{Binding NotesInput}" AutoSize="TextChanges" MinimumHeightRequest="90" />
                 </VerticalStackLayout>

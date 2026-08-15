@@ -90,19 +90,24 @@ public static class LegacyBackupParser
         var date = DateOnly.ParseExact(dateText, "yyyy-MM-dd", CultureInfo.InvariantCulture);
         var entryId = $"legacy_{StableId(userId, dateText)}";
 
+        var sales = Money.FromDecimal(item.GetProperty("sales").GetDecimal());
+        var cost = Money.FromDecimal(item.GetProperty("cost").GetDecimal());
+        var expenses = Money.FromDecimal(item.GetProperty("expenses").GetDecimal());
         return new ProfitEntry(
             entryId,
             userId,
             date,
-            Money.FromDecimal(item.GetProperty("sales").GetDecimal()),
-            Money.FromDecimal(item.GetProperty("cost").GetDecimal()),
-            Money.FromDecimal(item.GetProperty("expenses").GetDecimal()),
+            sales,
+            cost,
+            expenses,
             item.TryGetProperty("notes", out var notes) ? notes.GetString() ?? string.Empty : string.Empty,
             false,
             nowUtc,
             nowUtc,
             1,
-            deviceId);
+            deviceId,
+            checked(sales + cost + expenses),
+            sales > 0 ? PersonalMovementTypes.OtherIncome : cost > 0 ? PersonalMovementTypes.Purchase : expenses > 0 ? PersonalMovementTypes.Expense : PersonalMovementTypes.Other);
     }
 
     private static ProfitEntry ParseVersionThree(
@@ -124,13 +129,19 @@ public static class LegacyBackupParser
             "yyyy-MM-dd",
             CultureInfo.InvariantCulture);
 
+        var sales = item.GetProperty("salesMinor").GetInt64();
+        var cost = item.GetProperty("costMinor").GetInt64();
+        var expenses = item.GetProperty("expensesMinor").GetInt64();
+        var amount = item.TryGetProperty("amountMinor", out var amountElement)
+            ? amountElement.GetInt64()
+            : checked(sales + cost + expenses);
         return new ProfitEntry(
             entryId,
             userId,
             date,
-            item.GetProperty("salesMinor").GetInt64(),
-            item.GetProperty("costMinor").GetInt64(),
-            item.GetProperty("expensesMinor").GetInt64(),
+            sales,
+            cost,
+            expenses,
             item.TryGetProperty("notes", out var notes) ? notes.GetString() ?? string.Empty : string.Empty,
             item.TryGetProperty("isDeleted", out var deleted) && deleted.GetBoolean(),
             ParseDate(item, "createdAtUtc", nowUtc),
@@ -138,8 +149,18 @@ public static class LegacyBackupParser
             item.TryGetProperty("version", out var version) ? version.GetInt32() : 1,
             item.TryGetProperty("deviceId", out var sourceDevice)
                 ? sourceDevice.GetString() ?? deviceId
-                : deviceId);
+                : deviceId,
+            amount,
+            OptionalString(item, "movementType", sales > 0 ? PersonalMovementTypes.OtherIncome : cost > 0 ? PersonalMovementTypes.Purchase : expenses > 0 ? PersonalMovementTypes.Expense : PersonalMovementTypes.Other),
+            OptionalString(item, "category"),
+            OptionalString(item, "wallet", "main"),
+            OptionalString(item, "counterparty"));
     }
+
+    private static string OptionalString(JsonElement item, string property, string fallback = "") =>
+        item.TryGetProperty(property, out var element) && element.ValueKind == JsonValueKind.String
+            ? element.GetString() ?? fallback
+            : fallback;
 
     private static DateTimeOffset ParseDate(JsonElement item, string property, DateTimeOffset fallback) =>
         item.TryGetProperty(property, out var element) &&
