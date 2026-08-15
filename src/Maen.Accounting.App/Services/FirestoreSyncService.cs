@@ -261,7 +261,7 @@ public sealed class FirestoreSyncService
             checked((int)Integer("version")),
             String("deviceId"),
             OptionalInteger("amountMinor", checked(Integer("salesMinor") + Integer("costMinor") + Integer("expensesMinor"))),
-            OptionalString("movementType", Integer("salesMinor") > 0 ? PersonalMovementTypes.OtherIncome : Integer("costMinor") > 0 ? PersonalMovementTypes.Purchase : Integer("expensesMinor") > 0 ? PersonalMovementTypes.Expense : PersonalMovementTypes.Other),
+            OptionalString("movementType", Integer("salesMinor") > 0 ? PersonalMovementTypes.OtherIncome : Integer("costMinor") > 0 || Integer("expensesMinor") > 0 ? PersonalMovementTypes.Purchase : PersonalMovementTypes.Other),
             OptionalString("category"),
             OptionalString("wallet", "main"),
             OptionalString("counterparty"));

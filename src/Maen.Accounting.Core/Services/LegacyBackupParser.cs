@@ -107,7 +107,7 @@ public static class LegacyBackupParser
             1,
             deviceId,
             checked(sales + cost + expenses),
-            sales > 0 ? PersonalMovementTypes.OtherIncome : cost > 0 ? PersonalMovementTypes.Purchase : expenses > 0 ? PersonalMovementTypes.Expense : PersonalMovementTypes.Other);
+            sales > 0 ? PersonalMovementTypes.OtherIncome : cost > 0 || expenses > 0 ? PersonalMovementTypes.Purchase : PersonalMovementTypes.Other);
     }
 
     private static ProfitEntry ParseVersionThree(
@@ -151,7 +151,7 @@ public static class LegacyBackupParser
                 ? sourceDevice.GetString() ?? deviceId
                 : deviceId,
             amount,
-            OptionalString(item, "movementType", sales > 0 ? PersonalMovementTypes.OtherIncome : cost > 0 ? PersonalMovementTypes.Purchase : expenses > 0 ? PersonalMovementTypes.Expense : PersonalMovementTypes.Other),
+            OptionalString(item, "movementType", sales > 0 ? PersonalMovementTypes.OtherIncome : cost > 0 || expenses > 0 ? PersonalMovementTypes.Purchase : PersonalMovementTypes.Other),
             OptionalString(item, "category"),
             OptionalString(item, "wallet", "main"),
             OptionalString(item, "counterparty"));

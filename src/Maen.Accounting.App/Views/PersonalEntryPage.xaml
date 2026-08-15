@@ -23,9 +23,10 @@
                     <Label Text="{local:Tr Key=T152}" FontAttributes="Bold" Margin="0,6,0,0" />
                     <Picker ItemsSource="{Binding MovementTypes}" SelectedItem="{Binding SelectedMovementType}" />
 
-                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,2,0,0">
-                        <Button Text="{local:Tr Key=T145}" Clicked="OnPurchaseQuickClicked" BackgroundColor="#FFF1D6" TextColor="#8A5A00" CornerRadius="14" />
-                        <Button Grid.Column="1" Text="{local:Tr Key=T146}" Clicked="OnExpenseQuickClicked" BackgroundColor="#FDE7E7" TextColor="#A52A2A" CornerRadius="14" />
+                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10" Margin="0,2,0,0">
+                        <Button Grid.Row="0" Text="{local:Tr Key=T332}" Clicked="OnSalaryQuickClicked" BackgroundColor="#DDF7EA" TextColor="#087A55" CornerRadius="14" />
+                        <Button Grid.Row="0" Grid.Column="1" Text="{local:Tr Key=T334}" Clicked="OnDailyIncomeQuickClicked" BackgroundColor="#E1ECFF" TextColor="#1D4ED8" CornerRadius="14" />
+                        <Button Grid.Row="1" Grid.ColumnSpan="2" Text="{local:Tr Key=T145}" Clicked="OnPurchaseQuickClicked" BackgroundColor="#FFF1D6" TextColor="#8A5A00" CornerRadius="14" />
                     </Grid>
 
                     <Label Text="{local:Tr Key=T153}" FontAttributes="Bold" Margin="0,6,0,0" />

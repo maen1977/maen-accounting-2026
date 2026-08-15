@@ -12,15 +12,21 @@ public partial class PersonalEntryPage : ContentPage
         BindingContext = _state = state;
     }
 
+    private void OnSalaryQuickClicked(object? sender, EventArgs e)
+    {
+        _state.SelectedMovementType = UiText.Get("T332");
+        _state.SelectedDirection = UiText.Get("T151");
+    }
+
+    private void OnDailyIncomeQuickClicked(object? sender, EventArgs e)
+    {
+        _state.SelectedMovementType = UiText.Get("T334");
+        _state.SelectedDirection = UiText.Get("T151");
+    }
+
     private void OnPurchaseQuickClicked(object? sender, EventArgs e)
     {
         _state.SelectedMovementType = UiText.Get("T145");
-        _state.SelectedDirection = UiText.Get("T150");
-    }
-
-    private void OnExpenseQuickClicked(object? sender, EventArgs e)
-    {
-        _state.SelectedMovementType = UiText.Get("T146");
         _state.SelectedDirection = UiText.Get("T150");
     }
 

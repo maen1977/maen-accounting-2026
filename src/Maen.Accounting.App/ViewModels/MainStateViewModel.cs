@@ -107,8 +107,8 @@ public sealed class MainStateViewModel : ObservableObject
     public string SaveButtonText => _editingEntry is null ? UiText.Get("T128") : UiText.Get("T129");
     public IReadOnlyList<string> MovementTypes => new[]
     {
-        UiText.Get("T332"), UiText.Get("T333"), UiText.Get("T334"),
-        UiText.Get("T144"), UiText.Get("T145"), UiText.Get("T146"),
+        UiText.Get("T332"), UiText.Get("T334"), UiText.Get("T333"),
+        UiText.Get("T145"), UiText.Get("T144"),
         UiText.Get("T335"), UiText.Get("T147"), UiText.Get("T336"), UiText.Get("T148")
     };
     public IReadOnlyList<string> Directions => new[] { UiText.Get("T151"), UiText.Get("T150") };
@@ -124,16 +124,17 @@ public sealed class MainStateViewModel : ObservableObject
     public string MonthlyBudgetText => MonthlyBudgetMinor <= 0 ? UiText.Get("T182") : Money.Format(MonthlyBudgetMinor);
     public double MonthlyBudgetProgress => MonthlyBudgetMinor <= 0
         ? 0
-        : Math.Clamp((double)SummarizeCurrentMonth().ExpensesMinor / MonthlyBudgetMinor, 0, 1);
+            : Math.Clamp((double)(SummarizeCurrentMonth().CostMinor + SummarizeCurrentMonth().ExpensesMinor) / MonthlyBudgetMinor, 0, 1);
     public string MonthlyBudgetPercentText => MonthlyBudgetMinor <= 0
         ? "0%"
-        : $"{Math.Round((double)SummarizeCurrentMonth().ExpensesMinor / MonthlyBudgetMinor * 100):0}%";
+        : $"{Math.Round((double)(SummarizeCurrentMonth().CostMinor + SummarizeCurrentMonth().ExpensesMinor) / MonthlyBudgetMinor * 100):0}%";
     public string MonthlyBudgetStatusText
     {
         get
         {
             if (MonthlyBudgetMinor <= 0) return UiText.Get("T182");
-            var progress = (double)SummarizeCurrentMonth().ExpensesMinor / MonthlyBudgetMinor;
+            var summary = SummarizeCurrentMonth();
+            var progress = (double)(summary.CostMinor + summary.ExpensesMinor) / MonthlyBudgetMinor;
             if (progress >= 1) return UiText.Get("T183");
             if (progress >= 0.8) return UiText.Get("T184");
             return UiText.Get("T185");
@@ -198,11 +199,18 @@ public sealed class MainStateViewModel : ObservableObject
     public string CurrentMonthGrossText => Money.Format(SummarizeCurrentMonth().GrossProfitMinor);
     public string CurrentMonthAverageNetText => Money.Format(SummarizeCurrentMonth().AverageNetMinor);
     public string CurrentMonthSalesText => Money.Format(SummarizeCurrentMonth().SalesMinor);
-    public string CurrentMonthExpensesText => Money.Format(SummarizeCurrentMonth().ExpensesMinor);
+    public string CurrentMonthExpensesText
+    {
+        get
+        {
+            var summary = SummarizeCurrentMonth();
+            return Money.Format(checked(summary.CostMinor + summary.ExpensesMinor));
+        }
+    }
     public string CurrentMonthIncomeText => Money.Format(CurrentMonthModels().Sum(static entry => entry.SalesMinor));
     public string CurrentMonthSalaryText => Money.Format(CurrentMonthModels().Where(static entry => entry.MovementType == PersonalMovementTypes.Salary).Sum(static entry => entry.EffectiveAmountMinor));
     public string CurrentMonthFreelanceText => Money.Format(CurrentMonthModels().Where(static entry => entry.MovementType == PersonalMovementTypes.Freelance).Sum(static entry => entry.EffectiveAmountMinor));
-    public string CurrentMonthPurchasesText => Money.Format(CurrentMonthModels().Where(static entry => entry.MovementType == PersonalMovementTypes.Purchase).Sum(static entry => entry.EffectiveAmountMinor));
+    public string CurrentMonthPurchasesText => Money.Format(CurrentMonthModels().Where(static entry => entry.MovementType is PersonalMovementTypes.Purchase or PersonalMovementTypes.Expense).Sum(static entry => entry.EffectiveAmountMinor));
     public string CurrentMonthWithdrawalsText => Money.Format(CurrentMonthModels().Where(static entry => entry.MovementType == PersonalMovementTypes.Withdrawal).Sum(static entry => entry.EffectiveAmountMinor));
     public string CurrentMonthDebtPaymentsText => Money.Format(CurrentMonthModels().Where(static entry => entry.MovementType == PersonalMovementTypes.DebtPayment).Sum(static entry => entry.EffectiveAmountMinor));
     public string CurrentMonthAvailableBalanceText => Money.Format(CurrentMonthModels().Sum(static entry => entry.SalesMinor - entry.CostMinor - entry.ExpensesMinor));
@@ -212,8 +220,9 @@ public sealed class MainStateViewModel : ObservableObject
         get
         {
             var summary = SummarizeCurrentMonth();
-            if (summary.SalesMinor <= 0) return summary.ExpensesMinor > 0 ? 1 : 0;
-            return Math.Clamp((double)summary.ExpensesMinor / summary.SalesMinor, 0, 1);
+            var moneyOut = checked(summary.CostMinor + summary.ExpensesMinor);
+            if (summary.SalesMinor <= 0) return moneyOut > 0 ? 1 : 0;
+            return Math.Clamp((double)moneyOut / summary.SalesMinor, 0, 1);
         }
     }
     public string CurrentMonthSpendingPercentText => $"{Math.Round(CurrentMonthSpendingProgress * 100):0}%";
@@ -612,7 +621,7 @@ public sealed class MainStateViewModel : ObservableObject
         PersonalMovementTypes.OtherIncome => UiText.Get("T334"),
         PersonalMovementTypes.Sale => UiText.Get("T144"),
         PersonalMovementTypes.Purchase => UiText.Get("T145"),
-        PersonalMovementTypes.Expense => UiText.Get("T146"),
+        PersonalMovementTypes.Expense => UiText.Get("T145"),
         PersonalMovementTypes.Withdrawal => UiText.Get("T335"),
         PersonalMovementTypes.Transfer => UiText.Get("T147"),
         PersonalMovementTypes.DebtPayment => UiText.Get("T336"),

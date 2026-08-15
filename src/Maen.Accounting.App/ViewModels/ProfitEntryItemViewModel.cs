@@ -42,7 +42,7 @@ public sealed class ProfitEntryItemViewModel
         PersonalMovementTypes.OtherIncome => UiText.Get("T334"),
         PersonalMovementTypes.Sale => UiText.Get("T144"),
         PersonalMovementTypes.Purchase => UiText.Get("T145"),
-        PersonalMovementTypes.Expense => UiText.Get("T146"),
+        PersonalMovementTypes.Expense => UiText.Get("T145"),
         PersonalMovementTypes.Withdrawal => UiText.Get("T335"),
         PersonalMovementTypes.Transfer => UiText.Get("T147"),
         PersonalMovementTypes.DebtPayment => UiText.Get("T336"),
