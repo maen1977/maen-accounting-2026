@@ -128,6 +128,15 @@
                 <Setter Property="BackgroundColor" Value="#FEE4E2" />
                 <Setter Property="TextColor" Value="{StaticResource Danger}" />
             </Style>
+            <Style x:Key="SmallButton" TargetType="Button">
+                <Setter Property="FontSize" Value="11" />
+                <Setter Property="Padding" Value="10,4" />
+                <Setter Property="BackgroundColor" Value="{StaticResource PrimaryLight}" />
+                <Setter Property="TextColor" Value="{StaticResource PrimaryDark}" />
+                <Setter Property="CornerRadius" Value="10" />
+                <Setter Property="HeightRequest" Value="28" />
+                <Setter Property="FontAttributes" Value="Bold" />
+            </Style>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

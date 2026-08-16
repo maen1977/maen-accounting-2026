@@ -24,6 +24,7 @@ public sealed class PaymentRow
     public int Version { get; set; }
     public string DeviceId { get; set; } = string.Empty;
     public string AccountCode { get; set; } = "1000";
+    public bool IsDeleted { get; set; }
 
     public static PaymentRow FromModel(Payment payment) => new()
     {
@@ -39,7 +40,8 @@ public sealed class PaymentRow
         UpdatedAtUtcTicks = (payment.UpdatedAtUtc ?? DateTimeOffset.UtcNow).UtcDateTime.Ticks,
         Version = payment.Version,
         DeviceId = payment.DeviceId,
-        AccountCode = string.IsNullOrWhiteSpace(payment.AccountCode) ? "1000" : payment.AccountCode
+        AccountCode = string.IsNullOrWhiteSpace(payment.AccountCode) ? "1000" : payment.AccountCode,
+        IsDeleted = payment.IsDeleted
     };
 
     public Payment ToModel() => new(
@@ -55,5 +57,6 @@ public sealed class PaymentRow
         UpdatedAtUtc: new DateTimeOffset(UpdatedAtUtcTicks, TimeSpan.Zero),
         Version: Version,
         DeviceId: DeviceId,
-        AccountCode: string.IsNullOrWhiteSpace(AccountCode) ? "1000" : AccountCode);
+        AccountCode: string.IsNullOrWhiteSpace(AccountCode) ? "1000" : AccountCode,
+        IsDeleted: IsDeleted);
 }

@@ -61,6 +61,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<MainStateViewModel>();
         builder.Services.AddSingleton<AccountingViewModel>();
         builder.Services.AddSingleton<BusinessViewModel>();
+        builder.Services.AddTransient<BusinessReportsViewModel>();
         builder.Services.AddSingleton<SessionCoordinator>();
 
         builder.Services.AddTransient<LoginPage>();
@@ -71,6 +72,7 @@ public static class MauiProgram
         builder.Services.AddTransient<BusinessContactsPage>();
         builder.Services.AddTransient<BusinessInvoicesPage>();
         builder.Services.AddTransient<BusinessPaymentsPage>();
+        builder.Services.AddTransient<BusinessReportsPage>();
         builder.Services.AddTransient<EntryPage>();
         builder.Services.AddTransient<PersonalEntryPage>();
         builder.Services.AddTransient<PlanningPage>();

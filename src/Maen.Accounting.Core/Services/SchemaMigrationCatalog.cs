@@ -10,7 +10,8 @@ public static class SchemaMigrationCatalog
         new(2, "business-payment-account-code"),
         new(3, "ledger-and-query-indexes"),
         new(4, "business-entity-sync-indexes"),
-        new(5, "personal-plans-obligations-deposits")
+        new(5, "personal-plans-obligations-deposits"),
+        new(6, "business-payment-soft-delete")
     ];
 
     public static int CurrentVersion => All[^1].Version;

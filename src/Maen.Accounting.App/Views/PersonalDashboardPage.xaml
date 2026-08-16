@@ -146,6 +146,40 @@
 
                 <Border Style="{StaticResource CardBorder}">
                     <VerticalStackLayout Spacing="10">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                            <Label Text="{local:Tr Key=T514}" FontSize="17" FontAttributes="Bold" />
+                            <Button Text="{local:Tr Key=T515}" FontSize="11" Style="{StaticResource SmallButton}" Clicked="OnClearMovementFilterClicked" IsVisible="{Binding HasMovementFilter}" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,*,2" ColumnSpacing="8">
+                            <VerticalStackLayout Spacing="3">
+                                <Label Text="{local:Tr Key=T516}" Style="{StaticResource MetricCaption}" />
+                                <Picker ItemsSource="{Binding MovementFilterCategories}" SelectedItem="{Binding MovementCategoryFilter}" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1" Spacing="3">
+                                <Label Text="{local:Tr Key=T501}" Style="{StaticResource MetricCaption}" />
+                                <DatePicker Date="{Binding MovementFilterFromDate}" Format="yyyy-MM-dd" />
+                                <DatePicker Date="{Binding MovementFilterToDate}" Format="yyyy-MM-dd" Margin="0,4,0,0" />
+                            </VerticalStackLayout>
+                        </Grid>
+                        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+                            <VerticalStackLayout Spacing="3">
+                                <Label Text="{local:Tr Key=T519}" Style="{StaticResource MetricCaption}" />
+                                <Label Text="{Binding MovementFilterDepositsText}" TextColor="#137A53" FontAttributes="Bold" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1" Spacing="3">
+                                <Label Text="{local:Tr Key=T520}" Style="{StaticResource MetricCaption}" />
+                                <Label Text="{Binding MovementFilterSpendingText}" TextColor="#C2413A" FontAttributes="Bold" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="2" Spacing="3">
+                                <Label Text="{local:Tr Key=T521}" Style="{StaticResource MetricCaption}" />
+                                <Label Text="{Binding MovementFilterNetText}" TextColor="{Binding MovementFilterNetColor}" FontAttributes="Bold" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource CardBorder}">
+                    <VerticalStackLayout Spacing="10">
                         <Label Text="{local:Tr Key=T405}" FontSize="17" FontAttributes="Bold" />
                         <Entry Text="{Binding MovementSearchText}" Placeholder="{local:Tr Key=T406}" TextChanged="OnMovementSearchTextChanged" />
                         <VerticalStackLayout BindableLayout.ItemsSource="{Binding MovementSearchResults}" Spacing="8">

@@ -35,8 +35,15 @@
                     </VerticalStackLayout>
                 </Border>
 
+                <Border Style="{StaticResource CardBorder}">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="{local:Tr Key=T487}" Style="{StaticResource MetricCaption}" />
+                        <Entry Text="{Binding PaymentSearchText}" Placeholder="{local:Tr Key=T065}" />
+                    </VerticalStackLayout>
+                </Border>
+
                 <Label Text="{local:Tr Key=T065}" Style="{StaticResource SectionTitle}" />
-                <CollectionView ItemsSource="{Binding Payments}" HeightRequest="420" EmptyView="{local:Tr Key=T082}">
+                <CollectionView ItemsSource="{Binding FilteredPayments}" HeightRequest="420" EmptyView="{local:Tr Key=T082}">
                     <CollectionView.ItemTemplate>
                         <DataTemplate>
                             <Border Style="{StaticResource ListItemBorder}" Margin="0,0,0,8">
@@ -50,6 +57,7 @@
                                     <VerticalStackLayout Grid.Column="1" HorizontalOptions="End" Spacing="3">
                                         <Label Text="{Binding AmountText}" FontAttributes="Bold" TextColor="{StaticResource PrimaryDark}" />
                                         <Label Text="{Binding TypeText}" Style="{StaticResource MutedLabel}" FontSize="12" />
+                                        <Button Text="{local:Tr Key=T490}" FontSize="11" TextColor="{StaticResource Danger}" Background="Transparent" Clicked="OnDeletePaymentClicked" CommandParameter="{Binding .}" />
                                     </VerticalStackLayout>
                                 </Grid>
                             </Border>

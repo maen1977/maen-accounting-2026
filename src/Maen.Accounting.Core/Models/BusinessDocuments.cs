@@ -80,4 +80,5 @@ public sealed record Payment(
     DateTimeOffset? UpdatedAtUtc = null,
     int Version = 1,
     string DeviceId = "",
-    string AccountCode = "1000");
+    string AccountCode = "1000",
+    bool IsDeleted = false);

@@ -45,8 +45,15 @@
                     </VerticalStackLayout>
                 </Border>
 
+                <Border Style="{StaticResource CardBorder}">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="{local:Tr Key=T487}" Style="{StaticResource MetricCaption}" />
+                        <Entry Text="{Binding InvoiceSearchText}" Placeholder="{local:Tr Key=T074}" />
+                    </VerticalStackLayout>
+                </Border>
+
                 <Label Text="{local:Tr Key=T074}" Style="{StaticResource SectionTitle}" />
-                <CollectionView ItemsSource="{Binding Invoices}" HeightRequest="420" EmptyView="{local:Tr Key=T080}">
+                <CollectionView ItemsSource="{Binding FilteredInvoices}" HeightRequest="420" EmptyView="{local:Tr Key=T080}">
                     <CollectionView.ItemTemplate>
                         <DataTemplate>
                             <Border Style="{StaticResource ListItemBorder}" Margin="0,0,0,8">
@@ -61,12 +68,46 @@
                                         <Label Text="{Binding TotalText}" FontAttributes="Bold" TextColor="{StaticResource PrimaryDark}" />
                                         <Label Text="{Binding TypeText}" Style="{StaticResource MutedLabel}" FontSize="12" />
                                         <Label Text="{Binding StatusText}" TextColor="{StaticResource Success}" FontSize="12" FontAttributes="Bold" />
+                                        <HorizontalStackLayout Spacing="6" IsVisible="{Binding IsDraft}">
+                                            <Button Text="{local:Tr Key=T488}" FontSize="11" Style="{StaticResource SmallButton}" Clicked="OnEditInvoiceClicked" CommandParameter="{Binding .}" />
+                                            <Button Text="{local:Tr Key=T489}" FontSize="11" TextColor="{StaticResource Danger}" Background="Transparent" Clicked="OnVoidInvoiceClicked" CommandParameter="{Binding .}" />
+                                        </HorizontalStackLayout>
+                                        <Button Text="{local:Tr Key=T490}" FontSize="11" TextColor="{StaticResource Danger}" Background="Transparent" Clicked="OnDeleteInvoiceClicked" CommandParameter="{Binding .}" />
                                     </VerticalStackLayout>
                                 </Grid>
                             </Border>
                         </DataTemplate>
                     </CollectionView.ItemTemplate>
                 </CollectionView>
+                <Border Style="{StaticResource CardBorder}">
+                    <VerticalStackLayout Spacing="8">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                            <Label Text="{local:Tr Key=T511}" Style="{StaticResource SectionTitle}" />
+                            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+                        </Grid>
+                        <CollectionView ItemsSource="{Binding ReconciledInvoices}" HeightRequest="380" EmptyView="{local:Tr Key=T080}">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource ListItemBorder}" Margin="0,0,0,8">
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                            <VerticalStackLayout Spacing="3">
+                                                <Label Text="{Binding Number}" FontAttributes="Bold" />
+                                                <Label Text="{Binding ContactText}" Style="{StaticResource MutedLabel}" />
+                                                <Label Text="{Binding DateText}" Style="{StaticResource MutedLabel}" FontSize="12" />
+                                            </VerticalStackLayout>
+                                            <VerticalStackLayout Grid.Column="1" HorizontalOptions="End" Spacing="3">
+                                                <Label Text="{Binding TotalText}" FontAttributes="Bold" />
+                                                <Label Text="{Binding PaidText}" Style="{StaticResource MutedLabel}" FontSize="12" />
+                                                <Label Text="{Binding RemainingText}" FontSize="12" FontAttributes="Bold" TextColor="{Binding RemainingColor}" />
+                                                <Label Text="{Binding StatusText}" TextColor="{StaticResource Success}" FontSize="12" FontAttributes="Bold" />
+                                            </VerticalStackLayout>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </VerticalStackLayout>
+                </Border>
             </VerticalStackLayout>
         </ScrollView>
     </Grid>

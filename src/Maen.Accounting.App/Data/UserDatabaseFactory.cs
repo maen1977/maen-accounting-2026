@@ -66,7 +66,8 @@ public sealed class UserDatabaseFactory
             [2] = () => EnsurePaymentColumnsAsync(connection),
             [3] = () => EnsureIndexesAsync(connection),
             [4] = () => EnsureBusinessEntitySyncIndexesAsync(connection),
-            [5] = () => EnsurePlansObligationsDepositsAsync(connection)
+            [5] = () => EnsurePlansObligationsDepositsAsync(connection),
+            [6] = () => EnsurePaymentSoftDeleteColumnAsync(connection)
         };
 
         foreach (var migration in SchemaMigrationCatalog.All)
@@ -125,6 +126,20 @@ public sealed class UserDatabaseFactory
         "ON obligations(UserId, IsActive, UpdatedAtUtcTicks) WHERE IsDeleted = 0;" +
         "CREATE INDEX IF NOT EXISTS ix_deposits_user_updated " +
         "ON deposits(UserId, UpdatedAtUtcTicks) WHERE IsDeleted = 0;");
+
+    private static async Task EnsurePaymentSoftDeleteColumnAsync(SQLiteAsyncConnection connection)
+    {
+        var columns = await connection.QueryAsync<SqliteColumnInfo>("PRAGMA table_info(payments);");
+        var existing = columns
+            .Select(static column => column.Name)
+            .Where(static name => !string.IsNullOrWhiteSpace(name))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        if (!existing.Contains(nameof(PaymentRow.IsDeleted)))
+        {
+            await connection.ExecuteAsync("ALTER TABLE payments ADD COLUMN IsDeleted INTEGER NOT NULL DEFAULT 0;");
+        }
+    }
 
     private static async Task EnsurePaymentColumnsAsync(SQLiteAsyncConnection connection)
     {

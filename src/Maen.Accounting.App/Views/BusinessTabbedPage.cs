@@ -9,7 +9,8 @@ public sealed class BusinessTabbedPage : Microsoft.Maui.Controls.TabbedPage
     public BusinessTabbedPage(
         BusinessContactsPage contactsPage,
         BusinessInvoicesPage invoicesPage,
-        BusinessPaymentsPage paymentsPage)
+        BusinessPaymentsPage paymentsPage,
+        BusinessReportsPage reportsPage)
     {
         FlowDirection = UiText.Language == AppLanguage.English
             ? FlowDirection.LeftToRight
@@ -24,9 +25,11 @@ public sealed class BusinessTabbedPage : Microsoft.Maui.Controls.TabbedPage
         contactsPage.Title = UiText.Get("T073");
         invoicesPage.Title = UiText.Get("T074");
         paymentsPage.Title = UiText.Get("T065");
+        reportsPage.Title = UiText.Get("T503");
 
         Children.Add(contactsPage);
         Children.Add(invoicesPage);
         Children.Add(paymentsPage);
+        Children.Add(reportsPage);
     }
 }

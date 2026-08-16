@@ -161,11 +161,34 @@ public sealed class BusinessRepository
         }
     }
 
+    public async Task DeleteInvoiceAsync(string userId, string invoiceId)
+    {
+        var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
+        await database.RunInTransactionAsync(connection =>
+        {
+            connection.Execute("DELETE FROM invoice_lines WHERE InvoiceId = ? AND UserId = ?", invoiceId, userId);
+            connection.Execute("DELETE FROM invoices WHERE InvoiceId = ? AND UserId = ?", invoiceId, userId);
+            connection.Execute("DELETE FROM journal_lines WHERE EntryId = ? AND UserId = ?", $"invoice-journal-{invoiceId}", userId);
+            connection.Execute("DELETE FROM journal_entries WHERE EntryId = ? AND UserId = ?", $"invoice-journal-{invoiceId}", userId);
+        });
+    }
+
+    public async Task DeletePaymentAsync(string userId, string paymentId)
+    {
+        var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
+        await database.RunInTransactionAsync(connection =>
+        {
+            connection.Execute(
+                "UPDATE payments SET IsDeleted = 1, Version = Version + 1, UpdatedAtUtc = ?, DeviceId = ? WHERE PaymentId = ? AND UserId = ?",
+                DateTimeOffset.UtcNow, "deleted", paymentId, userId);
+        });
+    }
+
     public async Task<IReadOnlyList<Payment>> GetPaymentsAsync(string userId)
     {
         var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
         var rows = await database.Table<PaymentRow>()
-            .Where(row => row.UserId == userId)
+            .Where(row => row.UserId == userId && !row.IsDeleted)
             .ToListAsync();
         return rows
             .Select(static row => row.ToModel())
@@ -177,7 +200,7 @@ public sealed class BusinessRepository
     public async Task UpsertPaymentsFromSyncAsync(string userId, IEnumerable<Payment> payments)
     {
         var materialized = payments.ToArray();
-        foreach (var payment in materialized)
+        foreach (var payment in materialized.Where(payment => !payment.IsDeleted))
         {
             UserIsolation.EnsureOwner(userId, payment.UserId);
             BusinessDocumentValidator.EnsureValidPayment(payment);
@@ -203,11 +226,23 @@ public sealed class BusinessRepository
     public async Task UpsertPaymentAsync(string userId, Payment payment)
     {
         UserIsolation.EnsureOwner(userId, payment.UserId);
-        BusinessDocumentValidator.EnsureValidPayment(payment);
+        if (!payment.IsDeleted)
+        {
+            BusinessDocumentValidator.EnsureValidPayment(payment);
+        }
+
         var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
         await database.InsertOrReplaceAsync(PaymentRow.FromModel(payment));
-        await _accountingRepository.UpsertJournalEntryAsync(
-            userId,
-            DocumentJournalFactory.CreatePaymentJournal(payment));
+        if (payment.IsDeleted)
+        {
+            await database.ExecuteAsync("DELETE FROM journal_lines WHERE EntryId = ? AND UserId = ?", $"payment-journal-{payment.PaymentId}", userId);
+            await database.ExecuteAsync("DELETE FROM journal_entries WHERE EntryId = ? AND UserId = ?", $"payment-journal-{payment.PaymentId}", userId);
+        }
+        else
+        {
+            await _accountingRepository.UpsertJournalEntryAsync(
+                userId,
+                DocumentJournalFactory.CreatePaymentJournal(payment));
+        }
     }
 }

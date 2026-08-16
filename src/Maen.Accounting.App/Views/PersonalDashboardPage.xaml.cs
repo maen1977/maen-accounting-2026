@@ -36,6 +36,8 @@ public partial class PersonalDashboardPage : ContentPage
 
     private void OnAddClicked(object? sender, EventArgs e) => _state.BeginNewEntry();
 
+    private void OnClearMovementFilterClicked(object? sender, EventArgs e) => _state.ClearMovementFilter();
+
     private void OnMovementSearchTextChanged(object? sender, TextChangedEventArgs e) =>
         _state.MovementSearchText = e.NewTextValue ?? string.Empty;
 }

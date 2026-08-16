@@ -32,8 +32,15 @@
                     </VerticalStackLayout>
                 </Border>
 
+                <Border Style="{StaticResource CardBorder}">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="{local:Tr Key=T487}" Style="{StaticResource MetricCaption}" />
+                        <Entry Text="{Binding ContactSearchText}" Placeholder="{local:Tr Key=T073}" />
+                    </VerticalStackLayout>
+                </Border>
+
                 <Label Text="{local:Tr Key=T073}" Style="{StaticResource SectionTitle}" />
-                <CollectionView ItemsSource="{Binding Contacts}" HeightRequest="360" EmptyView="{local:Tr Key=T084}">
+                <CollectionView ItemsSource="{Binding FilteredContacts}" HeightRequest="360" EmptyView="{local:Tr Key=T084}">
                     <CollectionView.ItemTemplate>
                         <DataTemplate>
                             <Border Style="{StaticResource ListItemBorder}" Margin="0,0,0,8">
@@ -42,12 +49,15 @@
                                         <Label Text="{Binding Name}" FontAttributes="Bold" />
                                         <Label Text="{Binding Phone}" Style="{StaticResource MutedLabel}" />
                                     </VerticalStackLayout>
-                                    <Border Grid.Column="1" BackgroundColor="{StaticResource PrimaryLight}" StrokeThickness="0" Padding="10,6" VerticalOptions="Center">
-                                        <Border.StrokeShape>
-                                            <RoundRectangle CornerRadius="10" />
-                                        </Border.StrokeShape>
-                                        <Label Text="{Binding TypeText}" TextColor="{StaticResource PrimaryDark}" FontAttributes="Bold" FontSize="12" />
-                                    </Border>
+                                    <VerticalStackLayout Grid.Column="1" Spacing="4" HorizontalOptions="End">
+                                        <Border BackgroundColor="{StaticResource PrimaryLight}" StrokeThickness="0" Padding="10,6" HorizontalOptions="End">
+                                            <Border.StrokeShape>
+                                                <RoundRectangle CornerRadius="10" />
+                                            </Border.StrokeShape>
+                                            <Label Text="{Binding TypeText}" TextColor="{StaticResource PrimaryDark}" FontAttributes="Bold" FontSize="12" />
+                                        </Border>
+                                        <Button Text="{Binding ToggleLabel}" FontSize="11" Style="{StaticResource SmallButton}" Clicked="OnToggleContactClicked" CommandParameter="{Binding .}" />
+                                    </VerticalStackLayout>
                                 </Grid>
                             </Border>
                         </DataTemplate>

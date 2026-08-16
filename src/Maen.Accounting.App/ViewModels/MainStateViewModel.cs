@@ -45,6 +45,10 @@ public sealed class MainStateViewModel : ObservableObject
     private string _searchText = string.Empty;
     private string _movementSearchText = string.Empty;
     private string _movementSearchQueryText = string.Empty;
+    private string _movementCategoryFilter = string.Empty;
+    private DateTime _movementFilterFromDate = new(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private DateTime _movementFilterToDate = DateTime.Today;
+    private readonly System.Collections.ObjectModel.ObservableCollection<string> _movementFilterCategories = new();
     private readonly System.Collections.ObjectModel.ObservableCollection<MovementSearchItemViewModel> _movementSearchResults = new();
     private bool _isBusy;
     private string _statusMessage = string.Empty;
@@ -131,7 +135,11 @@ public sealed class MainStateViewModel : ObservableObject
         }
     }
     public string SearchText { get => _searchText; set { if (SetProperty(ref _searchText, value)) RebuildReport(); } }
-    public string MovementSearchText { get => _movementSearchText; set { if (SetProperty(ref _movementSearchText, value)) RebuildReport(); } }
+    public string MovementSearchText { get => _movementSearchText; set { if (SetProperty(ref _movementSearchText, value)) ApplyMovementFilters(); } }
+    public string MovementCategoryFilter { get => _movementCategoryFilter; set { if (SetProperty(ref _movementCategoryFilter, value)) ApplyMovementFilters(); } }
+    public DateTime MovementFilterFromDate { get => _movementFilterFromDate; set { if (SetProperty(ref _movementFilterFromDate, value)) { ApplyMovementFilters(); OnPropertyChanged(nameof(HasMovementFilter)); } } }
+    public DateTime MovementFilterToDate { get => _movementFilterToDate; set { if (SetProperty(ref _movementFilterToDate, value)) { ApplyMovementFilters(); OnPropertyChanged(nameof(HasMovementFilter)); } } }
+    public System.Collections.ObjectModel.ObservableCollection<string> MovementFilterCategories => _movementFilterCategories;
     public System.Collections.ObjectModel.ObservableCollection<MovementSearchItemViewModel> MovementSearchResults => _movementSearchResults;
     public bool HasMovementSearchResults => _movementSearchResults.Count > 0;
     public bool IsBusy { get => _isBusy; private set => SetProperty(ref _isBusy, value); }
@@ -407,6 +415,7 @@ public sealed class MainStateViewModel : ObservableObject
         await RebuildBusinessFinancialPositionAsync(session.UserId);
         RebuildRecent();
         RebuildCategorySpending();
+        RebuildMovementFilterCategories();
         RebuildReport();
         RebuildAnnualReport(entries);
         await RebuildPlanningAsync(session.UserId, entries);
@@ -1080,14 +1089,7 @@ public sealed class MainStateViewModel : ObservableObject
     {
         ReportEntries.Clear();
         ReportDays.Clear();
-        _movementSearchQueryText = MovementSearchText;
-        _movementSearchResults.Clear();
-        foreach (var entry in MovementSearchEngine.Search(Models(), new MovementSearchQuery(Keyword: MovementSearchText.Trim())))
-        {
-            _movementSearchResults.Add(new MovementSearchItemViewModel(entry));
-        }
-        OnPropertyChanged(nameof(MovementSearchResults));
-        OnPropertyChanged(nameof(HasMovementSearchResults));
+        ApplyMovementFilters();
         var query = _movementSearchQueryText.Trim();
         var range = GetReportRange();
         var filtered = Entries.Where(item =>
@@ -1148,6 +1150,63 @@ public sealed class MainStateViewModel : ObservableObject
     }
 
     private IEnumerable<ProfitEntry> Models() => Entries.Select(static item => item.Model);
+
+    private void ApplyMovementFilters()
+    {
+        _movementSearchQueryText = MovementSearchText;
+        _movementSearchResults.Clear();
+        var category = string.IsNullOrWhiteSpace(MovementCategoryFilter) ? null : MovementCategoryFilter.Trim();
+        var filterResult = PersonalMovementFilterEngine.Apply(
+            Models(),
+            MovementSearchText.Trim(),
+            category,
+            DateOnly.FromDateTime(MovementFilterFromDate),
+            DateOnly.FromDateTime(MovementFilterToDate));
+        foreach (var entry in filterResult.Entries)
+        {
+            _movementSearchResults.Add(new MovementSearchItemViewModel(entry));
+        }
+        _lastFilteredMovements = filterResult;
+        OnPropertyChanged(nameof(MovementSearchResults));
+        OnPropertyChanged(nameof(HasMovementSearchResults));
+        OnPropertyChanged(nameof(MovementFilterDepositsText));
+        OnPropertyChanged(nameof(MovementFilterSpendingText));
+        OnPropertyChanged(nameof(MovementFilterNetText));
+    }
+    private FilteredMovements _lastFilteredMovements = new(Array.Empty<ProfitEntry>(), 0, 0);
+    private static readonly DateTime _defaultFilterFromDate = new(DateTime.Today.Year, DateTime.Today.Month, 1);
+    public string MovementFilterDepositsText => Money.Format(_lastFilteredMovements.DepositsMinor);
+    public string MovementFilterSpendingText => Money.Format(_lastFilteredMovements.SpendingMinor);
+    public string MovementFilterNetText => Money.Format(_lastFilteredMovements.NetMinor);
+    public string MovementFilterNetColor => _lastFilteredMovements.NetMinor >= 0 ? "#137A53" : "#C2413A";
+    public bool HasMovementFilter => _movementCategoryFilter.Length > 0 || _movementFilterFromDate != _defaultFilterFromDate || _movementFilterToDate != DateTime.Today;
+
+    public void ClearMovementFilter()
+    {
+        MovementCategoryFilter = string.Empty;
+        MovementFilterFromDate = _defaultFilterFromDate;
+        MovementFilterToDate = DateTime.Today;
+        OnPropertyChanged(nameof(HasMovementFilter));
+    }
+    public void RebuildMovementFilterCategories()
+    {
+        var current = MovementCategoryFilter;
+        _movementFilterCategories.Clear();
+        _movementFilterCategories.Add(string.Empty);
+        foreach (var category in Models()
+            .Where(entry => !string.IsNullOrWhiteSpace(entry.Category))
+            .Select(entry => entry.Category)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Order(StringComparer.OrdinalIgnoreCase))
+        {
+            _movementFilterCategories.Add(category);
+        }
+        if (!_movementFilterCategories.Contains(current, StringComparer.OrdinalIgnoreCase))
+        {
+            MovementCategoryFilter = string.Empty;
+        }
+        OnPropertyChanged(nameof(HasMovementFilter));
+    }
     private IEnumerable<ProfitEntry> CurrentMonthModels()
     {
         var now = DateTime.Today;

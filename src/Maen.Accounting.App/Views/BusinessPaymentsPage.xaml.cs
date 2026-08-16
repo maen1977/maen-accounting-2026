@@ -24,4 +24,19 @@ public partial class BusinessPaymentsPage : ContentPage
             await DisplayAlertAsync(UiText.Get("T294"), exception.Message, UiText.Get("T122"));
         }
     }
+
+    private async void OnDeletePaymentClicked(object? sender, EventArgs e)
+    {
+        if (sender is not Button button || button.CommandParameter is not PaymentItemViewModel item) return;
+        var confirmed = await DisplayAlertAsync(UiText.Get("T493"), UiText.Get("T493"), UiText.Get("T495"), UiText.Get("T496"));
+        if (!confirmed) return;
+        try
+        {
+            await _viewModel.DeletePaymentAsync(item);
+        }
+        catch (Exception exception)
+        {
+            await DisplayAlertAsync(UiText.Get("T294"), exception.Message, UiText.Get("T122"));
+        }
+    }
 }

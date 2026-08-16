@@ -24,4 +24,17 @@ public partial class BusinessContactsPage : ContentPage
             await DisplayAlertAsync(UiText.Get("T292"), exception.Message, UiText.Get("T122"));
         }
     }
+
+    private async void OnToggleContactClicked(object? sender, EventArgs e)
+    {
+        if (sender is not Button button || button.CommandParameter is not ContactItemViewModel item) return;
+        try
+        {
+            await _viewModel.ToggleContactAsync(item);
+        }
+        catch (Exception exception)
+        {
+            await DisplayAlertAsync(UiText.Get("T292"), exception.Message, UiText.Get("T122"));
+        }
+    }
 }
