@@ -326,14 +326,54 @@ public sealed class BusinessFirestoreSyncService
             ?? throw new InvalidOperationException("A synchronized business record could not be decoded.");
         UserIsolation.EnsureOwner(expectedUserId, GetUserId(item));
 
-        var recordId = ReadString(fields, "recordId");
+                var recordId = ReadString(fields, "recordId");
         if (!string.Equals(recordId, idSelector(item), StringComparison.Ordinal))
         {
             throw new InvalidOperationException("A synchronized business record has inconsistent identifiers.");
         }
-
+        VerifyDownloadedIntegrity(item);
         return item;
     }
+
+    private static void VerifyDownloadedIntegrity<T>(T item)
+    {
+        var type = typeof(T);
+        var hashProperty = type.GetProperty("IntegrityHash");
+        if (hashProperty is null)
+        {
+            return;
+        }
+
+        var storedHash = hashProperty.GetValue(item) as string;
+        var expectedHash = type switch
+        {
+            _ when type == typeof(Invoice) => ComputeExpectedHash<Invoice>(item as Invoice),
+            _ when type == typeof(Payment) => ComputeExpectedHash<Payment>(item as Payment),
+            _ => null
+        };
+
+        if (expectedHash is null || string.IsNullOrWhiteSpace(expectedHash))
+        {
+            return;
+        }
+
+        if (!DataIntegrityService.Verify(storedHash, expectedHash))
+        {
+            throw new InvalidOperationException(
+                "A synchronized business record failed its integrity check and has been rejected.");
+        }
+    }
+
+    private static string? ComputeExpectedHash<TDocument>(TDocument? document) => document switch
+    {
+        Invoice invoice => DataIntegrityService.ComputeInvoiceHash(
+            invoice.InvoiceId, invoice.UserId, invoice.Version, (int)invoice.Type,
+            invoice.TotalMinor, invoice.TaxMinor, (int)invoice.Status),
+        Payment payment => DataIntegrityService.ComputePaymentHash(
+            payment.PaymentId, payment.UserId, payment.Version, (int)payment.Type,
+            payment.AmountMinor, payment.IsDeleted),
+        _ => null
+    };
 
     private static string ReadString(JsonElement fields, string name, string fallback = "") =>
         fields.TryGetProperty(name, out var field) && field.TryGetProperty("stringValue", out var value)

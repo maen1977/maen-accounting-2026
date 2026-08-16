@@ -75,7 +75,20 @@ public sealed class MainStateViewModel : ObservableObject
     private readonly System.Collections.ObjectModel.ObservableCollection<SavingsTrendPointItem> _savingsTrendPoints = new();
     private readonly System.Collections.ObjectModel.ObservableCollection<OverdueInvoiceItem> _overdueSalesInvoices = new();
     private readonly System.Collections.ObjectModel.ObservableCollection<OverdueInvoiceItem> _overduePurchasesInvoices = new();
-    private bool _isOverdueExpanded;
+        private bool _isOverdueExpanded;
+    private DebtAgingResult? _debtAging;
+    private IReadOnlyList<DataQualityWarning> _personalQualityWarnings = Array.Empty<DataQualityWarning>();
+
+    public string ReceivablesAgingTotalText => Money.Format(_debtAging?.Receivables.TotalMinor ?? 0);
+    public string ReceivablesAgingCurrentText => Money.Format(_debtAging?.Receivables.CurrentMinor ?? 0);
+    public string ReceivablesAgingOverNinetyText => Money.Format(_debtAging?.Receivables.DaysOverNinetyMinor ?? 0);
+    public string PayablesAgingTotalText => Money.Format(_debtAging?.Payables.TotalMinor ?? 0);
+    public string DataQualityStatusText =>
+        _personalQualityWarnings.Count == 0 ? UiText.Get("T538") : UiText.Format("T543", _personalQualityWarnings.Count);
+    public string DataQualityStatusColor =>
+        _personalQualityWarnings.Count == 0 ? "#137A53" : "#B45309";
+    public bool HasDataQualityWarnings => _personalQualityWarnings.Count > 0;
+    public bool HasAgingExposure => (_debtAging?.Receivables.TotalMinor ?? 0) > 0;
 
     public MainStateViewModel(
         ProfitEntryRepository repository,
@@ -538,6 +551,19 @@ public sealed class MainStateViewModel : ObservableObject
         OnPropertyChanged(nameof(OverdueSalesText));
         OnPropertyChanged(nameof(OverduePurchasesText));
         OnPropertyChanged(nameof(HasOverdueInvoices));
+
+        _debtAging = DebtAgingCalculator.Age(invoices, payments, asOf);
+        OnPropertyChanged(nameof(ReceivablesAgingTotalText));
+        OnPropertyChanged(nameof(ReceivablesAgingCurrentText));
+        OnPropertyChanged(nameof(ReceivablesAgingOverNinetyText));
+        OnPropertyChanged(nameof(PayablesAgingTotalText));
+        OnPropertyChanged(nameof(HasAgingExposure));
+
+        var personalEntries = await _repository.GetVisibleAsync(userId);
+        _personalQualityWarnings = DataQualityChecker.CheckPersonal(personalEntries, contacts, payments, invoices);
+        OnPropertyChanged(nameof(DataQualityStatusText));
+        OnPropertyChanged(nameof(DataQualityStatusColor));
+        OnPropertyChanged(nameof(HasDataQualityWarnings));
     }
 
     private static Obligation ToObligationModel(ObligationRow row) => new(

@@ -73,6 +73,27 @@
                     </VerticalStackLayout>
                 </Border>
 
+                <Border Style="{StaticResource CardBorder}" IsVisible="{Binding HasAgingExposure}">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="{local:Tr Key=T544}" Style="{StaticResource SectionTitle}" />
+                        <Label Text="{local:Tr Key=T545}" Style="{StaticResource MutedLabel}" />
+                        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+                            <VerticalStackLayout Spacing="3">
+                                <Label Text="{local:Tr Key=T546}" Style="{StaticResource MetricCaption}" />
+                                <Label Text="{Binding ReceivablesAgingCurrentText}" TextColor="#137A53" FontAttributes="Bold" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1" Spacing="3">
+                                <Label Text="{local:Tr Key=T547}" Style="{StaticResource MetricCaption}" />
+                                <Label Text="{Binding ReceivablesAgingDaysOverNinetyText}" TextColor="#C2413A" FontAttributes="Bold" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="2" Spacing="3">
+                                <Label Text="{local:Tr Key=T548}" Style="{StaticResource MetricCaption}" />
+                                <Label Text="{Binding PayablesAgingTotalText}" TextColor="#A84B2E" FontAttributes="Bold" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
                 <Label Text="{local:Tr Key=T503}" Style="{StaticResource SectionTitle}" />
                 <CollectionView ItemsSource="{Binding MonthlySlices}" HeightRequest="420" EmptyView="{local:Tr Key=T080}">
                     <CollectionView.ItemTemplate>

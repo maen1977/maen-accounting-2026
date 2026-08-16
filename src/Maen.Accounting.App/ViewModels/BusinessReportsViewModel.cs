@@ -55,6 +55,15 @@ public sealed class BusinessReportsViewModel : ObservableObject
     public string TotalReceiptsText { get; private set; } = Money.Format(0);
     public string TotalSupplierPaymentsText { get; private set; } = Money.Format(0);
 
+    public string ReceivablesAgingTotalText { get; private set; } = Money.Format(0);
+    public string ReceivablesAgingCurrentText { get; private set; } = Money.Format(0);
+    public string ReceivablesAgingDaysOneToThirtyText { get; private set; } = Money.Format(0);
+    public string ReceivablesAgingDaysThirtyOneToSixtyText { get; private set; } = Money.Format(0);
+    public string ReceivablesAgingDaysSixtyOneToNinetyText { get; private set; } = Money.Format(0);
+    public string ReceivablesAgingDaysOverNinetyText { get; private set; } = Money.Format(0);
+    public string PayablesAgingTotalText { get; private set; } = Money.Format(0);
+    public bool HasAgingExposure { get; private set; }
+
     public ObservableCollection<MonthlySliceViewModel> MonthlySlices { get; } = new();
 
     public async Task InitializeAsync(AuthSession session)
@@ -97,6 +106,16 @@ public sealed class BusinessReportsViewModel : ObservableObject
             {
                 MonthlySlices.Add(new MonthlySliceViewModel(slice));
             }
+
+            var aging = DebtAgingCalculator.Age(invoices, payments, DateOnly.FromDateTime(DateTime.Today));
+            ReceivablesAgingTotalText = Money.Format(aging.Receivables.TotalMinor);
+            ReceivablesAgingCurrentText = Money.Format(aging.Receivables.CurrentMinor);
+            ReceivablesAgingDaysOneToThirtyText = Money.Format(aging.Receivables.DaysOneToThirtyMinor);
+            ReceivablesAgingDaysThirtyOneToSixtyText = Money.Format(aging.Receivables.DaysThirtyOneToSixtyMinor);
+            ReceivablesAgingDaysSixtyOneToNinetyText = Money.Format(aging.Receivables.DaysSixtyOneToNinetyMinor);
+            ReceivablesAgingDaysOverNinetyText = Money.Format(aging.Receivables.DaysOverNinetyMinor);
+            PayablesAgingTotalText = Money.Format(aging.Payables.TotalMinor);
+            HasAgingExposure = aging.Receivables.TotalMinor > 0 || aging.Payables.TotalMinor > 0;
 
             StatusMessage = UiText.Get("T538");
         }

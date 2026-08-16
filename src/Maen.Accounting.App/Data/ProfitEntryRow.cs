@@ -1,4 +1,5 @@
 using Maen.Accounting.Core.Models;
+using Maen.Accounting.Core.Services;
 using SQLite;
 
 namespace Maen.Accounting.App.Data;
@@ -29,6 +30,7 @@ public sealed class ProfitEntryRow
     public string Category { get; set; } = string.Empty;
     public string Wallet { get; set; } = "main";
     public string Counterparty { get; set; } = string.Empty;
+    public string IntegrityHash { get; set; } = string.Empty;
 
     public static ProfitEntryRow FromModel(ProfitEntry entry) => new()
     {
@@ -48,7 +50,15 @@ public sealed class ProfitEntryRow
         MovementType = entry.MovementType,
         Category = entry.Category,
         Wallet = entry.Wallet,
-        Counterparty = entry.Counterparty
+        Counterparty = entry.Counterparty,
+        IntegrityHash = DataIntegrityService.ComputeProfitEntryHash(
+            entry.EntryId,
+            entry.UserId,
+            entry.Version,
+            entry.SalesMinor,
+            entry.CostMinor,
+            entry.ExpensesMinor,
+            entry.IsDeleted)
     };
 
     public ProfitEntry ToModel() => new(

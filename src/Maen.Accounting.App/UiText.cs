@@ -540,6 +540,14 @@ public static class UiText
         ["T538"] = ("تم التصدير", "Exported"),
         ["T539"] = ("التقرير الشهري", "Monthly Report"),
         ["T540"] = ("أضعف شهر", "Worst Month"),
+        ["T543"] = ("تنبيهات جودة البيانات: {0}", "Data quality alerts: {0}"),
+        ["T544"] = ("أعمار الديون", "Debt Aging"),
+        ["T545"] = ("المتبقي على العملاء حسب العمر", "Outstanding receivables by age"),
+        ["T546"] = ("حالي", "Current"),
+        ["T547"] = ("أكثر من 90 يومًا", "Over 90 Days"),
+        ["T548"] = ("إجمالي المدين", "Total Payables"),
+        ["T549"] = ("جودة البيانات", "Data Quality"),
+        ["T550"] = ("افحص الفئات المفقودة والقيم الشاذة بانتظام", "Review missing categories and anomalies regularly"),
     };
 
     public static string Get(string key)

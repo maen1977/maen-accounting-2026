@@ -67,7 +67,8 @@ public sealed class UserDatabaseFactory
             [3] = () => EnsureIndexesAsync(connection),
             [4] = () => EnsureBusinessEntitySyncIndexesAsync(connection),
             [5] = () => EnsurePlansObligationsDepositsAsync(connection),
-            [6] = () => EnsurePaymentSoftDeleteColumnAsync(connection)
+            [6] = () => EnsurePaymentSoftDeleteColumnAsync(connection),
+            [7] = () => EnsureIntegrityHashColumnsAsync(connection)
         };
 
         foreach (var migration in SchemaMigrationCatalog.All)
@@ -138,6 +139,30 @@ public sealed class UserDatabaseFactory
         if (!existing.Contains(nameof(PaymentRow.IsDeleted)))
         {
             await connection.ExecuteAsync("ALTER TABLE payments ADD COLUMN IsDeleted INTEGER NOT NULL DEFAULT 0;");
+        }
+    }
+
+    private static async Task EnsureIntegrityHashColumnsAsync(SQLiteAsyncConnection connection)
+    {
+        var additions = new (string Table, string Column)[]
+        {
+            ("payments", nameof(PaymentRow.IntegrityHash)),
+            ("invoices", nameof(InvoiceRow.IntegrityHash)),
+            ("profit_entries", nameof(ProfitEntryRow.IntegrityHash))
+        };
+
+        foreach (var (table, column) in additions)
+        {
+            var columns = await connection.QueryAsync<SqliteColumnInfo>($"PRAGMA table_info({table});");
+            var existing = columns
+                .Select(static columnInfo => columnInfo.Name)
+                .Where(static name => !string.IsNullOrWhiteSpace(name))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            if (!existing.Contains(column))
+            {
+                await connection.ExecuteAsync($"ALTER TABLE {table} ADD COLUMN {column} TEXT NOT NULL DEFAULT '';");
+            }
         }
     }
 

@@ -137,6 +137,8 @@ public sealed class BusinessViewModel : ObservableObject
     public async Task SaveContactAsync()
     {
         var session = RequireSession();
+        ContactNameInput = InputSanitizer.SanitizeName(ContactNameInput);
+        ContactPhoneInput = InputSanitizer.SanitizeNotes(ContactPhoneInput);
         if (string.IsNullOrWhiteSpace(ContactNameInput)) throw new InvalidOperationException(UiText.Get("T267"));
         await RunBusyAsync(async () =>
         {
@@ -154,9 +156,13 @@ public sealed class BusinessViewModel : ObservableObject
     {
         var session = RequireSession();
         if (SelectedInvoiceContact is null) throw new InvalidOperationException(UiText.Get("T269"));
+        var sanitizedNumber = InputSanitizer.SanitizeName(InvoiceNumberInput);
+        InvoiceNumberInput = sanitizedNumber;
+        var sanitizedDescription = InputSanitizer.SanitizeNotes(InvoiceDescriptionInput);
+        InvoiceDescriptionInput = sanitizedDescription;
         if (_editingInvoice is not null)
         {
-            await SaveEditedInvoiceAsync(session);
+            await SaveEditedInvoiceAsync(session, sanitizedNumber, sanitizedDescription);
             return;
         }
         if (!Money.TryParse(InvoiceAmountInput, out var amount) || amount <= 0) throw new InvalidOperationException(UiText.Get("T270"));
@@ -169,8 +175,9 @@ public sealed class BusinessViewModel : ObservableObject
             var invoice = new Invoice(
                 $"invoice-{Guid.NewGuid():N}", session.UserId, InvoiceNumberInput.Trim(), SelectedInvoiceType.Type,
                 DateOnly.FromDateTime(InvoiceDate), DateOnly.FromDateTime(InvoiceDueDate), SelectedInvoiceContact.ContactId,
-                [new InvoiceLine($"line-{Guid.NewGuid():N}", InvoiceDescriptionInput.Trim(), amount)], tax,
+                [new InvoiceLine($"line-{Guid.NewGuid():N}", sanitizedDescription, amount)], tax,
                 InvoiceStatus.Posted, CreatedAtUtc: now, UpdatedAtUtc: now, DeviceId: _deviceIdentity.GetOrCreate());
+            BusinessDocumentValidator.EnsureValidInvoice(invoice);
             await _repository.UpsertInvoiceAsync(session.UserId, invoice);
             InvoiceNumberInput = string.Empty;
             InvoiceAmountInput = string.Empty;
@@ -184,7 +191,7 @@ public sealed class BusinessViewModel : ObservableObject
         });
     }
 
-    private async Task SaveEditedInvoiceAsync(AuthSession session)
+    private async Task SaveEditedInvoiceAsync(AuthSession session, string sanitizedNumber, string sanitizedDescription)
     {
         if (!Money.TryParse(InvoiceAmountInput, out var amount) || amount <= 0) throw new InvalidOperationException(UiText.Get("T270"));
         if (!Money.TryParse(InvoiceTaxInput, out var tax) || tax < 0) throw new InvalidOperationException(UiText.Get("T271"));
@@ -194,12 +201,13 @@ public sealed class BusinessViewModel : ObservableObject
         {
             var edited = BusinessDocumentLifecycleService.BuildNextVersion(_editingInvoice!, builder =>
             {
-                builder.SetNumber(InvoiceNumberInput.Trim());
+                builder.SetNumber(sanitizedNumber);
                 builder.SetIssueDate(DateOnly.FromDateTime(InvoiceDate));
                 builder.SetDueDate(DateOnly.FromDateTime(InvoiceDueDate));
                 builder.SetTaxMinor(tax);
-                builder.SetLines([new InvoiceLine(_editingInvoice!.Lines[0].LineId, InvoiceDescriptionInput.Trim(), amount)]);
+                builder.SetLines([new InvoiceLine(_editingInvoice!.Lines[0].LineId, sanitizedDescription, amount)]);
             });
+            BusinessDocumentValidator.EnsureValidInvoice(edited);
             await _repository.UpsertInvoiceAsync(session.UserId, edited);
             _editingInvoice = null;
             OnPropertyChanged(nameof(InvoiceFormTitle));
@@ -223,15 +231,18 @@ public sealed class BusinessViewModel : ObservableObject
         var session = RequireSession();
         if (SelectedPaymentContact is null) throw new InvalidOperationException(UiText.Get("T269"));
         if (!Money.TryParse(PaymentAmountInput, out var amount) || amount <= 0) throw new InvalidOperationException(UiText.Get("T274"));
-        if (string.IsNullOrWhiteSpace(PaymentNumberInput)) throw new InvalidOperationException(UiText.Get("T275"));
+        var sanitizedPaymentNumber = InputSanitizer.SanitizeName(PaymentNumberInput);
+        PaymentNumberInput = sanitizedPaymentNumber;
+        if (string.IsNullOrWhiteSpace(sanitizedPaymentNumber)) throw new InvalidOperationException(UiText.Get("T275"));
         await RunBusyAsync(async () =>
         {
             var now = DateTimeOffset.UtcNow;
             var payment = new Payment(
-                $"payment-{Guid.NewGuid():N}", session.UserId, PaymentNumberInput.Trim(), SelectedPaymentType.Type,
+                $"payment-{Guid.NewGuid():N}", session.UserId, sanitizedPaymentNumber, SelectedPaymentType.Type,
                 DateOnly.FromDateTime(PaymentDate), SelectedPaymentContact.ContactId, amount,
                 CreatedAtUtc: now, UpdatedAtUtc: now, DeviceId: _deviceIdentity.GetOrCreate(),
                 AccountCode: SelectedPaymentAccount.Code);
+            BusinessDocumentValidator.EnsureValidPayment(payment);
             await _repository.UpsertPaymentAsync(session.UserId, payment);
             PaymentNumberInput = string.Empty;
             PaymentAmountInput = string.Empty;

@@ -105,6 +105,32 @@
                     </VerticalStackLayout>
                 </Border>
 
+                <Border Style="{StaticResource CardBorder}" IsVisible="{Binding HasAgingExposure}">
+                    <VerticalStackLayout Spacing="10">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="{local:Tr Key=T544}" FontSize="17" FontAttributes="Bold" />
+                                <Label Text="{local:Tr Key=T545}" Style="{StaticResource MutedLabel}" />
+                            </VerticalStackLayout>
+                            <Label Grid.Column="1" Text="{Binding ReceivablesAgingTotalText}" TextColor="#075985" FontSize="20" FontAttributes="Bold" VerticalOptions="Center" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+                            <VerticalStackLayout Spacing="3">
+                                <Label Text="{local:Tr Key=T546}" Style="{StaticResource MetricCaption}" />
+                                <Label Text="{Binding ReceivablesAgingCurrentText}" TextColor="#137A53" FontAttributes="Bold" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1" Spacing="3">
+                                <Label Text="{local:Tr Key=T547}" Style="{StaticResource MetricCaption}" />
+                                <Label Text="{Binding ReceivablesAgingOverNinetyText}" TextColor="#C2413A" FontAttributes="Bold" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="2" Spacing="3">
+                                <Label Text="{local:Tr Key=T548}" Style="{StaticResource MetricCaption}" />
+                                <Label Text="{Binding PayablesAgingTotalText}" TextColor="#A84B2E" FontAttributes="Bold" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
                 <Border Style="{StaticResource CardBorder}" IsVisible="{Binding HasPlan}">
                     <VerticalStackLayout Spacing="10">
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
@@ -175,6 +201,18 @@
                                 <Label Text="{Binding MovementFilterNetText}" TextColor="{Binding MovementFilterNetColor}" FontAttributes="Bold" />
                             </VerticalStackLayout>
                         </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource CardBorder}">
+                    <VerticalStackLayout Spacing="10">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <VerticalStackLayout Spacing="3">
+                                <Label Text="{local:Tr Key=T549}" FontSize="17" FontAttributes="Bold" />
+                            </VerticalStackLayout>
+                            <Label Grid.Column="1" Text="{Binding DataQualityStatusText}" TextColor="{Binding DataQualityStatusColor}" FontSize="13" FontAttributes="Bold" VerticalOptions="Center" />
+                        </Grid>
+                        <Label Text="{local:Tr Key=T550}" Style="{StaticResource MutedLabel}" />
                     </VerticalStackLayout>
                 </Border>
 

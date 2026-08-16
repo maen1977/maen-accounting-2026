@@ -100,14 +100,16 @@ public static class LegacyBackupParser
             sales,
             cost,
             expenses,
-            item.TryGetProperty("notes", out var notes) ? notes.GetString() ?? string.Empty : string.Empty,
+            InputSanitizer.SanitizeNotes(item.TryGetProperty("notes", out var notes) ? notes.GetString() ?? string.Empty : string.Empty),
             false,
             nowUtc,
             nowUtc,
             1,
             deviceId,
             checked(sales + cost + expenses),
-            sales > 0 ? PersonalMovementTypes.OtherIncome : cost > 0 || expenses > 0 ? PersonalMovementTypes.Purchase : PersonalMovementTypes.Other);
+            sales > 0 ? PersonalMovementTypes.OtherIncome : cost > 0 || expenses > 0 ? PersonalMovementTypes.Purchase : PersonalMovementTypes.Other,
+            "", "", "",
+            DataIntegrityService.ComputeProfitEntryHash(entryId, userId, version: 1, sales, cost, expenses, isDeleted: false));
     }
 
     private static ProfitEntry ParseVersionThree(
@@ -135,6 +137,8 @@ public static class LegacyBackupParser
         var amount = item.TryGetProperty("amountMinor", out var amountElement)
             ? amountElement.GetInt64()
             : checked(sales + cost + expenses);
+        var entryVersion = item.TryGetProperty("version", out var versionElement) ? versionElement.GetInt32() : 1;
+        var entryIsDeleted = item.TryGetProperty("isDeleted", out var deletedElement) && deletedElement.GetBoolean();
         return new ProfitEntry(
             entryId,
             userId,
@@ -142,19 +146,20 @@ public static class LegacyBackupParser
             sales,
             cost,
             expenses,
-            item.TryGetProperty("notes", out var notes) ? notes.GetString() ?? string.Empty : string.Empty,
-            item.TryGetProperty("isDeleted", out var deleted) && deleted.GetBoolean(),
+            InputSanitizer.SanitizeNotes(item.TryGetProperty("notes", out var notes) ? notes.GetString() ?? string.Empty : string.Empty),
+            entryIsDeleted,
             ParseDate(item, "createdAtUtc", nowUtc),
             ParseDate(item, "updatedAtUtc", nowUtc),
-            item.TryGetProperty("version", out var version) ? version.GetInt32() : 1,
+            entryVersion,
             item.TryGetProperty("deviceId", out var sourceDevice)
                 ? sourceDevice.GetString() ?? deviceId
                 : deviceId,
             amount,
-            OptionalString(item, "movementType", sales > 0 ? PersonalMovementTypes.OtherIncome : cost > 0 || expenses > 0 ? PersonalMovementTypes.Purchase : PersonalMovementTypes.Other),
-            OptionalString(item, "category"),
-            OptionalString(item, "wallet", "main"),
-            OptionalString(item, "counterparty"));
+            InputSanitizer.SanitizeName(OptionalString(item, "movementType", sales > 0 ? PersonalMovementTypes.OtherIncome : cost > 0 || expenses > 0 ? PersonalMovementTypes.Purchase : PersonalMovementTypes.Other)),
+            InputSanitizer.SanitizeName(OptionalString(item, "category")),
+            InputSanitizer.SanitizeName(OptionalString(item, "wallet", "main")),
+            InputSanitizer.SanitizeName(OptionalString(item, "counterparty")),
+            DataIntegrityService.ComputeProfitEntryHash(entryId, userId, entryVersion, sales, cost, expenses, entryIsDeleted));
     }
 
     private static string OptionalString(JsonElement item, string property, string fallback = "") =>

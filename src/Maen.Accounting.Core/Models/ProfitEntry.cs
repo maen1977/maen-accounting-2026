@@ -1,3 +1,5 @@
+using Maen.Accounting.Core.Services;
+
 namespace Maen.Accounting.Core.Models;
 
 public sealed record ProfitEntry(
@@ -17,7 +19,8 @@ public sealed record ProfitEntry(
     string MovementType = "other",
     string Category = "",
     string Wallet = "main",
-    string Counterparty = "")
+    string Counterparty = "",
+    string IntegrityHash = "")
 {
     public long GrossProfitMinor => checked(SalesMinor - CostMinor);
     public long NetProfitMinor => checked(GrossProfitMinor - ExpensesMinor);
@@ -34,6 +37,8 @@ public sealed record ProfitEntry(
         IsDeleted = true,
         UpdatedAtUtc = nowUtc,
         Version = checked(Version + 1),
-        DeviceId = deviceId
+        DeviceId = deviceId,
+        IntegrityHash = DataIntegrityService.ComputeProfitEntryHash(
+            EntryId, UserId, checked(Version + 1), SalesMinor, CostMinor, ExpensesMinor, isDeleted: true)
     };
 }

@@ -1,4 +1,5 @@
 using Maen.Accounting.Core.Models;
+using Maen.Accounting.Core.Services;
 using SQLite;
 
 namespace Maen.Accounting.App.Data;
@@ -27,6 +28,7 @@ public sealed class InvoiceRow
     public long UpdatedAtUtcTicks { get; set; }
     public int Version { get; set; }
     public string DeviceId { get; set; } = string.Empty;
+    public string IntegrityHash { get; set; } = string.Empty;
 
     public static InvoiceRow FromModel(Invoice invoice) => new()
     {
@@ -45,7 +47,15 @@ public sealed class InvoiceRow
         CreatedAtUtcTicks = (invoice.CreatedAtUtc ?? DateTimeOffset.UtcNow).UtcDateTime.Ticks,
         UpdatedAtUtcTicks = (invoice.UpdatedAtUtc ?? DateTimeOffset.UtcNow).UtcDateTime.Ticks,
         Version = invoice.Version,
-        DeviceId = invoice.DeviceId
+        DeviceId = invoice.DeviceId,
+        IntegrityHash = DataIntegrityService.ComputeInvoiceHash(
+            invoice.InvoiceId,
+            invoice.UserId,
+            invoice.Version,
+            (int)invoice.Type,
+            invoice.TotalMinor,
+            invoice.TaxMinor,
+            (int)invoice.Status)
     };
 
     public Invoice ToModel(IReadOnlyList<InvoiceLine> lines) => new(

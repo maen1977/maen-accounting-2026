@@ -10,8 +10,8 @@
     <Nullable>enable</Nullable>
     <ApplicationTitle>Maen Accounting</ApplicationTitle>
     <ApplicationId>com.maen.accounting</ApplicationId>
-    <ApplicationDisplayVersion>2.7.0</ApplicationDisplayVersion>
-    <ApplicationVersion>9</ApplicationVersion>
+    <ApplicationDisplayVersion>2.8.0</ApplicationDisplayVersion>
+    <ApplicationVersion>10</ApplicationVersion>
     <WindowsPackageType>MSIX</WindowsPackageType>
     <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'android'">21.0</SupportedOSPlatformVersion>
     <SupportedOSPlatformVersion Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">10.0.17763.0</SupportedOSPlatformVersion>

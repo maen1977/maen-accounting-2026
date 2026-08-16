@@ -11,7 +11,8 @@ public static class SchemaMigrationCatalog
         new(3, "ledger-and-query-indexes"),
         new(4, "business-entity-sync-indexes"),
         new(5, "personal-plans-obligations-deposits"),
-        new(6, "business-payment-soft-delete")
+        new(6, "business-payment-soft-delete"),
+        new(7, "document-integrity-hashes")
     ];
 
     public static int CurrentVersion => All[^1].Version;

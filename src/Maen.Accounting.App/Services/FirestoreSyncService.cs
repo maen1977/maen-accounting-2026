@@ -176,7 +176,8 @@ public sealed class FirestoreSyncService
         ["movementType"] = StringField(entry.MovementType),
         ["category"] = StringField(entry.Category),
         ["wallet"] = StringField(entry.Wallet),
-        ["counterparty"] = StringField(entry.Counterparty)
+        ["counterparty"] = StringField(entry.Counterparty),
+        ["integrityHash"] = StringField(entry.IntegrityHash)
     };
 
     private static object StringField(string value) => new { stringValue = value };
@@ -264,6 +265,7 @@ public sealed class FirestoreSyncService
             OptionalString("movementType", Integer("salesMinor") > 0 ? PersonalMovementTypes.OtherIncome : Integer("costMinor") > 0 || Integer("expensesMinor") > 0 ? PersonalMovementTypes.Purchase : PersonalMovementTypes.Other),
             OptionalString("category"),
             OptionalString("wallet", "main"),
-            OptionalString("counterparty"));
+            OptionalString("counterparty"),
+            OptionalString("integrityHash"));
     }
 }

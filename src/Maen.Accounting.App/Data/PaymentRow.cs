@@ -1,4 +1,5 @@
 using Maen.Accounting.Core.Models;
+using Maen.Accounting.Core.Services;
 using SQLite;
 
 namespace Maen.Accounting.App.Data;
@@ -25,6 +26,7 @@ public sealed class PaymentRow
     public string DeviceId { get; set; } = string.Empty;
     public string AccountCode { get; set; } = "1000";
     public bool IsDeleted { get; set; }
+    public string IntegrityHash { get; set; } = string.Empty;
 
     public static PaymentRow FromModel(Payment payment) => new()
     {
@@ -41,7 +43,14 @@ public sealed class PaymentRow
         Version = payment.Version,
         DeviceId = payment.DeviceId,
         AccountCode = string.IsNullOrWhiteSpace(payment.AccountCode) ? "1000" : payment.AccountCode,
-        IsDeleted = payment.IsDeleted
+        IsDeleted = payment.IsDeleted,
+        IntegrityHash = DataIntegrityService.ComputePaymentHash(
+            payment.PaymentId,
+            payment.UserId,
+            payment.Version,
+            (int)payment.Type,
+            payment.AmountMinor,
+            payment.IsDeleted)
     };
 
     public Payment ToModel() => new(
