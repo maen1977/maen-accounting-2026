@@ -23,7 +23,10 @@
                 <Button Grid.Column="1" Text="{local:Tr Key=T329}" Style="{StaticResource SecondaryButton}" Clicked="OnCurrentYearClicked" />
             </Grid>
             <SearchBar Text="{Binding SearchText}" Placeholder="{local:Tr Key=T163}" />
-            <Button Text="{local:Tr Key=T201}" Clicked="OnShareClicked" Style="{StaticResource SecondaryButton}" />
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                <Button Text="{local:Tr Key=T201}" Clicked="OnShareClicked" Style="{StaticResource SecondaryButton}" />
+                <Button Grid.Column="1" Text="{local:Tr Key=T376}" Clicked="OnExportCsvClicked" Style="{StaticResource SecondaryButton}" />
+            </Grid>
             <Border Style="{StaticResource HeroCard}">
                 <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="18" RowSpacing="5">
                     <VerticalStackLayout Spacing="3">

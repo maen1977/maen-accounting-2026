@@ -67,6 +67,26 @@ public partial class ReportsPage : ContentPage
         });
     }
 
+    private async void OnExportCsvClicked(object? sender, EventArgs e)
+    {
+        try
+        {
+            var csv = _state.BuildReportCsv();
+            var fileName = $"maen-accounting-report-{DateTime.Now:yyyyMMdd-HHmmss}.csv";
+            var filePath = Path.Combine(FileSystem.CacheDirectory, fileName);
+            await File.WriteAllTextAsync(filePath, csv, new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+            await Share.Default.RequestAsync(new ShareFileRequest
+            {
+                Title = UiText.Get("T377"),
+                File = new ShareFile(filePath)
+            });
+        }
+        catch (Exception exception)
+        {
+            await DisplayAlertAsync(UiText.Get("T179"), exception.Message, UiText.Get("T180"));
+        }
+    }
+
     private void OnEditClicked(object? sender, EventArgs e)
     {
         if (sender is Button { CommandParameter: ProfitEntryItemViewModel item })

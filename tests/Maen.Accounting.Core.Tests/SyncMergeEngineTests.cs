@@ -24,6 +24,42 @@ public sealed class SyncMergeEngineTests
         var local = Entry("id", "user-a", 1, DateTimeOffset.UtcNow, "a");
         var plan = SyncMergeEngine.BuildPlan("user-a", new[] { local }, Array.Empty<ProfitEntry>());
         Assert.Equal(local, Assert.Single(plan.EntriesToPush));
+        Assert.Equal(1, plan.LocalWins);
+        Assert.Equal(0, plan.RemoteWins);
+    }
+
+    [Fact]
+    public void Merge_plan_reports_wins_for_both_sides()
+    {
+        var localOnly = Entry("local", "user-a", 1, new DateTimeOffset(2026, 7, 1, 10, 0, 0, TimeSpan.Zero), "a");
+        var remoteOnly = Entry("remote", "user-a", 1, new DateTimeOffset(2026, 7, 1, 11, 0, 0, TimeSpan.Zero), "b");
+        var sharedLocal = Entry("shared", "user-a", 2, new DateTimeOffset(2026, 7, 1, 12, 0, 0, TimeSpan.Zero), "a");
+        var sharedRemote = Entry("shared", "user-a", 1, new DateTimeOffset(2026, 7, 1, 11, 0, 0, TimeSpan.Zero), "b");
+
+        var plan = SyncMergeEngine.BuildPlan(
+            "user-a",
+            new[] { localOnly, sharedLocal },
+            new[] { remoteOnly, sharedRemote });
+
+        Assert.Equal(2, plan.LocalWins);
+        Assert.Equal(1, plan.RemoteWins);
+        Assert.Equal(3, plan.MergedEntries.Count);
+        Assert.Equal(2, plan.EntriesToPush.Count);
+        Assert.Contains(plan.EntriesToPush, entry => entry.EntryId == "local");
+        Assert.Contains(plan.EntriesToPush, entry => entry.EntryId == "shared");
+    }
+
+    [Fact]
+    public void Duplicate_local_records_are_collapsed_before_counting_wins()
+    {
+        var older = Entry("id", "user-a", 1, new DateTimeOffset(2026, 7, 1, 10, 0, 0, TimeSpan.Zero), "a");
+        var newer = Entry("id", "user-a", 2, new DateTimeOffset(2026, 7, 1, 11, 0, 0, TimeSpan.Zero), "a");
+
+        var plan = SyncMergeEngine.BuildPlan("user-a", new[] { older, newer }, Array.Empty<ProfitEntry>());
+
+        Assert.Single(plan.MergedEntries);
+        Assert.Equal(newer, Assert.Single(plan.EntriesToPush));
+        Assert.Equal(1, plan.LocalWins);
     }
 
     [Fact]

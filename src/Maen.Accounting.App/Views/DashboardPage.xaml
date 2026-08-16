@@ -3,25 +3,19 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:local="clr-namespace:Maen.Accounting.App"
+    xmlns:views="clr-namespace:Maen.Accounting.App.Views"
     Title="{local:Tr Key=T032}">
     <RefreshView IsRefreshing="{Binding IsBusy, Mode=OneWay}" Refreshing="OnRefresh">
         <ScrollView>
             <VerticalStackLayout Padding="18,20,18,28" Spacing="18" MaximumWidthRequest="1100" HorizontalOptions="Center">
-                <Border Style="{StaticResource HeroCard}">
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-                        <VerticalStackLayout Spacing="7">
-                            <Label Text="{local:Tr Key=T099}" TextColor="#D7FAE8" FontSize="14" />
-                            <Label Text="{local:Tr Key=T092}" TextColor="White" FontSize="27" FontAttributes="Bold" />
-                            <Label Text="{local:Tr Key=T094}" TextColor="#D7FAE8" FontSize="13" />
-                        </VerticalStackLayout>
-                        <Border Grid.Column="1" BackgroundColor="White" WidthRequest="68" HeightRequest="68" StrokeThickness="0" VerticalOptions="Center" Padding="3">
-                            <Border.StrokeShape>
-                                <RoundRectangle CornerRadius="20" />
-                            </Border.StrokeShape>
-                            <Image Source="maen_logo.png" Aspect="AspectFit" />
-                        </Border>
-                    </Grid>
-                </Border>
+                <views:BrandHeaderView
+                    Eyebrow="{local:Tr Key=T099}"
+                    Title="{local:Tr Key=T092}"
+                    Subtitle="{local:Tr Key=T094}"
+                    Badge="{local:Tr Key=T097}"
+                    HasBadge="True"
+                    Status="{Binding SyncStatus}"
+                    HasStatus="True" />
 
                 <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="12">
                     <Border Grid.Row="0" Grid.Column="0" BackgroundColor="#EAF8F2" Stroke="#B7EBD4" StrokeThickness="1" Padding="16">

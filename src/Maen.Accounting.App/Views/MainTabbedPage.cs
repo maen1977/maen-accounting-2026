@@ -22,10 +22,10 @@ public sealed class MainTabbedPage : Microsoft.Maui.Controls.TabbedPage
         FlowDirection = UiText.Language == AppLanguage.English
             ? FlowDirection.LeftToRight
             : FlowDirection.RightToLeft;
-        BarBackgroundColor = Color.FromArgb("#0B172A");
+        BarBackgroundColor = Color.FromArgb("#0B1F33");
         BarTextColor = Colors.White;
-        SelectedTabColor = Color.FromArgb("#48D597");
-        UnselectedTabColor = Color.FromArgb("#A8B4C7");
+        SelectedTabColor = Color.FromArgb("#C8A45D");
+        UnselectedTabColor = Color.FromArgb("#AFC0D3");
         AndroidTabbedPage.SetToolbarPlacement(this, ToolbarPlacement.Bottom);
         _entryPage = entryPage;
 

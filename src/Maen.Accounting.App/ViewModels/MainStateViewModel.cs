@@ -26,6 +26,9 @@ public sealed class MainStateViewModel : ObservableObject
     private readonly AuthSessionStore _sessionStore;
     private readonly AppPreferencesService _preferences;
     private readonly SemaphoreSlim _gate = new(1, 1);
+    private PersonalLedgerSummary _ledgerSummary = PersonalLedgerSummaryCalculator.Summarize(
+        Array.Empty<ProfitEntry>(),
+        DateOnly.FromDateTime(DateTime.Today));
 
     private AuthSession? _session;
     private ProfitEntry? _editingEntry;
@@ -75,6 +78,7 @@ public sealed class MainStateViewModel : ObservableObject
     public ObservableCollection<ProfitEntryItemViewModel> RecentEntries { get; } = [];
     public ObservableCollection<ProfitEntryItemViewModel> ReportEntries { get; } = [];
     public ObservableCollection<ReportDayItemViewModel> ReportDays { get; } = [];
+    public ObservableCollection<PersonalCategoryItemViewModel> CurrentMonthCategorySpending { get; } = [];
 
     public event EventHandler? EntryEditorRequested;
     public event EventHandler? SignedOut;
@@ -125,16 +129,16 @@ public sealed class MainStateViewModel : ObservableObject
     public string MonthlyBudgetText => MonthlyBudgetMinor <= 0 ? UiText.Get("T182") : Money.Format(MonthlyBudgetMinor);
     public double MonthlyBudgetProgress => MonthlyBudgetMinor <= 0
         ? 0
-            : Math.Clamp((double)(SummarizeCurrentMonth().CostMinor + SummarizeCurrentMonth().ExpensesMinor) / MonthlyBudgetMinor, 0, 1);
+        : Math.Clamp((double)(_ledgerSummary.CurrentMonth.CostMinor + _ledgerSummary.CurrentMonth.ExpensesMinor) / MonthlyBudgetMinor, 0, 1);
     public string MonthlyBudgetPercentText => MonthlyBudgetMinor <= 0
         ? "0%"
-        : $"{Math.Round((double)(SummarizeCurrentMonth().CostMinor + SummarizeCurrentMonth().ExpensesMinor) / MonthlyBudgetMinor * 100):0}%";
+        : $"{Math.Round((double)(_ledgerSummary.CurrentMonth.CostMinor + _ledgerSummary.CurrentMonth.ExpensesMinor) / MonthlyBudgetMinor * 100):0}%";
     public string MonthlyBudgetStatusText
     {
         get
         {
             if (MonthlyBudgetMinor <= 0) return UiText.Get("T182");
-            var summary = SummarizeCurrentMonth();
+            var summary = _ledgerSummary.CurrentMonth;
             var progress = (double)(summary.CostMinor + summary.ExpensesMinor) / MonthlyBudgetMinor;
             if (progress >= 1) return UiText.Get("T183");
             if (progress >= 0.8) return UiText.Get("T184");
@@ -196,34 +200,34 @@ public sealed class MainStateViewModel : ObservableObject
         ? Color.FromArgb("#168A64")
         : Color.FromArgb("#D45B5B");
 
-    public string CurrentMonthNetText => Money.Format(SummarizeCurrentMonth().NetProfitMinor);
-    public string CurrentMonthGrossText => Money.Format(SummarizeCurrentMonth().GrossProfitMinor);
-    public string CurrentMonthAverageNetText => Money.Format(SummarizeCurrentMonth().AverageNetMinor);
-    public string CurrentMonthSalesText => Money.Format(SummarizeCurrentMonth().SalesMinor);
+    public string CurrentMonthNetText => Money.Format(_ledgerSummary.CurrentMonth.NetProfitMinor);
+    public string CurrentMonthGrossText => Money.Format(_ledgerSummary.CurrentMonth.GrossProfitMinor);
+    public string CurrentMonthAverageNetText => Money.Format(_ledgerSummary.CurrentMonth.AverageNetMinor);
+    public string CurrentMonthSalesText => Money.Format(_ledgerSummary.CurrentMonth.SalesMinor);
     public string CurrentMonthExpensesText
     {
         get
         {
-            var summary = SummarizeCurrentMonth();
+            var summary = _ledgerSummary.CurrentMonth;
             return Money.Format(checked(summary.CostMinor + summary.ExpensesMinor));
         }
     }
-    public string CurrentMonthIncomeText => Money.Format(CurrentMonthModels().Sum(static entry => entry.SalesMinor));
-    public string CurrentMonthSalaryText => Money.Format(CurrentMonthModels().Where(static entry => entry.MovementType == PersonalMovementTypes.Salary).Sum(static entry => entry.EffectiveAmountMinor));
-    public string CurrentMonthFreelanceText => Money.Format(CurrentMonthModels().Where(static entry => entry.MovementType == PersonalMovementTypes.Freelance).Sum(static entry => entry.EffectiveAmountMinor));
-    public string CurrentMonthPurchasesText => Money.Format(CurrentMonthModels().Where(static entry => entry.MovementType is PersonalMovementTypes.Purchase or PersonalMovementTypes.Expense).Sum(static entry => entry.EffectiveAmountMinor));
-    public string CurrentMonthWithdrawalsText => Money.Format(CurrentMonthModels().Where(static entry => entry.MovementType == PersonalMovementTypes.Withdrawal).Sum(static entry => entry.EffectiveAmountMinor));
-    public string CurrentMonthDebtPaymentsText => Money.Format(CurrentMonthModels().Where(static entry => entry.MovementType == PersonalMovementTypes.DebtPayment).Sum(static entry => entry.EffectiveAmountMinor));
-    public string CurrentMonthAvailableBalanceText => Money.Format(CurrentMonthModels().Sum(static entry => entry.SalesMinor - entry.CostMinor - entry.ExpensesMinor));
-    public string BankBalanceText => Money.Format(Models().Where(static entry => !entry.IsDeleted).Sum(GetBankImpactMinor));
-    public string CurrentMonthBankDepositsText => Money.Format(CurrentMonthModels().Select(GetBankImpactMinor).Where(static amount => amount > 0).Sum());
-    public string CurrentMonthBankWithdrawalsText => Money.Format(CurrentMonthModels().Select(GetBankImpactMinor).Where(static amount => amount < 0).Sum(amount => -amount));
-    public string CurrentMonthEntryCountText => SummarizeCurrentMonth().EntriesCount.ToString();
+    public string CurrentMonthIncomeText => Money.Format(_ledgerSummary.CurrentMonthIncomeMinor);
+    public string CurrentMonthSalaryText => Money.Format(_ledgerSummary.CurrentMonthSalaryMinor);
+    public string CurrentMonthFreelanceText => Money.Format(_ledgerSummary.CurrentMonthFreelanceMinor);
+    public string CurrentMonthPurchasesText => Money.Format(_ledgerSummary.CurrentMonthPurchasesMinor);
+    public string CurrentMonthWithdrawalsText => Money.Format(_ledgerSummary.CurrentMonthWithdrawalsMinor);
+    public string CurrentMonthDebtPaymentsText => Money.Format(_ledgerSummary.CurrentMonthDebtPaymentsMinor);
+    public string CurrentMonthAvailableBalanceText => Money.Format(_ledgerSummary.CurrentMonthAvailableBalanceMinor);
+    public string BankBalanceText => Money.Format(_ledgerSummary.BankBalanceMinor);
+    public string CurrentMonthBankDepositsText => Money.Format(_ledgerSummary.CurrentMonthBankDepositsMinor);
+    public string CurrentMonthBankWithdrawalsText => Money.Format(_ledgerSummary.CurrentMonthBankWithdrawalsMinor);
+    public string CurrentMonthEntryCountText => _ledgerSummary.CurrentMonth.EntriesCount.ToString();
     public double CurrentMonthSpendingProgress
     {
         get
         {
-            var summary = SummarizeCurrentMonth();
+            var summary = _ledgerSummary.CurrentMonth;
             var moneyOut = checked(summary.CostMinor + summary.ExpensesMinor);
             if (summary.SalesMinor <= 0) return moneyOut > 0 ? 1 : 0;
             return Math.Clamp((double)moneyOut / summary.SalesMinor, 0, 1);
@@ -234,15 +238,15 @@ public sealed class MainStateViewModel : ObservableObject
     {
         get
         {
-            var summary = SummarizeCurrentMonth();
+            var summary = _ledgerSummary.CurrentMonth;
             if (summary.EntriesCount == 0) return UiText.Get("T161");
             if (summary.NetProfitMinor < 0) return UiText.Get("T159");
             return UiText.Get("T158");
         }
     }
-    public string CurrentMonthHealthColor => SummarizeCurrentMonth().NetProfitMinor < 0 ? "#C2413A" : "#137A53";
-    public string CurrentYearNetText => Money.Format(SummarizeCurrentYear().NetProfitMinor);
-    public string TotalExpensesText => Money.Format(ProfitCalculator.Summarize(Models()).ExpensesMinor);
+    public string CurrentMonthHealthColor => _ledgerSummary.CurrentMonth.NetProfitMinor < 0 ? "#C2413A" : "#137A53";
+    public string CurrentYearNetText => Money.Format(_ledgerSummary.CurrentYear.NetProfitMinor);
+    public string TotalExpensesText => Money.Format(_ledgerSummary.Overall.ExpensesMinor);
     public string ReportGrossText => Money.Format(SummarizeReport().GrossProfitMinor);
     public string ReportAverageNetText => Money.Format(SummarizeReport().AverageNetMinor);
     public string ReportSalesText => Money.Format(SummarizeReport().SalesMinor);
@@ -274,6 +278,23 @@ public sealed class MainStateViewModel : ObservableObject
         {
             await RefreshAccountingSummaryAsync(_session.UserId);
         }
+    }
+
+    public string BuildReportCsv()
+    {
+        if (ReportEntries.Count == 0)
+        {
+            throw new InvalidOperationException(UiText.Get("T388"));
+        }
+
+        return ReportCsvExporter.Build(
+            ReportEntries.Select(static item => item.Model),
+            new[]
+            {
+                UiText.Get("T378"), UiText.Get("T379"), UiText.Get("T380"), UiText.Get("T381"),
+                UiText.Get("T382"), UiText.Get("T383"), UiText.Get("T384"), UiText.Get("T385"),
+                UiText.Get("T386"), UiText.Get("T387")
+            });
     }
 
     public string BuildReportShareText()
@@ -316,7 +337,9 @@ public sealed class MainStateViewModel : ObservableObject
             Entries.Add(new ProfitEntryItemViewModel(entry));
         }
 
+        _ledgerSummary = PersonalLedgerSummaryCalculator.Summarize(entries, DateOnly.FromDateTime(DateTime.Today));
         RebuildRecent();
+        RebuildCategorySpending();
         RebuildReport();
         RaiseSummaries();
     }
@@ -448,9 +471,13 @@ public sealed class MainStateViewModel : ObservableObject
                 {
                     var syncResult = await SyncInternalAsync();
                     var completedAt = syncResult.CompletedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
-                    StatusMessage = syncResult.Uploaded > 0
-                        ? UiText.Format("T133", syncResult.Uploaded, syncResult.TotalEntries, completedAt)
-                        : UiText.Format("T134", syncResult.TotalEntries, completedAt);
+                    StatusMessage = UiText.Format(
+                        "T392",
+                        syncResult.Uploaded,
+                        syncResult.LocalWins,
+                        syncResult.RemoteWins,
+                        syncResult.TotalEntries,
+                        completedAt);
                 }
                 catch (Exception exception)
                 {
@@ -480,9 +507,13 @@ public sealed class MainStateViewModel : ObservableObject
                 {
                     var syncResult = await SyncInternalAsync();
                     var completedAt = syncResult.CompletedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
-                    StatusMessage = syncResult.Uploaded > 0
-                        ? UiText.Format("T316", syncResult.Uploaded, completedAt)
-                        : UiText.Format("T317", completedAt);
+                    StatusMessage = UiText.Format(
+                        "T392",
+                        syncResult.Uploaded,
+                        syncResult.LocalWins,
+                        syncResult.RemoteWins,
+                        syncResult.TotalEntries,
+                        completedAt);
                 }
                 catch (Exception exception)
                 {
@@ -506,9 +537,13 @@ public sealed class MainStateViewModel : ObservableObject
         await RunBusyAsync(async () =>
         {
             var syncResult = await SyncInternalAsync();
-            StatusMessage = syncResult.Uploaded > 0
-                ? UiText.Format("T136", syncResult.CompletedAtUtc.ToLocalTime().ToString("g"), syncResult.Uploaded, syncResult.TotalEntries)
-                : UiText.Format("T137", syncResult.CompletedAtUtc.ToLocalTime().ToString("g"), syncResult.TotalEntries);
+            StatusMessage = UiText.Format(
+                "T393",
+                syncResult.CompletedAtUtc.ToLocalTime().ToString("g"),
+                syncResult.Uploaded,
+                syncResult.LocalWins,
+                syncResult.RemoteWins,
+                syncResult.TotalEntries);
         });
     }
 
@@ -547,9 +582,13 @@ public sealed class MainStateViewModel : ObservableObject
     {
         var result = await _syncService.SyncAsync();
         var completedAt = result.CompletedAtUtc.ToLocalTime().ToString("g");
-        SyncStatus = result.Uploaded > 0
-            ? UiText.Format("T136", completedAt, result.Uploaded, result.TotalEntries)
-            : UiText.Format("T137", completedAt, result.TotalEntries);
+        SyncStatus = UiText.Format(
+            "T393",
+            completedAt,
+            result.Uploaded,
+            result.LocalWins,
+            result.RemoteWins,
+            result.TotalEntries);
         await ReloadAsync();
         await WriteBackupAndUpdateAsync();
         return result;
@@ -704,6 +743,16 @@ public sealed class MainStateViewModel : ObservableObject
         foreach (var entry in Entries.Take(5))
         {
             RecentEntries.Add(entry);
+        }
+    }
+
+    private void RebuildCategorySpending()
+    {
+        CurrentMonthCategorySpending.Clear();
+        var rank = 1;
+        foreach (var category in _ledgerSummary.CurrentMonthCategorySpending)
+        {
+            CurrentMonthCategorySpending.Add(new PersonalCategoryItemViewModel(category, rank++));
         }
     }
 

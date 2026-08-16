@@ -3,22 +3,14 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:local="clr-namespace:Maen.Accounting.App"
+    xmlns:views="clr-namespace:Maen.Accounting.App.Views"
     FlowDirection="RightToLeft">
     <ScrollView>
         <VerticalStackLayout Padding="20,28,20,34" Spacing="20" MaximumWidthRequest="720" HorizontalOptions="Center">
-            <Border BackgroundColor="{StaticResource Primary}" StrokeThickness="0" Padding="24">
-                <Border.StrokeShape><RoundRectangle CornerRadius="28" /></Border.StrokeShape>
-                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="18">
-                    <Border BackgroundColor="#FFFFFF" Opacity="0.16" WidthRequest="72" HeightRequest="72" StrokeThickness="0">
-                        <Border.StrokeShape><RoundRectangle CornerRadius="22" /></Border.StrokeShape>
-                        <Image Source="maen_logo.png" WidthRequest="72" HeightRequest="72" Aspect="AspectFit" />
-                    </Border>
-                    <VerticalStackLayout Grid.Column="1" Spacing="4" VerticalOptions="Center">
-                        <Label x:Name="BrandLabel" Text="{local:Tr Key=T092}" TextColor="White" FontSize="28" FontAttributes="Bold" />
-                        <Label x:Name="BrandSubtitleLabel" Text="{local:Tr Key=T098}" TextColor="#D7FAE8" FontSize="14" />
-                    </VerticalStackLayout>
-                </Grid>
-            </Border>
+            <views:BrandHeaderView
+                Eyebrow="{local:Tr Key=T098}"
+                Title="{local:Tr Key=T092}"
+                Subtitle="{local:Tr Key=T014}" />
 
             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
                 <Border BackgroundColor="{StaticResource PrimaryLight}" WidthRequest="42" HeightRequest="42" StrokeThickness="0">

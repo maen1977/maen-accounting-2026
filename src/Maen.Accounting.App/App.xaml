@@ -5,14 +5,16 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
     <Application.Resources>
         <ResourceDictionary>
-            <Color x:Key="Primary">#0E9F6E</Color>
-            <Color x:Key="PrimaryDark">#087A55</Color>
-            <Color x:Key="PrimaryLight">#EAF8F2</Color>
+            <Color x:Key="Primary">#12304A</Color>
+            <Color x:Key="PrimaryDark">#0B1F33</Color>
+            <Color x:Key="PrimaryLight">#E9F0F5</Color>
+            <Color x:Key="Accent">#C8A45D</Color>
+            <Color x:Key="AccentLight">#F7F0E1</Color>
             <Color x:Key="Surface">#FFFFFF</Color>
-            <Color x:Key="Background">#F8FAFC</Color>
+            <Color x:Key="Background">#F5F7FA</Color>
             <!-- Compatibility alias used by the personal-account pages. -->
-            <Color x:Key="AppBackground">#F8FAFC</Color>
-            <Color x:Key="TextPrimary">#1E293B</Color>
+            <Color x:Key="AppBackground">#F5F7FA</Color>
+            <Color x:Key="TextPrimary">#17202A</Color>
             <Color x:Key="TextSecondary">#64748B</Color>
             <Color x:Key="Danger">#E11D48</Color>
             <Color x:Key="Success">#10B981</Color>
@@ -63,6 +65,17 @@
                 <Setter Property="StrokeThickness" Value="0" />
                 <Setter Property="Padding" Value="24" />
             </Style>
+            <Style x:Key="BrandAccentLabel" TargetType="Label">
+                <Setter Property="TextColor" Value="{StaticResource Accent}" />
+                <Setter Property="FontAttributes" Value="Bold" />
+            </Style>
+            <Style x:Key="AccentButton" TargetType="Button">
+                <Setter Property="BackgroundColor" Value="{StaticResource Accent}" />
+                <Setter Property="TextColor" Value="{StaticResource PrimaryDark}" />
+                <Setter Property="CornerRadius" Value="14" />
+                <Setter Property="HeightRequest" Value="48" />
+                <Setter Property="FontAttributes" Value="Bold" />
+            </Style>
             <Style x:Key="MetricCard" TargetType="Border" BasedOn="{StaticResource CardBorder}">
                 <Setter Property="Padding" Value="14" />
                 <Setter Property="StrokeShape">
@@ -108,7 +121,7 @@
                 <Setter Property="FontAttributes" Value="Bold" />
             </Style>
             <Style x:Key="SecondaryButton" TargetType="Button">
-                <Setter Property="BackgroundColor" Value="#EAF8F2" />
+                <Setter Property="BackgroundColor" Value="{StaticResource PrimaryLight}" />
                 <Setter Property="TextColor" Value="{StaticResource PrimaryDark}" />
             </Style>
             <Style x:Key="DangerButton" TargetType="Button">

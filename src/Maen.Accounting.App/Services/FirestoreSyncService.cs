@@ -7,7 +7,7 @@ using Maen.Accounting.Core.Services;
 
 namespace Maen.Accounting.App.Services;
 
-public sealed record SyncResult(int TotalEntries, int Uploaded, int RemoteWins, DateTimeOffset CompletedAtUtc);
+public sealed record SyncResult(int TotalEntries, int Uploaded, int LocalWins, int RemoteWins, DateTimeOffset CompletedAtUtc);
 
 public sealed class FirestoreSyncService
 {
@@ -68,7 +68,7 @@ public sealed class FirestoreSyncService
             }
 
             await _repository.UpsertManyAsync(session.UserId, plan.MergedEntries);
-            return new SyncResult(verifiedRemote.Count, plan.EntriesToPush.Count, plan.RemoteWins, DateTimeOffset.UtcNow);
+            return new SyncResult(verifiedRemote.Count, plan.EntriesToPush.Count, plan.LocalWins, plan.RemoteWins, DateTimeOffset.UtcNow);
         }
         finally
         {

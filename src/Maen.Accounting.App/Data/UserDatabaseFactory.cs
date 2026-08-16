@@ -31,7 +31,6 @@ public sealed class UserDatabaseFactory
                         SQLiteOpenFlags.FullMutex;
             var connection = new SQLiteAsyncConnection(path, flags);
             await connection.CreateTableAsync<ProfitEntryRow>();
-            await EnsureProfitEntryColumnsAsync(connection);
             await connection.CreateTableAsync<AccountRow>();
             await connection.CreateTableAsync<JournalEntryRow>();
             await connection.CreateTableAsync<JournalLineRow>();
@@ -39,29 +38,8 @@ public sealed class UserDatabaseFactory
             await connection.CreateTableAsync<InvoiceRow>();
             await connection.CreateTableAsync<InvoiceLineRow>();
             await connection.CreateTableAsync<PaymentRow>();
-            await EnsurePaymentColumnsAsync(connection);
-            await connection.ExecuteAsync(
-                "DROP INDEX IF EXISTS ux_profit_entries_user_date;" +
-                "CREATE INDEX IF NOT EXISTS ix_profit_entries_user_date " +
-                "ON profit_entries(UserId, EntryDate) WHERE IsDeleted = 0;" +
-                "CREATE UNIQUE INDEX IF NOT EXISTS ux_accounts_user_code " +
-                "ON accounts(UserId, Code);" +
-                "CREATE INDEX IF NOT EXISTS ix_journal_entries_user_date " +
-                "ON journal_entries(UserId, EntryDate);" +
-                "CREATE UNIQUE INDEX IF NOT EXISTS ux_journal_entries_user_number " +
-                "ON journal_entries(UserId, EntryNumber);" +
-                "CREATE INDEX IF NOT EXISTS ix_journal_lines_user_account " +
-                "ON journal_lines(UserId, AccountId);" +
-                "CREATE UNIQUE INDEX IF NOT EXISTS ux_contacts_user_name_type " +
-                "ON contacts(UserId, Name, Type);" +
-                "CREATE INDEX IF NOT EXISTS ix_invoices_user_date " +
-                "ON invoices(UserId, IssueDate);" +
-                "CREATE UNIQUE INDEX IF NOT EXISTS ux_invoices_user_number " +
-                "ON invoices(UserId, Number);" +
-                "CREATE INDEX IF NOT EXISTS ix_invoice_lines_user_invoice " +
-                "ON invoice_lines(UserId, InvoiceId);" +
-                "CREATE INDEX IF NOT EXISTS ix_payments_user_date " +
-                "ON payments(UserId, PaymentDate);");
+            await connection.CreateTableAsync<SchemaMigrationRow>();
+            await ApplySchemaMigrationsAsync(connection);
 
             _activeDatabaseKey = databaseKey;
             _connection = connection;
@@ -72,6 +50,56 @@ public sealed class UserDatabaseFactory
             _gate.Release();
         }
     }
+
+    private static async Task ApplySchemaMigrationsAsync(SQLiteAsyncConnection connection)
+    {
+        var appliedVersions = (await connection.Table<SchemaMigrationRow>().ToListAsync())
+            .Select(static row => row.Version)
+            .ToHashSet();
+
+        var migrations = new (int Version, string Name, Func<Task> Apply)[]
+        {
+            (1, "personal-movement-columns", () => EnsureProfitEntryColumnsAsync(connection)),
+            (2, "business-payment-account-code", () => EnsurePaymentColumnsAsync(connection)),
+            (3, "ledger-and-query-indexes", () => EnsureIndexesAsync(connection))
+        };
+
+        foreach (var migration in migrations)
+        {
+            if (appliedVersions.Contains(migration.Version)) continue;
+
+            await migration.Apply();
+            await connection.InsertAsync(new SchemaMigrationRow
+            {
+                Version = migration.Version,
+                Name = migration.Name,
+                AppliedAtUtcTicks = DateTimeOffset.UtcNow.UtcDateTime.Ticks
+            });
+        }
+    }
+
+    private static Task EnsureIndexesAsync(SQLiteAsyncConnection connection) => connection.ExecuteAsync(
+        "DROP INDEX IF EXISTS ux_profit_entries_user_date;" +
+        "CREATE INDEX IF NOT EXISTS ix_profit_entries_user_date " +
+        "ON profit_entries(UserId, EntryDate) WHERE IsDeleted = 0;" +
+        "CREATE UNIQUE INDEX IF NOT EXISTS ux_accounts_user_code " +
+        "ON accounts(UserId, Code);" +
+        "CREATE INDEX IF NOT EXISTS ix_journal_entries_user_date " +
+        "ON journal_entries(UserId, EntryDate);" +
+        "CREATE UNIQUE INDEX IF NOT EXISTS ux_journal_entries_user_number " +
+        "ON journal_entries(UserId, EntryNumber);" +
+        "CREATE INDEX IF NOT EXISTS ix_journal_lines_user_account " +
+        "ON journal_lines(UserId, AccountId);" +
+        "CREATE UNIQUE INDEX IF NOT EXISTS ux_contacts_user_name_type " +
+        "ON contacts(UserId, Name, Type);" +
+        "CREATE INDEX IF NOT EXISTS ix_invoices_user_date " +
+        "ON invoices(UserId, IssueDate);" +
+        "CREATE UNIQUE INDEX IF NOT EXISTS ux_invoices_user_number " +
+        "ON invoices(UserId, Number);" +
+        "CREATE INDEX IF NOT EXISTS ix_invoice_lines_user_invoice " +
+        "ON invoice_lines(UserId, InvoiceId);" +
+        "CREATE INDEX IF NOT EXISTS ix_payments_user_date " +
+        "ON payments(UserId, PaymentDate);");
 
     private static async Task EnsurePaymentColumnsAsync(SQLiteAsyncConnection connection)
     {

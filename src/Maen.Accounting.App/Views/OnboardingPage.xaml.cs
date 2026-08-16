@@ -81,8 +81,6 @@ public partial class OnboardingPage : ContentPage
         UiText.Language = _language;
         FlowDirection = english ? FlowDirection.LeftToRight : FlowDirection.RightToLeft;
 
-        BrandLabel.Text = UiText.Get("T092");
-        BrandSubtitleLabel.Text = UiText.Get("T098");
         WelcomeLabel.Text = UiText.Get("T089");
         IntroLabel.Text = UiText.Get("T014");
         LanguageTitleLabel.Text = UiText.Get("T013");

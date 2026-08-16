@@ -3,24 +3,19 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:local="clr-namespace:Maen.Accounting.App"
+    xmlns:views="clr-namespace:Maen.Accounting.App.Views"
     Title="{local:Tr Key=T032}"
     BackgroundColor="{StaticResource AppBackground}">
     <ScrollView>
             <VerticalStackLayout Padding="18,20,18,32" Spacing="16" MaximumWidthRequest="760" HorizontalOptions="Center">
-                <Border Style="{StaticResource HeroCard}">
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-                        <VerticalStackLayout Spacing="6">
-                            <Label Text="{local:Tr Key=T105}" TextColor="White" FontSize="25" FontAttributes="Bold" />
-                            <Label Text="{local:Tr Key=T106}" TextColor="#D7FAE8" FontSize="13" />
-                            <Label Text="{Binding CurrentMonthNetText}" TextColor="White" FontSize="33" FontAttributes="Bold" Margin="0,8,0,0" />
-                            <Label Text="{local:Tr Key=T107}" TextColor="#D7FAE8" FontSize="13" />
-                        </VerticalStackLayout>
-                        <Border Grid.Column="1" BackgroundColor="White" WidthRequest="70" HeightRequest="70" StrokeThickness="0" VerticalOptions="Center" Padding="3">
-                            <Border.StrokeShape><RoundRectangle CornerRadius="22" /></Border.StrokeShape>
-                            <Image Source="maen_logo.png" Aspect="AspectFit" />
-                        </Border>
-                    </Grid>
-                </Border>
+                <views:BrandHeaderView
+                    Eyebrow="{local:Tr Key=T106}"
+                    Title="{local:Tr Key=T105}"
+                    Subtitle="{local:Tr Key=T107}"
+                    Badge="{Binding CurrentMonthNetText}"
+                    HasBadge="True"
+                    Status="{Binding SyncStatus}"
+                    HasStatus="True" />
 
                 <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
                     <Border Style="{StaticResource MetricCard}">
@@ -148,6 +143,29 @@
                             <ProgressBar Progress="{Binding MonthlyBudgetProgress}" ProgressColor="{Binding MonthlyBudgetStatusColor}" BackgroundColor="#E7EDEA" HeightRequest="8" VerticalOptions="Center" />
                             <Label Grid.Column="1" Text="{Binding MonthlyBudgetPercentText}" TextColor="{Binding MonthlyBudgetStatusColor}" FontAttributes="Bold" />
                         </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource CardBorder}">
+                    <VerticalStackLayout Spacing="10">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <VerticalStackLayout Spacing="3">
+                                <Label Text="{local:Tr Key=T389}" FontSize="18" FontAttributes="Bold" />
+                                <Label Text="{local:Tr Key=T391}" Style="{StaticResource MutedLabel}" />
+                            </VerticalStackLayout>
+                            <Label Grid.Column="1" Text="{Binding CurrentMonthExpensesText}" TextColor="#C2413A" FontSize="18" FontAttributes="Bold" VerticalOptions="Center" />
+                        </Grid>
+                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding CurrentMonthCategorySpending}" Spacing="10">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="5">
+                                        <Label Text="{Binding Category}" FontAttributes="Bold" />
+                                        <Label Grid.Column="1" Text="{Binding AmountText}" TextColor="{StaticResource PrimaryDark}" FontAttributes="Bold" />
+                                        <ProgressBar Grid.Row="1" Grid.ColumnSpan="2" Progress="{Binding Progress}" ProgressColor="{Binding AccentColor}" BackgroundColor="#E7EDEA" HeightRequest="7" />
+                                    </Grid>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
                     </VerticalStackLayout>
                 </Border>
 
