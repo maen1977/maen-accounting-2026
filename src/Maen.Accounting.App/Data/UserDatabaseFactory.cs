@@ -41,6 +41,7 @@ public sealed class UserDatabaseFactory
             await connection.CreateTableAsync<FinancialPlanRow>();
             await connection.CreateTableAsync<ObligationRow>();
             await connection.CreateTableAsync<DepositRow>();
+            await connection.CreateTableAsync<SavingsGoalRow>();
             await connection.CreateTableAsync<SchemaMigrationRow>();
             await ApplySchemaMigrationsAsync(connection);
 
@@ -68,7 +69,8 @@ public sealed class UserDatabaseFactory
             [4] = () => EnsureBusinessEntitySyncIndexesAsync(connection),
             [5] = () => EnsurePlansObligationsDepositsAsync(connection),
             [6] = () => EnsurePaymentSoftDeleteColumnAsync(connection),
-            [7] = () => EnsureIntegrityHashColumnsAsync(connection)
+            [7] = () => EnsureIntegrityHashColumnsAsync(connection),
+            [8] = () => EnsureSavingsGoalsTableAsync(connection)
         };
 
         foreach (var migration in SchemaMigrationCatalog.All)
@@ -141,6 +143,8 @@ public sealed class UserDatabaseFactory
             await connection.ExecuteAsync("ALTER TABLE payments ADD COLUMN IsDeleted INTEGER NOT NULL DEFAULT 0;");
         }
     }
+
+    private static Task EnsureSavingsGoalsTableAsync(SQLiteAsyncConnection connection) => connection.CreateTableAsync<SavingsGoalRow>();
 
     private static async Task EnsureIntegrityHashColumnsAsync(SQLiteAsyncConnection connection)
     {

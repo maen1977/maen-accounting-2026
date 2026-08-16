@@ -13,6 +13,7 @@ public sealed class PersonalTabbedPage : Microsoft.Maui.Controls.TabbedPage
         PersonalDashboardPage dashboardPage,
         PersonalEntryPage entryPage,
         PlanningPage planningPage,
+        SavingsGoalsPage savingsGoalsPage,
         ReportsPage reportsPage,
         SettingsPage settingsPage,
         MainStateViewModel state)
@@ -33,10 +34,12 @@ public sealed class PersonalTabbedPage : Microsoft.Maui.Controls.TabbedPage
         reportsPage.Title = UiText.Get("T022");
         settingsPage.Title = UiText.Get("T018");
         planningPage.Title = UiText.Get("T451");
+        savingsGoalsPage.Title = UiText.Get("T600");
 
         Children.Add(dashboardPage);
         Children.Add(entryPage);
         Children.Add(planningPage);
+        Children.Add(savingsGoalsPage);
         Children.Add(reportsPage);
         Children.Add(settingsPage);
         state.EntryEditorRequested += (_, _) => CurrentPage = _entryPage;

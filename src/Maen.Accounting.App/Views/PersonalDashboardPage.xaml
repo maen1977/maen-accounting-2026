@@ -268,6 +268,46 @@
                     </VerticalStackLayout>
                 </Border>
 
+                <Border Style="{StaticResource CardBorder}" BackgroundColor="#F4F8FC">
+                    <VerticalStackLayout Spacing="10">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <VerticalStackLayout Spacing="3">
+                                <Label Text="{local:Tr Key=T640}" FontSize="17" FontAttributes="Bold" TextColor="#0B172A" />
+                                <Label Text="{local:Tr Key=T641}" Style="{StaticResource MutedLabel}" FontSize="12" />
+                            </VerticalStackLayout>
+                            <Border Grid.Column="1" BackgroundColor="{Binding HealthScoreColor}" WidthRequest="64" HeightRequest="64" StrokeThickness="0" VerticalOptions="Center" HorizontalOptions="End">
+                                <Border.StrokeShape><RoundRectangle CornerRadius="32" /></Border.StrokeShape>
+                                <Label Text="{Binding HealthScoreText}" FontSize="20" FontAttributes="Bold" TextColor="#FFFFFF" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                            </Border>
+                        </Grid>
+                        <Label Text="{Binding HealthLevelText}" FontSize="15" FontAttributes="Bold" TextColor="{Binding HealthScoreColor}" />
+                        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+                            <VerticalStackLayout Spacing="3">
+                                <Label Text="{local:Tr Key=T642}" Style="{StaticResource MetricCaption}" />
+                                <Label Text="{Binding SavingsRateText}" FontSize="14" FontAttributes="Bold" TextColor="#137A53" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1" Spacing="3">
+                                <Label Text="{local:Tr Key=T643}" Style="{StaticResource MetricCaption}" />
+                                <Label Text="{Binding FixedCostRatioText}" FontSize="14" FontAttributes="Bold" TextColor="#A16207" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="2" Spacing="3">
+                                <Label Text="{local:Tr Key=T644}" Style="{StaticResource MetricCaption}" />
+                                <Label Text="{Binding RunwayText}" FontSize="14" FontAttributes="Bold" TextColor="#2F7DB8" />
+                            </VerticalStackLayout>
+                        </Grid>
+                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding HealthFlags}" Spacing="3" IsVisible="{Binding HasHealthFlags}">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" VerticalOptions="Center">
+                                        <BoxView WidthRequest="8" HeightRequest="8" CornerRadius="4" Color="#A16207" VerticalOptions="Center" />
+                                        <Label Grid.Column="1" Text="{Binding}" FontSize="12" TextColor="#7A5C12" VerticalTextAlignment="Center" />
+                                    </Grid>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
                 <Border Style="{StaticResource CardBorder}">
                     <VerticalStackLayout Spacing="12">
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">

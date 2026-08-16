@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Maen.Accounting.App.Views.SavingsGoalsPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:local="clr-namespace:Maen.Accounting.App"
+    xmlns:views="clr-namespace:Maen.Accounting.App.Views"
+    Title="{local:Tr Key=T600}"
+    BackgroundColor="{StaticResource AppBackground}">
+    <ScrollView>
+        <VerticalStackLayout Padding="18,20,18,32" Spacing="16" MaximumWidthRequest="760" HorizontalOptions="Center">
+            <views:BrandHeaderView
+                Eyebrow="{local:Tr Key=T601}"
+                Title="{local:Tr Key=T600}"
+                Subtitle="{local:Tr Key=T601}" />
+
+            <Border Style="{StaticResource CardBorder}" BackgroundColor="#F3F9F5">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="{local:Tr Key=T602}" FontSize="17" FontAttributes="Bold" TextColor="#0B172A" />
+                    <Label Text="{local:Tr Key=T603}" Style="{StaticResource MutedLabel}" />
+                    <Entry Text="{Binding GoalTitleInput}" Placeholder="{local:Tr Key=T604}" />
+                    <Entry Text="{Binding GoalCategoryInput}" Placeholder="{local:Tr Key=T605}" />
+                    <Entry Text="{Binding GoalTargetInput}" Placeholder="{local:Tr Key=T606}" Keyboard="Numeric" />
+                    <Entry Text="{Binding GoalAlreadySavedInput}" Placeholder="{local:Tr Key=T607}" Keyboard="Numeric" />
+                    <DatePicker Date="{Binding GoalDeadline}" />
+                    <Button Text="{local:Tr Key=T608}" Clicked="OnSaveGoalClicked" />
+                </VerticalStackLayout>
+            </Border>
+
+            <VerticalStackLayout BindableLayout.ItemsSource="{Binding GoalProgressItems}" Spacing="12" IsVisible="{Binding HasGoalProgressItems}">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate>
+                        <Border Style="{StaticResource CardBorder}">
+                            <VerticalStackLayout Spacing="8">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                    <VerticalStackLayout Spacing="2">
+                                        <Label Text="{Binding Title}" FontSize="16" FontAttributes="Bold" />
+                                        <Label Text="{Binding CategoryLabel}" Style="{StaticResource MutedLabel}" FontSize="12" />
+                                    </VerticalStackLayout>
+                                    <Label Grid.Column="1" Text="{Binding ProgressPercentText}" FontSize="22" FontAttributes="Bold" TextColor="{Binding ProgressColor}" VerticalTextAlignment="Center" />
+                                </Grid>
+                                <ProgressBar Progress="{Binding ProgressPercent}" ProgressColor="{Binding ProgressColor}" HeightRequest="10" />
+                                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                                    <VerticalStackLayout Spacing="2">
+                                        <Label Text="{local:Tr Key=T609}" Style="{StaticResource MetricCaption}" />
+                                        <Label Text="{Binding SavedText}" FontSize="13" FontAttributes="Bold" TextColor="#137A53" />
+                                    </VerticalStackLayout>
+                                    <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                        <Label Text="{local:Tr Key=T610}" Style="{StaticResource MetricCaption}" />
+                                        <Label Text="{Binding RemainingText}" FontSize="13" FontAttributes="Bold" TextColor="{Binding RemainingColor}" />
+                                    </VerticalStackLayout>
+                                    <VerticalStackLayout Grid.Column="2" Spacing="2">
+                                        <Label Text="{local:Tr Key=T611}" Style="{StaticResource MetricCaption}" />
+                                        <Label Text="{Binding DeadlineText}" FontSize="13" FontAttributes="Bold" />
+                                    </VerticalStackLayout>
+                                </Grid>
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                    <Label Text="{Binding StatusLabel}" FontSize="12" FontAttributes="Bold" TextColor="{Binding StatusColor}" VerticalTextAlignment="Center" />
+                                    <Button Grid.Column="1" Text="{local:Tr Key=T061}" FontSize="12" Padding="10,6" Clicked="OnDeleteGoalClicked" BackgroundColor="#C2413A" />
+                                </Grid>
+                            </VerticalStackLayout>
+                        </Border>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
+            </VerticalStackLayout>
+
+            <Border Style="{StaticResource CardBorder}" IsVisible="{Binding HasGoalProgressItems, Converter={x:Static local:InverseBooleanConverter.Instance}}">
+                <Label Text="{local:Tr Key=T613}" Style="{StaticResource MutedLabel}" HorizontalOptions="Center" Padding="20" />
+            </Border>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

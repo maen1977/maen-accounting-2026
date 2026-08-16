@@ -63,6 +63,41 @@
                 </VerticalStackLayout>
             </Border>
 
+            <Border Style="{StaticResource CardBorder}" IsVisible="{Binding ForecastHasSlices}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="{local:Tr Key=T630}" FontSize="17" FontAttributes="Bold" />
+                    <Label Text="{local:Tr Key=T631}" Style="{StaticResource MutedLabel}" FontSize="12" />
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                        <Border StrokeThickness="1" Stroke="#E2E8F0" StrokeShape="RoundRectangle 10" BackgroundColor="#F8FAFC" Padding="12">
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="{local:Tr Key=T632}" Style="{StaticResource MetricCaption}" />
+                                <Label Text="{Binding ForecastNextMonthText}" FontSize="19" FontAttributes="Bold" TextColor="{Binding ForecastNextMonthColor}" />
+                                <Label Text="{local:Tr Key=T633}" Style="{StaticResource MutedLabel}" FontSize="11" />
+                            </VerticalStackLayout>
+                        </Border>
+                        <Border Grid.Column="1" StrokeThickness="1" Stroke="#E2E8F0" StrokeShape="RoundRectangle 10" BackgroundColor="#F8FAFC" Padding="12" IsVisible="{Binding ForecastHasWorst}">
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="{local:Tr Key=T634}" Style="{StaticResource MetricCaption}" />
+                                <Label Text="{Binding ForecastWorstText}" FontSize="19" FontAttributes="Bold" TextColor="#C2413A" />
+                                <Label Text="{local:Tr Key=T635}" Style="{StaticResource MutedLabel}" FontSize="11" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </Grid>
+                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding ForecastSlices}" Spacing="6">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" VerticalOptions="Center">
+                                    <Label Text="{Binding MonthLabel}" WidthRequest="100" FontSize="13" FontAttributes="Bold" VerticalTextAlignment="Center" />
+                                    <Label Grid.Column="1" Text="{Binding ObligationsText}" Style="{StaticResource MutedLabel}" FontSize="12" VerticalTextAlignment="Center" />
+                                    <Label Grid.Column="2" Text="{Binding NetText}" FontSize="13" FontAttributes="Bold" TextColor="{Binding NetColor}" VerticalTextAlignment="Center" />
+                                </Grid>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                    <Label Text="{local:Tr Key=T636}" Style="{StaticResource MutedLabel}" FontSize="11" />
+                </VerticalStackLayout>
+            </Border>
+
             <Border Style="{StaticResource CardBorder}">
                 <VerticalStackLayout Spacing="10">
                     <Label Text="{local:Tr Key=T431}" FontSize="17" FontAttributes="Bold" />

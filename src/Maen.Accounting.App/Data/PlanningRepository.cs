@@ -151,6 +151,43 @@ public sealed class PlanningRepository
     public static string SerializeCategoryLimits(IReadOnlyList<PlanCategoryLimit> limits) =>
         JsonSerializer.Serialize(limits ?? [], JsonOptions);
 
+    public async Task<IReadOnlyList<SavingsGoalRow>> GetGoalsAsync(string userId)
+    {
+        var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
+        var rows = await database.Table<SavingsGoalRow>()
+            .Where(row => row.UserId == userId && !row.IsDeleted)
+            .ToListAsync();
+        return rows
+            .OrderByDescending(row => row.DeadlineTicks)
+            .ThenBy(row => row.Title, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    public async Task UpsertGoalAsync(string userId, SavingsGoalRow row)
+    {
+        UserIsolation.EnsureOwner(userId, row.UserId);
+        var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
+        await database.InsertOrReplaceAsync(row);
+    }
+
+    public async Task UpsertGoalsAsync(string userId, IEnumerable<SavingsGoalRow> rows)
+    {
+        var materialized = rows.ToArray();
+        foreach (var row in materialized)
+        {
+            UserIsolation.EnsureOwner(userId, row.UserId);
+        }
+
+        var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
+        await database.RunInTransactionAsync(connection =>
+        {
+            foreach (var row in materialized)
+            {
+                connection.InsertOrReplace(row);
+            }
+        });
+    }
+
     public static List<DateOnly> ParsePaidOccurrences(string json)
     {
         if (string.IsNullOrWhiteSpace(json)) return [];

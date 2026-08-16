@@ -94,6 +94,45 @@
                     </VerticalStackLayout>
                 </Border>
 
+                <Border Style="{StaticResource CardBorder}" IsVisible="{Binding HasComparisons}">
+                    <VerticalStackLayout Spacing="10">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <VerticalStackLayout Spacing="3">
+                                <Label Text="{local:Tr Key=T652}" FontSize="17" FontAttributes="Bold" TextColor="#0B172A" />
+                                <Label Text="{local:Tr Key=T501}" Style="{StaticResource MutedLabel}" FontSize="12" />
+                            </VerticalStackLayout>
+                        </Grid>
+                        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+                            <VerticalStackLayout Spacing="3">
+                                <Label Text="{local:Tr Key=T501}" Style="{StaticResource MetricCaption}" />
+                                <Label Text="{Binding ComparisonSalesText}" FontAttributes="Bold" TextColor="{Binding ComparisonSalesColor}" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1" Spacing="3">
+                                <Label Text="{local:Tr Key=T502}" Style="{StaticResource MetricCaption}" />
+                                <Label Text="{Binding ComparisonPurchasesText}" FontAttributes="Bold" TextColor="{Binding ComparisonPurchasesColor}" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="2" Spacing="3">
+                                <Label Text="{local:Tr Key=T536}" Style="{StaticResource MetricCaption}" />
+                                <Label Text="{Binding ComparisonNetCashText}" FontAttributes="Bold" TextColor="{Binding ComparisonNetCashColor}" />
+                            </VerticalStackLayout>
+                        </Grid>
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10" IsVisible="{Binding HasYoYComparisons}">
+                            <Border Style="{StaticResource MetricCard}" BackgroundColor="#F4F8FC">
+                                <VerticalStackLayout Spacing="3">
+                                    <Label Text="{local:Tr Key=T651}" FontSize="13" FontAttributes="Bold" TextColor="#2F7DB8" />
+                                    <Label Text="{Binding ComparisonMoMText}" FontAttributes="Bold" TextColor="{Binding ComparisonMoMColor}" />
+                                </VerticalStackLayout>
+                            </Border>
+                            <Border Grid.Column="1" Style="{StaticResource MetricCard}" BackgroundColor="#F7F4FC">
+                                <VerticalStackLayout Spacing="3">
+                                    <Label Text="{local:Tr Key=T650}" FontSize="13" FontAttributes="Bold" TextColor="#6B3BB8" />
+                                    <Label Text="{Binding ComparisonYoYText}" FontAttributes="Bold" TextColor="{Binding ComparisonYoYColor}" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
                 <Label Text="{local:Tr Key=T503}" Style="{StaticResource SectionTitle}" />
                 <CollectionView ItemsSource="{Binding MonthlySlices}" HeightRequest="420" EmptyView="{local:Tr Key=T080}">
                     <CollectionView.ItemTemplate>

@@ -78,6 +78,9 @@ public sealed class MainStateViewModel : ObservableObject
         private bool _isOverdueExpanded;
     private DebtAgingResult? _debtAging;
     private IReadOnlyList<DataQualityWarning> _personalQualityWarnings = Array.Empty<DataQualityWarning>();
+    private SavingsGoalRow[] _savingsGoals = [];
+    private FinancialHealthSummary? _financialHealth;
+    private CashForecast? _cashForecast;
 
     public string ReceivablesAgingTotalText => Money.Format(_debtAging?.Receivables.TotalMinor ?? 0);
     public string ReceivablesAgingCurrentText => Money.Format(_debtAging?.Receivables.CurrentMinor ?? 0);
@@ -89,6 +92,56 @@ public sealed class MainStateViewModel : ObservableObject
         _personalQualityWarnings.Count == 0 ? "#137A53" : "#B45309";
     public bool HasDataQualityWarnings => _personalQualityWarnings.Count > 0;
     public bool HasAgingExposure => (_debtAging?.Receivables.TotalMinor ?? 0) > 0;
+    public IReadOnlyList<SavingsGoalRow> SavingsGoals => _savingsGoals;
+    public FinancialHealthSummary? FinancialHealth => _financialHealth;
+    public CashForecast? CashForecast => _cashForecast;
+    public bool HasGoals => _savingsGoals.Length > 0;
+    public string HealthScoreText => _financialHealth?.Score.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "0";
+    public string HealthLevelText => _financialHealth?.ScoreLevel switch
+    {
+        "Excellent" => UiText.Get("T620"),
+        "Good" => UiText.Get("T621"),
+        "Fair" => UiText.Get("T622"),
+        "Weak" => UiText.Get("T623"),
+        "Critical" => UiText.Get("T624"),
+        _ => UiText.Get("T622")
+    };
+    public string HealthScoreColor => _financialHealth?.Score switch
+    {
+        >= 80 => "#137A53",
+        >= 60 => "#2F7DB8",
+        >= 40 => "#A16207",
+        >= 20 => "#C2413A",
+        _ => "#8E2B2B"
+    };
+    public string SavingsRateText => _financialHealth is null ? UiText.Get("T182") : $"{_financialHealth.SavingsRatePercent:0.#}%";
+    public string FixedCostRatioText => _financialHealth is null ? UiText.Get("T182") : $"{_financialHealth.FixedCostRatioPercent:0.#}%";
+    public string RunwayText => _financialHealth?.RunwayMonths switch
+    {
+        null or 0 => UiText.Get("T625"),
+        > 0 and < 1 => $"{UiText.Get("T626")} {_financialHealth.RunwayMonths:0.#}",
+        _ => $"{UiText.Get("T627")} {Math.Round(_financialHealth.RunwayMonths):0}"
+    };
+    public IReadOnlyList<string> HealthFlags => _financialHealth?.Flags
+        .Select(flag => TranslateHealthFlag(flag.Code))
+        .ToArray() ?? [];
+    public bool HasHealthFlags => HealthFlags.Count > 0;
+
+    private static string TranslateHealthFlag(string code) => code switch
+    {
+        "LowSavingsRate" => UiText.Get("T646"),
+        "HighFixedCosts" => UiText.Get("T647"),
+        "ShortRunway" => UiText.Get("T648"),
+        "SpendingWithoutIncome" => UiText.Get("T649"),
+        _ => code,
+    };
+    public bool ForecastHasWorst => _cashForecast?.WorstSlice is not null;
+    public string ForecastWorstText => _cashForecast?.WorstSlice is null ? string.Empty : Money.Format(_cashForecast.WorstSlice.NetMinor);
+    public string ForecastNextMonthText => _cashForecast is null || _cashForecast.Slices.Count == 0 ? string.Empty : Money.Format(_cashForecast.Slices[0].NetMinor);
+    public string ForecastNextMonthColor => _cashForecast is null || _cashForecast.Slices.Count == 0
+        ? "#64748B" : _cashForecast.Slices[0].NetMinor >= 0 ? "#137A53" : "#C2413A";
+    public bool ForecastHasSlices => _cashForecast is not null && _cashForecast.Slices.Count > 0;
+    public IReadOnlyList<CashForecastSlice> ForecastSlices => _cashForecast?.Slices ?? [];
 
     public MainStateViewModel(
         ProfitEntryRepository repository,
@@ -493,6 +546,7 @@ public sealed class MainStateViewModel : ObservableObject
             lookAheadDays: 45)
             .Take(10)
             .ToArray();
+        await RebuildGoalsAndForecastAsync(userId, entries, today, obligations);
 
         var registryItems = CategoryRegistryCalculator.ComputeRegistry(
             entries.Select(static item => new CategoryEntry(item.Category, item.EntryDate)),
@@ -503,6 +557,51 @@ public sealed class MainStateViewModel : ObservableObject
             _categoryRegistryItems.Add(item);
         }
         OnPropertyChanged(nameof(CategoryRegistryItems));
+    }
+    private async Task RebuildGoalsAndForecastAsync(string userId, IReadOnlyList<ProfitEntry> entries, DateOnly today, IReadOnlyList<ObligationRow> obligations)
+    {
+        await Task.WhenAll(
+            RebuildSavingsGoalsAsync(userId),
+            RebuildFinancialHealthAsync(userId, entries, today),
+            RebuildCashForecastAsync(entries, today, obligations));
+    }
+    private async Task RebuildSavingsGoalsAsync(string userId)
+    {
+        var rows = await _planningRepository.GetGoalsAsync(userId);
+        _savingsGoals = rows.ToArray();
+        OnPropertyChanged(nameof(SavingsGoals));
+        OnPropertyChanged(nameof(HasGoals));
+    }
+    private async Task RebuildFinancialHealthAsync(string userId, IReadOnlyList<ProfitEntry> entries, DateOnly today)
+    {
+        var plans = await _planningRepository.GetPlansAsync(userId);
+        var latestPlan = plans
+            .OrderByDescending(row => row.UpdatedAtUtcTicks)
+            .FirstOrDefault();
+        var recentPlans = latestPlan is null ? Array.Empty<FinancialPlan>()
+            : new[] { ToPlanModel(latestPlan) };
+        _financialHealth = FinancialHealthCalculator.Assess(entries, recentPlans);
+        OnPropertyChanged(nameof(FinancialHealth));
+        OnPropertyChanged(nameof(HealthScoreText));
+        OnPropertyChanged(nameof(HealthLevelText));
+        OnPropertyChanged(nameof(HealthScoreColor));
+        OnPropertyChanged(nameof(SavingsRateText));
+        OnPropertyChanged(nameof(FixedCostRatioText));
+        OnPropertyChanged(nameof(RunwayText));
+        OnPropertyChanged(nameof(HealthFlags));
+    }
+    private Task RebuildCashForecastAsync(IReadOnlyList<ProfitEntry> entries, DateOnly today, IReadOnlyList<ObligationRow> obligations)
+    {
+        _cashForecast = CashForecastCalculator.Forecast(
+            entries,
+            obligations.Select(ToObligationModel),
+            today);
+        OnPropertyChanged(nameof(CashForecast));
+        OnPropertyChanged(nameof(ForecastHasWorst));
+        OnPropertyChanged(nameof(ForecastWorstText));
+        OnPropertyChanged(nameof(ForecastNextMonthText));
+        OnPropertyChanged(nameof(ForecastNextMonthColor));
+        return Task.CompletedTask;
     }
 
     private static FinancialPlan ToPlanModel(FinancialPlanRow row) => new(
@@ -577,6 +676,45 @@ public sealed class MainStateViewModel : ObservableObject
         row.IsActive,
         PlanningRepository.ParsePaidOccurrences(row.PaidOccurrencesJson).ToArray());
 
+    public async Task<SavingsGoalRow> UpsertGoalAsync(string userId, SavingsGoalRow row)
+    {
+        await RunBusyAsync(async () =>
+        {
+            var sanitized = new SavingsGoalRow
+            {
+                GoalId = row.GoalId,
+                UserId = userId,
+                Title = InputSanitizer.SanitizeName(row.Title ?? string.Empty).Trim(),
+                Category = InputSanitizer.SanitizeName(row.Category ?? string.Empty).Trim(),
+                TargetMinor = row.TargetMinor,
+                SavedMinor = row.SavedMinor,
+                StartDateTicks = row.StartDateTicks,
+                DeadlineTicks = row.DeadlineTicks,
+                UpdatedAtUtcTicks = DateTime.UtcNow.Ticks,
+                Version = row.Version,
+                DeviceId = row.DeviceId,
+                IsDeleted = row.IsDeleted,
+            };
+            await _planningRepository.UpsertGoalAsync(userId, sanitized);
+        });
+        await ReloadAsync();
+        return _savingsGoals.LastOrDefault(goal => string.Equals(goal.GoalId, row.GoalId, StringComparison.Ordinal)) ?? row;
+    }
+    public async Task DeleteGoalAsync(string userId, string goalId)
+    {
+        await RunBusyAsync(async () =>
+        {
+            var goals = (await _planningRepository.GetGoalsAsync(userId)).ToArray();
+            var goal = goals.FirstOrDefault(candidate => string.Equals(candidate.GoalId, goalId, StringComparison.Ordinal));
+            if (goal is not null)
+            {
+                goal.IsDeleted = true;
+                goal.UpdatedAtUtcTicks = DateTimeOffset.UtcNow.UtcDateTime.Ticks;
+                await _planningRepository.UpsertGoalAsync(userId, goal);
+            }
+        });
+        await ReloadAsync();
+    }
     public void BeginNewEntry()
     {
         _editingEntry = null;
@@ -1302,6 +1440,25 @@ public sealed class MainStateViewModel : ObservableObject
         OnPropertyChanged(nameof(HasPlan));
         OnPropertyChanged(nameof(UpcomingObligations));
         OnPropertyChanged(nameof(OverdueObligationsCount));
+        OnPropertyChanged(nameof(SavingsGoals));
+        OnPropertyChanged(nameof(HasGoals));
+        OnPropertyChanged(nameof(FinancialHealth));
+        OnPropertyChanged(nameof(ForecastHasSlices));
+        OnPropertyChanged(nameof(ForecastSlices));
+        OnPropertyChanged(nameof(HealthFlags));
+        OnPropertyChanged(nameof(HasHealthFlags));
+        OnPropertyChanged(nameof(CashForecast));
+        OnPropertyChanged(nameof(HealthScoreText));
+        OnPropertyChanged(nameof(HealthLevelText));
+        OnPropertyChanged(nameof(HealthScoreColor));
+        OnPropertyChanged(nameof(SavingsRateText));
+        OnPropertyChanged(nameof(FixedCostRatioText));
+        OnPropertyChanged(nameof(RunwayText));
+        OnPropertyChanged(nameof(HealthFlags));
+        OnPropertyChanged(nameof(ForecastHasWorst));
+        OnPropertyChanged(nameof(ForecastWorstText));
+        OnPropertyChanged(nameof(ForecastNextMonthText));
+        OnPropertyChanged(nameof(ForecastNextMonthColor));
     }
 
     private void RaiseAnnualReportProperties()

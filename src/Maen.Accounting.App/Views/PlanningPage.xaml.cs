@@ -10,20 +10,23 @@ namespace Maen.Accounting.App.Views;
 public sealed partial class PlanningPage : ContentPage
 {
     private readonly PlanningRepository _repository;
+    private readonly ProfitEntryRepository _profitRepository;
     private readonly DeviceIdentityService _deviceIdentity;
     private readonly AuthSessionStore _sessionStore;
     private readonly PlanningViewModel _model;
 
     public PlanningPage(
         PlanningRepository repository,
+        ProfitEntryRepository profitRepository,
         DeviceIdentityService deviceIdentity,
         AuthSessionStore sessionStore)
     {
         InitializeComponent();
         _repository = repository;
+        _profitRepository = profitRepository;
         _deviceIdentity = deviceIdentity;
         _sessionStore = sessionStore;
-        _model = new PlanningViewModel(this, repository, sessionStore);
+        _model = new PlanningViewModel(this, repository, profitRepository, sessionStore);
         BindingContext = _model;
     }
 
@@ -83,15 +86,18 @@ public sealed class PlanningViewModel : ObservableObject
 {
     private readonly Page _page;
     private readonly PlanningRepository _repository;
+    private readonly ProfitEntryRepository _profitRepository;
     private readonly AuthSessionStore _sessionStore;
 
     public PlanningViewModel(
         Page page,
         PlanningRepository repository,
+        ProfitEntryRepository profitRepository,
         AuthSessionStore sessionStore)
     {
         _page = page;
         _repository = repository;
+        _profitRepository = profitRepository;
         _sessionStore = sessionStore;
     }
 
@@ -115,12 +121,19 @@ public sealed class PlanningViewModel : ObservableObject
 
     public System.Collections.ObjectModel.ObservableCollection<DepositItem> Deposits { get; } = new();
     public bool HasDeposits => Deposits.Count > 0;
+    public System.Collections.ObjectModel.ObservableCollection<CashForecastSliceItem> ForecastSlices { get; } = new();
+    public bool ForecastHasSlices => ForecastSlices.Count > 0;
+    public bool ForecastHasWorst { get; private set; }
+    public string ForecastNextMonthText { get; private set; } = string.Empty;
+    public string ForecastNextMonthColor { get; private set; } = "#64748B";
+    public string ForecastWorstText { get; private set; } = string.Empty;
 
     public async Task ReloadAsync()
     {
         await LoadPlanAsync();
         await LoadObligationsAsync();
         await LoadDepositsAsync();
+        await LoadForecastAsync();
     }
 
     private async Task LoadPlanAsync()
@@ -217,6 +230,65 @@ public sealed class PlanningViewModel : ObservableObject
             // Keep list empty.
         }
     }
+
+    private async Task LoadForecastAsync()
+    {
+        var userId = await GetUserIdAsync();
+        if (userId is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var entries = await _profitRepository.GetVisibleAsync(userId);
+            var obligations = await _repository.GetObligationsAsync(userId);
+            var asOf = DateOnly.FromDateTime(DateTime.Today);
+            var forecast = CashForecastCalculator.Forecast(
+                entries,
+                obligations
+                    .Where(row => !row.IsDeleted && row.IsActive)
+                    .Select(ToObligationModel),
+                asOf);
+            ForecastSlices.Clear();
+            foreach (var slice in forecast.Slices)
+            {
+                ForecastSlices.Add(new CashForecastSliceItem(
+                    slice.MonthLabel,
+                    slice.ObligationsText,
+                    slice.NetText,
+                    slice.NetColor));
+            }
+
+            ForecastHasWorst = forecast.WorstSlice is not null;
+            ForecastNextMonthText = forecast.Slices.Count > 0 ? forecast.Slices[0].NetText : string.Empty;
+            ForecastNextMonthColor = forecast.Slices.Count > 0
+                ? (forecast.Slices[0].NetMinor >= 0 ? "#137A53" : "#C2413A")
+                : "#64748B";
+            ForecastWorstText = forecast.WorstSlice is null ? string.Empty : forecast.WorstSlice.NetText;
+
+            OnPropertyChanged(nameof(ForecastSlices));
+            OnPropertyChanged(nameof(ForecastHasSlices));
+            OnPropertyChanged(nameof(ForecastHasWorst));
+            OnPropertyChanged(nameof(ForecastNextMonthText));
+            OnPropertyChanged(nameof(ForecastNextMonthColor));
+            OnPropertyChanged(nameof(ForecastWorstText));
+        }
+        catch (Exception)
+        {
+            // Keep forecast empty — next reload will retry.
+        }
+    }
+    private static Obligation ToObligationModel(ObligationRow row) => new(
+        row.ObligationId,
+        row.UserId,
+        row.Title,
+        row.Category,
+        row.AmountMinor,
+        DateOnly.FromDateTime(new DateTime(row.StartDateTicks, DateTimeKind.Utc)),
+        row.Cycle,
+        row.IsActive,
+        PlanningRepository.ParsePaidOccurrences(row.PaidOccurrencesJson).ToArray());
 
     public async Task SavePlanAsync(DeviceIdentityService deviceIdentity)
     {
@@ -494,3 +566,9 @@ public sealed record DepositItem(
     string AmountText,
     string DateText,
     DepositRow Row);
+
+public sealed record CashForecastSliceItem(
+    string MonthLabel,
+    string ObligationsText,
+    string NetText,
+    string NetColor);

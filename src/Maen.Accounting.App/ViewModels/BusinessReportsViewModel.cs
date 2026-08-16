@@ -6,7 +6,7 @@ using Maen.Accounting.Core.Services;
 
 namespace Maen.Accounting.App.ViewModels;
 
-public sealed class MonthlySliceViewModel(MonthlySlice slice)
+public sealed class MonthlySliceViewModel(MonthlySlice slice, MonthlyComparison? comparison)
 {
     public string MonthText => slice.Month.ToString("yyyy-MM");
     public string SalesText => Money.Format(slice.SalesMinor);
@@ -16,6 +16,29 @@ public sealed class MonthlySliceViewModel(MonthlySlice slice)
     public string NetCashText => Money.Format(slice.NetCashMinor);
     public string NetCashColor => slice.NetCashMinor >= 0 ? "#137A53" : "#C2413A";
     public MonthlySlice Model => slice;
+
+    private bool HasMoM => comparison is not null && comparison.PreviousSalesMinor is not null;
+    public bool HasDelta => HasMoM;
+    public string DeltaText => HasMoM ? FormatDeltaText(comparison!.SalesDeltaMinor, comparison.SalesDeltaPercent) : string.Empty;
+    public string DeltaColor => !HasMoM ? "#64748B" : (comparison!.SalesDeltaMinor ?? 0) >= 0 ? "#137A53" : "#C2413A";
+    public string DeltaArrow => !HasMoM ? string.Empty : (comparison.SalesDeltaMinor ?? 0) >= 0 ? "▲" : "▼";
+    public string YoYText => comparison is not null && comparison.YearAgoSalesMinor is not null
+        ? FormatDeltaText(comparison.SalesYoYDeltaMinor, comparison.SalesYoYDeltaPercent)
+        : UiText.Get("T625");
+    public string YoYColor => comparison is not null && comparison.YearAgoSalesMinor is not null
+        ? (comparison.SalesYoYDeltaPercent >= 0 ? "#137A53" : "#C2413A")
+        : "#64748B";
+
+    private static string FormatDeltaText(long? deltaMinor, double percent)
+    {
+        if (deltaMinor is null)
+        {
+            return UiText.Get("T625");
+        }
+
+        var sign = deltaMinor.Value >= 0 ? $"+{Money.Format(deltaMinor.Value)}" : Money.Format(deltaMinor.Value);
+        return $"{sign} ({percent:+0.#;-0.#}%)";
+    }
 }
 
 public sealed class BusinessReportsViewModel : ObservableObject
@@ -64,6 +87,19 @@ public sealed class BusinessReportsViewModel : ObservableObject
     public string PayablesAgingTotalText { get; private set; } = Money.Format(0);
     public bool HasAgingExposure { get; private set; }
 
+    public bool HasComparisons { get; private set; }
+    public bool HasYoYComparisons { get; private set; }
+    public string ComparisonSalesText { get; private set; } = string.Empty;
+    public string ComparisonSalesColor { get; private set; } = "#64748B";
+    public string ComparisonPurchasesText { get; private set; } = string.Empty;
+    public string ComparisonPurchasesColor { get; private set; } = "#64748B";
+    public string ComparisonNetCashText { get; private set; } = string.Empty;
+    public string ComparisonNetCashColor { get; private set; } = "#64748B";
+    public string ComparisonMoMText { get; private set; } = string.Empty;
+    public string ComparisonMoMColor { get; private set; } = "#64748B";
+    public string ComparisonYoYText { get; private set; } = string.Empty;
+    public string ComparisonYoYColor { get; private set; } = "#64748B";
+
     public ObservableCollection<MonthlySliceViewModel> MonthlySlices { get; } = new();
 
     public async Task InitializeAsync(AuthSession session)
@@ -101,10 +137,15 @@ public sealed class BusinessReportsViewModel : ObservableObject
             TotalReceiptsText = Money.Format(report.TotalReceiptsMinor);
             TotalSupplierPaymentsText = Money.Format(report.TotalSupplierPaymentsMinor);
 
+            var months = report.Months.ToArray();
+            var comparisons = BusinessComparisonCalculator.Compare(months);
+            var comparisonBySlice = comparisons.ToDictionary(item => item.Slice, item => item);
+            RebuildComparisons(comparisons);
             MonthlySlices.Clear();
-            foreach (var slice in report.Months)
+            foreach (var slice in months)
             {
-                MonthlySlices.Add(new MonthlySliceViewModel(slice));
+                comparisonBySlice.TryGetValue(slice, out var item);
+                MonthlySlices.Add(new MonthlySliceViewModel(slice, item));
             }
 
             var aging = DebtAgingCalculator.Age(invoices, payments, DateOnly.FromDateTime(DateTime.Today));
@@ -128,6 +169,44 @@ public sealed class BusinessReportsViewModel : ObservableObject
         {
             IsBusy = false;
         }
+    }
+
+    private void RebuildComparisons(IReadOnlyList<MonthlyComparison> comparisons)
+    {
+        var latest = comparisons.LastOrDefault();
+        if (latest is null || latest.PreviousSalesMinor is null)
+        {
+            HasComparisons = false;
+            HasYoYComparisons = false;
+            return;
+        }
+
+        HasComparisons = true;
+        HasYoYComparisons = latest.YearAgoSalesMinor is not null;
+
+        ComparisonSalesText = FormatComparisonText(latest.SalesDeltaMinor, latest.SalesDeltaPercent, UiText.Get("T655"), UiText.Get("T656"));
+        ComparisonSalesColor = latest.SalesDeltaMinor >= 0 ? "#137A53" : "#C2413A";
+        ComparisonPurchasesText = UiText.Get("T625");
+        ComparisonPurchasesColor = "#64748B";
+        ComparisonNetCashText = FormatComparisonText(latest.NetCashDeltaMinor, latest.NetCashDeltaPercent, UiText.Get("T655"), UiText.Get("T656"));
+        ComparisonNetCashColor = latest.NetCashDeltaMinor >= 0 ? "#137A53" : "#C2413A";
+        ComparisonMoMText = UiText.Format("T536") + $" {(latest.SalesDeltaPercent >= 0 ? "+" : "")}{latest.SalesDeltaPercent:0.#}%";
+        ComparisonMoMColor = latest.SalesDeltaPercent >= 0 ? "#2F7DB8" : "#C2413A";
+        ComparisonYoYText = latest.YearAgoSalesMinor is null
+            ? UiText.Get("T625")
+            : $"{(latest.SalesYoYDeltaPercent >= 0 ? "+" : "")}{latest.SalesYoYDeltaPercent:0.#}%";
+        ComparisonYoYColor = latest.SalesYoYDeltaPercent >= 0 ? "#6B3BB8" : "#C2413A";
+    }
+
+    private static string FormatComparisonText(long? delta, double percent, string upWord, string downWord)
+    {
+        if (delta is null)
+        {
+            return UiText.Get("T625");
+        }
+
+        var sign = delta.Value >= 0 ? $"+{Money.Format(delta.Value)}" : Money.Format(delta.Value);
+        return $"{sign} ({percent:+0.#;-0.#}%) {(delta.Value >= 0 ? upWord : downWord)}";
     }
 
     public string ExportCsv()
