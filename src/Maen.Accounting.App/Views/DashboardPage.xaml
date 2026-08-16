@@ -78,6 +78,43 @@
                                 <VerticalStackLayout Spacing="3"><Label Text="{local:Tr Key=T418}" Style="{StaticResource MetricCaption}"/><Label Text="{Binding OverduePurchasesText}" TextColor="#075985" FontAttributes="Bold" FontSize="19"/></VerticalStackLayout>
                             </Border>
                         </Grid>
+                        <Button Text="{local:Tr Key=T480}" IsVisible="{Binding HasOverdueInvoices, Mode=OneWay}" Clicked="OnToggleOverdueClicked" Style="{StaticResource SecondaryButton}" />
+                        <VerticalStackLayout Spacing="8" IsVisible="{Binding IsOverdueExpanded, Mode=OneWay}">
+                            <CollectionView ItemsSource="{Binding OverdueSalesInvoices}">
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border BackgroundColor="#FFF1F2" Stroke="#FECDD3" StrokeThickness="1" Padding="12" Margin="0,0,0,4">
+                                            <Border.StrokeShape><RoundRectangle CornerRadius="12" /></Border.StrokeShape>
+                                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                                                <VerticalStackLayout Spacing="2">
+                                                    <Label Text="{Binding Number}" FontAttributes="Bold" TextColor="#BE123C"/>
+                                                    <Label Text="{Binding ContactText}" Style="{StaticResource MutedLabel}" FontSize="12"/>
+                                                </VerticalStackLayout>
+                                                <Label Grid.Column="1" Text="{Binding AmountText}" TextColor="#BE123C" FontAttributes="Bold" VerticalOptions="Center"/>
+                                                <Label Grid.Column="2" Text="{Binding AgeText}" Style="{StaticResource MutedLabel}" FontSize="12" VerticalOptions="Center"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+                            <CollectionView ItemsSource="{Binding OverduePurchasesInvoices}">
+                                <CollectionView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border BackgroundColor="#F0F9FF" Stroke="#BAE6FD" StrokeThickness="1" Padding="12" Margin="0,0,0,4">
+                                            <Border.StrokeShape><RoundRectangle CornerRadius="12" /></Border.StrokeShape>
+                                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+                                                <VerticalStackLayout Spacing="2">
+                                                    <Label Text="{Binding Number}" FontAttributes="Bold" TextColor="#075985"/>
+                                                    <Label Text="{Binding ContactText}" Style="{StaticResource MutedLabel}" FontSize="12"/>
+                                                </VerticalStackLayout>
+                                                <Label Grid.Column="1" Text="{Binding AmountText}" TextColor="#075985" FontAttributes="Bold" VerticalOptions="Center"/>
+                                                <Label Grid.Column="2" Text="{Binding AgeText}" Style="{StaticResource MutedLabel}" FontSize="12" VerticalOptions="Center"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </CollectionView.ItemTemplate>
+                            </CollectionView>
+                        </VerticalStackLayout>
                     </VerticalStackLayout>
                 </Border>
 

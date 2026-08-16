@@ -62,6 +62,16 @@ public sealed class MainStateViewModel : ObservableObject
     private PersonalPlanProgress? _planProgress;
     private IReadOnlyList<ObligationEvent> _upcomingObligations = Array.Empty<ObligationEvent>();
     private readonly System.Collections.ObjectModel.ObservableCollection<CategoryRegistryItem> _categoryRegistryItems = new();
+    private PersonalAnnualReport? _annualReport;
+    private double _yearOverYearChangePercent;
+    private CategoryReport? _categoryReport;
+    private SavingsTrend? _savingsTrend;
+    private BusinessFinancialSummary? _businessFinancialPosition;
+    private readonly System.Collections.ObjectModel.ObservableCollection<CategoryBreakdownItem> _categoryBreakdownItems = new();
+    private readonly System.Collections.ObjectModel.ObservableCollection<SavingsTrendPointItem> _savingsTrendPoints = new();
+    private readonly System.Collections.ObjectModel.ObservableCollection<OverdueInvoiceItem> _overdueSalesInvoices = new();
+    private readonly System.Collections.ObjectModel.ObservableCollection<OverdueInvoiceItem> _overduePurchasesInvoices = new();
+    private bool _isOverdueExpanded;
 
     public MainStateViewModel(
         ProfitEntryRepository repository,
@@ -265,6 +275,42 @@ public sealed class MainStateViewModel : ObservableObject
         }
     }
     public string CurrentMonthHealthColor => _ledgerSummary.CurrentMonth.NetProfitMinor < 0 ? "#C2413A" : "#137A53";
+
+    public bool HasAnnualReport => _annualReport is not null;
+    public string AnnualIncomeText => Money.Format(_annualReport?.TotalIncomeMinor ?? 0);
+    public string AnnualSpendingText => Money.Format(_annualReport?.TotalSpendingMinor ?? 0);
+    public string AnnualNetText => Money.Format(_annualReport?.TotalNetMinor ?? 0);
+    public string AnnualNetColor => (_annualReport?.TotalNetMinor ?? 0) >= 0 ? "#137A53" : "#C2413A";
+    public string BestMonthText => FormatMonthLabel(_annualReport?.BestMonth);
+    public string WorstMonthText => FormatMonthLabel(_annualReport?.WorstMonth);
+
+    private string FormatMonthLabel(PersonalMonthlySnapshot? snapshot)
+    {
+        if (snapshot is null || snapshot.Month <= 0)
+        {
+            return UiText.Get("T168");
+        }
+
+        return $"{YearMonthName(snapshot.Year, snapshot.Month)} · {Money.Format(snapshot.NetMinor)}";
+    }
+    public string YearOverYearText => _annualReport is null
+        ? UiText.Get("T483")
+        : _yearOverYearChangePercent == 0
+            ? UiText.Get("T351")
+            : UiText.Format("T481", _yearOverYearChangePercent.ToString("+0;-0", System.Globalization.CultureInfo.InvariantCulture));
+    public string YearOverYearColor => _yearOverYearChangePercent > 0 ? "#137A53" : _yearOverYearChangePercent < 0 ? "#C2413A" : "#64748B";
+
+    public bool HasCategoryBreakdown => _categoryBreakdownItems.Count > 0;
+    public System.Collections.ObjectModel.ObservableCollection<CategoryBreakdownItem> CategoryBreakdownItems => _categoryBreakdownItems;
+
+    public bool HasSavingsTrend => _savingsTrendPoints.Count > 0;
+    public string TrendStreakText => _savingsTrend is not null && _savingsTrend.ConsecutiveOnTargetStreak > 0
+        ? UiText.Format("T484", _savingsTrend.ConsecutiveOnTargetStreak.ToString(), UiText.Get("T477"))
+        : string.Empty;
+    public System.Collections.ObjectModel.ObservableCollection<SavingsTrendPointItem> SavingsTrendPoints => _savingsTrendPoints;
+
+    private static string YearMonthName(int year, int month) =>
+        new DateTime(year, Math.Clamp(month, 1, 12), 1).ToString("MMM yyyy");
     public string CurrentYearNetText => Money.Format(_ledgerSummary.CurrentYear.NetProfitMinor);
     public string TotalExpensesText => Money.Format(_ledgerSummary.Overall.ExpensesMinor);
     public string ReportGrossText => Money.Format(SummarizeReport().GrossProfitMinor);
@@ -358,9 +404,11 @@ public sealed class MainStateViewModel : ObservableObject
         }
 
         _ledgerSummary = PersonalLedgerSummaryCalculator.Summarize(entries, DateOnly.FromDateTime(DateTime.Today));
+        await RebuildBusinessFinancialPositionAsync(session.UserId);
         RebuildRecent();
         RebuildCategorySpending();
         RebuildReport();
+        RebuildAnnualReport(entries);
         await RebuildPlanningAsync(session.UserId, entries);
         RaiseSummaries();
     }
@@ -382,6 +430,21 @@ public sealed class MainStateViewModel : ObservableObject
     public IReadOnlyList<ObligationEvent> UpcomingObligations => _upcomingObligations;
     public int OverdueObligationsCount => _upcomingObligations.Count(static item => !item.IsPaid && item.DueDate < DateOnly.FromDateTime(DateTime.Today));
     public System.Collections.ObjectModel.ObservableCollection<CategoryRegistryItem> CategoryRegistryItems => _categoryRegistryItems;
+
+    public bool HasFinancialPosition => _businessFinancialPosition is not null;
+    public string ReceivableNetText => Money.Format(_businessFinancialPosition?.ReceivableNetMinor ?? 0);
+    public string PayableNetText => Money.Format(_businessFinancialPosition?.PayableNetMinor ?? 0);
+    public string NetPositionText => Money.Format(_businessFinancialPosition?.NetPositionMinor ?? 0);
+    public string NetPositionColor =>
+        (_businessFinancialPosition?.NetPositionMinor ?? 0) >= 0 ? "#137A53" : "#C2413A";
+    public string OverdueSalesText => Money.Format(_businessFinancialPosition?.OverdueSalesMinor ?? 0);
+    public string OverduePurchasesText => Money.Format(_businessFinancialPosition?.OverduePurchasesMinor ?? 0);
+    public bool HasOverdueInvoices => _overdueSalesInvoices.Count > 0 || _overduePurchasesInvoices.Count > 0;
+    public bool IsOverdueExpanded { get => _isOverdueExpanded; private set => SetProperty(ref _isOverdueExpanded, value); }
+    public ObservableCollection<OverdueInvoiceItem> OverdueSalesInvoices => _overdueSalesInvoices;
+    public ObservableCollection<OverdueInvoiceItem> OverduePurchasesInvoices => _overduePurchasesInvoices;
+
+    public void ToggleOverdueExpanded() => IsOverdueExpanded = !IsOverdueExpanded;
 
     private static double SafeProgress(long actual, long limit) =>
         limit > 0 ? Math.Clamp(actual / (double)limit, 0, 1) : 0.0;
@@ -425,6 +488,48 @@ public sealed class MainStateViewModel : ObservableObject
         row.MonthlySpendingLimitMinor,
         row.MonthlySavingsTargetMinor,
         PlanningRepository.ParseCategoryLimits(row.CategoryLimitsJson).ToArray());
+
+    private async Task RebuildBusinessFinancialPositionAsync(string userId)
+    {
+        var contacts = await _businessRepository.GetContactsAsync(userId);
+        var invoices = (await _businessRepository.GetInvoicesAsync(userId)).ToArray();
+        var payments = (await _businessRepository.GetPaymentsAsync(userId)).ToArray();
+        var asOf = DateOnly.FromDateTime(DateTime.Today);
+        _businessFinancialPosition = BusinessFinancialSummaryCalculator.Summarize(contacts, invoices, payments, asOf);
+
+        _overdueSalesInvoices.Clear();
+        _overduePurchasesInvoices.Clear();
+        var paymentByContact = new Dictionary<string, long>();
+        foreach (var payment in payments)
+        {
+            paymentByContact.TryGetValue(payment.ContactId, out var current);
+            paymentByContact[payment.ContactId] = checked(current + payment.AmountMinor);
+        }
+
+        foreach (var invoice in invoices.Where(invoice => invoice.Status == InvoiceStatus.Posted && invoice.DueDate < asOf && invoice.TotalMinor > 0))
+        {
+            var paid = paymentByContact.TryGetValue(invoice.ContactId, out var perContact)
+                ? perContact
+                : 0;
+            var outstanding = checked(invoice.TotalMinor - paid);
+            if (outstanding <= 0)
+            {
+                continue;
+            }
+
+            var target = invoice.Type == InvoiceType.Sales ? _overdueSalesInvoices : _overduePurchasesInvoices;
+            target.Add(new OverdueInvoiceItem(invoice, contacts));
+        }
+
+        OnPropertyChanged(nameof(HasFinancialPosition));
+        OnPropertyChanged(nameof(ReceivableNetText));
+        OnPropertyChanged(nameof(PayableNetText));
+        OnPropertyChanged(nameof(NetPositionText));
+        OnPropertyChanged(nameof(NetPositionColor));
+        OnPropertyChanged(nameof(OverdueSalesText));
+        OnPropertyChanged(nameof(OverduePurchasesText));
+        OnPropertyChanged(nameof(HasOverdueInvoices));
+    }
 
     private static Obligation ToObligationModel(ObligationRow row) => new(
         row.ObligationId,
@@ -889,6 +994,88 @@ public sealed class MainStateViewModel : ObservableObject
         }
     }
 
+    private void RebuildAnnualReport(IReadOnlyList<ProfitEntry> entries)
+    {
+        var year = DateOnly.FromDateTime(DateTime.Today).Year;
+        _annualReport = PersonalAnnualReportCalculator.Build(entries, year);
+        var previousReport = PersonalAnnualReportCalculator.Build(entries, year - 1);
+        _yearOverYearChangePercent = PersonalAnnualReportCalculator.YearOverYearIncomeChangePercent(
+            _annualReport.Months,
+            previousReport.Months);
+
+        var categoryMonth = DateOnly.FromDateTime(DateTime.Today);
+        _categoryReport = PersonalCategoryReportCalculator.Build(entries, categoryMonth);
+        _categoryBreakdownItems.Clear();
+        foreach (var breakdown in _categoryReport.Breakdowns.Take(8))
+        {
+            _categoryBreakdownItems.Add(new CategoryBreakdownItem(
+                breakdown,
+                _categoryReport, 
+                PaletteColor.ForRank(breakdown.Rank)));
+        }
+
+        _savingsTrend = SavingsTrendCalculator.Build(
+            entries,
+            DateOnly.FromDateTime(DateTime.Today),
+            trailingMonths: 6,
+            plan: _planProgress is null ? null : ToPlanModelFromProgress(_planProgress));
+        var maxAbsSaved = _savingsTrend.Points.Count == 0 ? 1 : Math.Max(1L, _savingsTrend.Points.Max(static point => Math.Abs(point.SavedMinor)));
+        _savingsTrendPoints.Clear();
+        foreach (var point in _savingsTrend.Points)
+        {
+            _savingsTrendPoints.Add(new SavingsTrendPointItem(point, maxAbsSaved));
+        }
+    }
+
+    private static FinancialPlan ToPlanModelFromProgress(PersonalPlanProgress progress) => new(
+        progress.ExpectedIncomeMinor,
+        progress.ExpectedSpendingLimitMinor,
+        progress.ExpectedSavingsTargetMinor,
+        Array.Empty<PlanCategoryLimit>());
+
+    public async Task<string> ExportPersonalReportCsvAsync()
+    {
+        var session = RequireSession();
+        var entries = await _repository.GetVisibleAsync(session.UserId);
+        var year = DateOnly.FromDateTime(DateTime.Today).Year;
+        var report = PersonalAnnualReportCalculator.Build(entries, year);
+        var builder = new System.Text.StringBuilder();
+        builder.AppendLine(string.Join(",", new[]
+        {
+            UiText.Get("T021"), UiText.Get("T465"), UiText.Get("T466"), UiText.Get("T467")
+        }.Select(EscapeCsv)));
+        foreach (var month in report.Months)
+        {
+            builder.AppendLine(string.Join(",", new object?[]
+            {
+                YearMonthName(month.Year, month.Month),
+                Money.ToDecimal(month.IncomeMinor).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture),
+                Money.ToDecimal(month.SpendingMinor).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture),
+                Money.ToDecimal(month.NetMinor).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)
+            }.Select(cell => EscapeCsv(cell?.ToString() ?? string.Empty))));
+        }
+        builder.AppendLine(string.Join(",", new object?[]
+        {
+            UiText.Get("T070"),
+            Money.ToDecimal(report.TotalIncomeMinor).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture),
+            Money.ToDecimal(report.TotalSpendingMinor).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture),
+            Money.ToDecimal(report.TotalNetMinor).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)
+        }.Select(cell => EscapeCsv(cell?.ToString() ?? string.Empty))));
+        var fileName = $"maen-accounting-annual-{year}.csv";
+        var filePath = Path.Combine(FileSystem.CacheDirectory, fileName);
+        await File.WriteAllTextAsync(filePath, builder.ToString(), new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+        return filePath;
+    }
+
+    private static string EscapeCsv(string value)
+    {
+        if (value.Contains(',') || value.Contains('"') || value.Contains('\n'))
+        {
+            return $"\"{value.Replace("\"", "\"\"")}\"";
+        }
+        return value;
+    }
+
     private void RebuildReport()
     {
         ReportEntries.Clear();
@@ -1002,6 +1189,7 @@ public sealed class MainStateViewModel : ObservableObject
         OnPropertyChanged(nameof(CurrentMonthHealthColor));
         OnPropertyChanged(nameof(CurrentYearNetText));
         OnPropertyChanged(nameof(TotalExpensesText));
+        RaiseAnnualReportProperties();
         RaiseBudgetProperties();
         RaisePlanningProperties();
         RaiseReportSummary();
@@ -1029,6 +1217,24 @@ public sealed class MainStateViewModel : ObservableObject
         OnPropertyChanged(nameof(HasPlan));
         OnPropertyChanged(nameof(UpcomingObligations));
         OnPropertyChanged(nameof(OverdueObligationsCount));
+    }
+
+    private void RaiseAnnualReportProperties()
+    {
+        OnPropertyChanged(nameof(HasAnnualReport));
+        OnPropertyChanged(nameof(AnnualIncomeText));
+        OnPropertyChanged(nameof(AnnualSpendingText));
+        OnPropertyChanged(nameof(AnnualNetText));
+        OnPropertyChanged(nameof(AnnualNetColor));
+        OnPropertyChanged(nameof(BestMonthText));
+        OnPropertyChanged(nameof(WorstMonthText));
+        OnPropertyChanged(nameof(YearOverYearText));
+        OnPropertyChanged(nameof(YearOverYearColor));
+        OnPropertyChanged(nameof(HasCategoryBreakdown));
+        OnPropertyChanged(nameof(CategoryBreakdownItems));
+        OnPropertyChanged(nameof(HasSavingsTrend));
+        OnPropertyChanged(nameof(TrendStreakText));
+        OnPropertyChanged(nameof(SavingsTrendPoints));
     }
 
     private void RaiseReportSummary()

@@ -28,4 +28,6 @@ public partial class DashboardPage : ContentPage
             _state.BeginEdit(item);
         }
     }
+
+    private void OnToggleOverdueClicked(object? sender, EventArgs e) => _state.ToggleOverdueExpanded();
 }

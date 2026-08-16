@@ -25,7 +25,7 @@
             <SearchBar Text="{Binding SearchText}" Placeholder="{local:Tr Key=T163}" />
             <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
                 <Button Text="{local:Tr Key=T201}" Clicked="OnShareClicked" Style="{StaticResource SecondaryButton}" />
-                <Button Grid.Column="1" Text="{local:Tr Key=T376}" Clicked="OnExportCsvClicked" Style="{StaticResource SecondaryButton}" />
+                <Button Grid.Column="1" Text="{local:Tr Key=T478}" Clicked="OnExportPersonalCsvClicked" Style="{StaticResource SecondaryButton}" />
             </Grid>
             <Border Style="{StaticResource HeroCard}">
                 <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="18" RowSpacing="5">
@@ -68,6 +68,67 @@
                     </CollectionView>
                 </VerticalStackLayout>
             </Border>
+            <Border Style="{StaticResource CardBorder}" IsVisible="{Binding HasAnnualReport}">
+                <VerticalStackLayout Spacing="9">
+                    <Label Text="{local:Tr Key=T464}" Style="{StaticResource SectionTitle}" />
+                    <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                        <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T465}" Style="{StaticResource MutedLabel}" FontSize="12"/><Label Text="{Binding AnnualIncomeText}" FontSize="18" FontAttributes="Bold" TextColor="{StaticResource PrimaryDark}"/></VerticalStackLayout></Border>
+                        <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T466}" Style="{StaticResource MutedLabel}" FontSize="12"/><Label Text="{Binding AnnualSpendingText}" FontSize="18" FontAttributes="Bold" TextColor="{StaticResource Danger}"/></VerticalStackLayout></Border>
+                        <Border Grid.Row="0" Grid.Column="2" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T467}" Style="{StaticResource MutedLabel}" FontSize="12"/><Label Text="{Binding AnnualNetText}" FontSize="18" FontAttributes="Bold" TextColor="{Binding AnnualNetColor}"/></VerticalStackLayout></Border>
+                        <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T468}" Style="{StaticResource MutedLabel}" FontSize="12"/><Label Text="{Binding BestMonthText}" FontSize="15" FontAttributes="Bold"/></VerticalStackLayout></Border>
+                        <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T469}" Style="{StaticResource MutedLabel}" FontSize="12"/><Label Text="{Binding WorstMonthText}" FontSize="15" FontAttributes="Bold"/></VerticalStackLayout></Border>
+                        <Border Grid.Row="1" Grid.Column="2" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T470}" Style="{StaticResource MutedLabel}" FontSize="12"/><Label Text="{Binding YearOverYearText}" FontSize="15" FontAttributes="Bold" TextColor="{Binding YearOverYearColor}" HorizontalTextAlignment="Center"/></VerticalStackLayout></Border>
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+            <Border Style="{StaticResource CardBorder}" IsVisible="{Binding HasCategoryBreakdown}">
+                <VerticalStackLayout Spacing="9">
+                    <Label Text="{local:Tr Key=T471}" Style="{StaticResource SectionTitle}" />
+                    <CollectionView ItemsSource="{Binding CategoryBreakdownItems}" HeightRequest="240" SelectionMode="None" EmptyView="{local:Tr Key=T168}">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" Padding="0,6">
+                                    <BoxView Grid.Column="0" WidthRequest="10" HeightRequest="10" CornerRadius="5" Color="{Binding CategoryColor}" VerticalOptions="Center" />
+                                    <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                        <Label Text="{Binding CategoryText}" FontAttributes="Bold" FontSize="14" />
+                                        <Label Text="{Binding SummaryText}" Style="{StaticResource MutedLabel}" FontSize="11" />
+                                    </VerticalStackLayout>
+                                    <VerticalStackLayout Grid.Column="2" Spacing="2" HorizontalOptions="End" VerticalOptions="Center">
+                                        <Label Text="{Binding SpentText}" FontAttributes="Bold" FontSize="14" HorizontalTextAlignment="End" />
+                                        <ProgressBar Progress="{Binding ShareProgress}" ProgressColor="{Binding CategoryColor}" BackgroundColor="#E2E8F0" WidthRequest="90" />
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Border>
+            <Border Style="{StaticResource CardBorder}" IsVisible="{Binding HasSavingsTrend}">
+                <VerticalStackLayout Spacing="9">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <Label Text="{local:Tr Key=T474}" Style="{StaticResource SectionTitle}" />
+                        <Label Grid.Column="1" Text="{Binding TrendStreakText}" TextColor="#137A53" FontSize="13" FontAttributes="Bold" VerticalOptions="Center" HorizontalTextAlignment="End"/>
+                    </Grid>
+                    <CollectionView ItemsSource="{Binding SavingsTrendPoints}" HeightRequest="200" SelectionMode="None" EmptyView="{local:Tr Key=T168}">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnDefinitions="62,*,Auto" ColumnSpacing="9" Padding="0,5">
+                                    <Label Text="{Binding MonthText}" Style="{StaticResource MutedLabel}" VerticalOptions="Center" />
+                                    <ProgressBar Grid.Column="1" Progress="{Binding SavedProgress}" ProgressColor="{Binding TrendColor}" BackgroundColor="#E2E8F0" VerticalOptions="Center" />
+                                    <VerticalStackLayout Grid.Column="2" Spacing="1" HorizontalOptions="End">
+                                        <Label Text="{Binding SavedText}" TextColor="{Binding TrendColor}" FontAttributes="Bold" HorizontalTextAlignment="End" />
+                                        <Label Text="{Binding StatusText}" Style="{StaticResource MutedLabel}" FontSize="11" HorizontalTextAlignment="End" />
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </VerticalStackLayout>
+            </Border>
+            <Grid IsVisible="{Binding IsBusinessExperience}" ColumnDefinitions="*,*" ColumnSpacing="10">
+                <Button Text="{local:Tr Key=T376}" Clicked="OnExportCsvClicked" Style="{StaticResource SecondaryButton}" />
+                <Button Grid.Column="1" Text="{local:Tr Key=T201}" Clicked="OnShareClicked" Style="{StaticResource SecondaryButton}" />
+            </Grid>
             <Grid IsVisible="{Binding IsBusinessExperience}" ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="10">
                 <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T004}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding PostedInvoiceTotalText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>
                 <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource CardBorder}"><VerticalStackLayout><Label Text="{local:Tr Key=T006}" Style="{StaticResource MutedLabel}"/><Label Text="{Binding PaymentsTotalText}" FontSize="20" FontAttributes="Bold"/></VerticalStackLayout></Border>

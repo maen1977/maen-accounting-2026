@@ -67,6 +67,23 @@ public partial class ReportsPage : ContentPage
         });
     }
 
+    private async void OnExportPersonalCsvClicked(object? sender, EventArgs e)
+    {
+        try
+        {
+            var path = await _state.ExportPersonalReportCsvAsync();
+            await Share.Default.RequestAsync(new ShareFileRequest
+            {
+                Title = UiText.Get("T478"),
+                File = new ShareFile(path)
+            });
+        }
+        catch (Exception exception)
+        {
+            await DisplayAlertAsync(UiText.Get("T179"), exception.Message, UiText.Get("T180"));
+        }
+    }
+
     private async void OnExportCsvClicked(object? sender, EventArgs e)
     {
         try

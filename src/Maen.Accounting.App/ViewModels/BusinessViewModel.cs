@@ -229,6 +229,28 @@ public sealed class BusinessViewModel : ObservableObject
     }
 }
 
+public sealed class OverdueInvoiceItem(Invoice invoice, IReadOnlyList<AccountingContact> contacts)
+{
+    public string Number => invoice.Number;
+    public string DueDateText => invoice.DueDate.ToString("yyyy-MM-dd");
+    public string ContactText => contacts.FirstOrDefault(contact => contact.ContactId == invoice.ContactId)?.Name ?? UiText.Get("T279");
+    public string AmountText => Money.Format(invoice.TotalMinor);
+    public string TypeText => invoice.Type == InvoiceType.Sales ? UiText.Get("T277") : UiText.Get("T278");
+    public string AgeText
+    {
+        get
+        {
+            var days = DateOnly.FromDateTime(DateTime.Today).DayNumber - invoice.DueDate.DayNumber;
+            if (days <= 0)
+            {
+                return UiText.Get("T485");
+            }
+
+            return UiText.Format("T486", days.ToString());
+        }
+    }
+}
+
 public sealed record ContactTypeOption(ContactType Type)
 {
     public string Label => Type == ContactType.Customer ? UiText.Get("T261") : UiText.Get("T262");
