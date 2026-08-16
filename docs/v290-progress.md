@@ -21,6 +21,11 @@
 - T-keys T551-T580 in UiText.cs (goals/health/forecast/comparison bilingual).
 - ~30 tests in V290EngineTests.cs; bump csproj 2.9.0/Build 11; release notes docs/release-notes-2.9.0.md; commit+push; gh release.
 
+## FINAL STATUS (completed)
+- All TODOs done: Migration 8 applied, SavingsGoalsPage new tab, health card on PersonalDashboardPage, forecast card on PlanningPage, MoM/YoY on BusinessReportsPage, Task.WhenAll parallelization, security integrated.
+- 235 passing tests (40 new V290 tests).
+- Version 2.9.0 Build 11. Committed 5ea9aa1, tagged v2.9.0, pushed to GitHub.
+
 ## Patterns reminders
 - MVVM with ObservableObject from Maen.Accounting.App.Infrastructure; records CANNOT inherit ObservableObject.
 - UiText: static Get("Tnnn"), Format("Tnnn", arg). UiTextKeys (Core, english strings) for CSV exports.
