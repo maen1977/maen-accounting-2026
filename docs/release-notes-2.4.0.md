@@ -18,6 +18,6 @@ SQLite migrations are now described by a central catalog, with a fourth migratio
 
 ## Verification
 
-- Core tests: **44 passed, 0 failed** at the time of the 2.4.0 preparation.
+- Core tests: **47 passed, 0 failed** at the time of the 2.4.0 preparation.
 - Android Debug build: **successful**.
 - Android Release publish: executed as the final packaging gate before release publication.
