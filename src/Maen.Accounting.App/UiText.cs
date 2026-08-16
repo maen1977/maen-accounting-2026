@@ -393,6 +393,7 @@ public static class UiText
         ["T391"] = ("أضف فئة للمشتريات والمصاريف لتحصل على تحليل أدق.", "Add categories to purchases and expenses for more accurate analysis."),
         ["T392"] = ("تم الحفظ محلياً والمزامنة مؤكدة — رُفع {0}، اعتمد المحلي {1}، اعتمدت السحابة {2}، إجمالي السجلات {3} — {4}.", "Saved locally and sync confirmed — uploaded {0}, local wins {1}, remote wins {2}, total records {3} — {4}."),
         ["T393"] = ("آخر مزامنة مؤكدة: {0} — رُفع {1}، اعتمد المحلي {2}، اعتمدت السحابة {3}، إجمالي السجلات {4}.", "Last confirmed sync: {0} — uploaded {1}, local wins {2}, remote wins {3}, total records {4}."),
+        ["T394"] = ("بيانات الشركات — جهات الاتصال {0}، الفواتير {1}، الدفعات {2} — رُفع {3}، اعتمد المحلي {4}، اعتمدت السحابة {5}، الإجمالي {6}.", "Business data — contacts {0}, invoices {1}, payments {2} — uploaded {3}, local wins {4}, remote wins {5}, total records {6}."),
     };
 
     public static string Get(string key)

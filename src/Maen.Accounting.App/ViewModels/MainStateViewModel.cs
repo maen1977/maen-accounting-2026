@@ -22,6 +22,7 @@ public sealed class MainStateViewModel : ObservableObject
     private readonly BusinessRepository _businessRepository;
     private readonly BackupService _backupService;
     private readonly FirestoreSyncService _syncService;
+    private readonly BusinessFirestoreSyncService _businessSyncService;
     private readonly DeviceIdentityService _deviceIdentity;
     private readonly AuthSessionStore _sessionStore;
     private readonly AppPreferencesService _preferences;
@@ -51,6 +52,7 @@ public sealed class MainStateViewModel : ObservableObject
     private string _walletInput = string.Empty;
     private string _counterpartyInput = string.Empty;
     private string _monthlyBudgetInput = Preferences.Default.Get("maen_personal_monthly_budget_v1", string.Empty);
+    private BusinessSyncResult? _lastBusinessSyncResult;
 
     public MainStateViewModel(
         ProfitEntryRepository repository,
@@ -58,6 +60,7 @@ public sealed class MainStateViewModel : ObservableObject
         BusinessRepository businessRepository,
         BackupService backupService,
         FirestoreSyncService syncService,
+        BusinessFirestoreSyncService businessSyncService,
         DeviceIdentityService deviceIdentity,
         AuthSessionStore sessionStore,
         AppPreferencesService preferences)
@@ -67,6 +70,7 @@ public sealed class MainStateViewModel : ObservableObject
         _businessRepository = businessRepository;
         _backupService = backupService;
         _syncService = syncService;
+        _businessSyncService = businessSyncService;
         _deviceIdentity = deviceIdentity;
         _sessionStore = sessionStore;
         _preferences = preferences;
@@ -537,13 +541,7 @@ public sealed class MainStateViewModel : ObservableObject
         await RunBusyAsync(async () =>
         {
             var syncResult = await SyncInternalAsync();
-            StatusMessage = UiText.Format(
-                "T393",
-                syncResult.CompletedAtUtc.ToLocalTime().ToString("g"),
-                syncResult.Uploaded,
-                syncResult.LocalWins,
-                syncResult.RemoteWins,
-                syncResult.TotalEntries);
+            StatusMessage = FormatSyncSummary(syncResult);
         });
     }
 
@@ -581,17 +579,41 @@ public sealed class MainStateViewModel : ObservableObject
     private async Task<SyncResult> SyncInternalAsync()
     {
         var result = await _syncService.SyncAsync();
+        _lastBusinessSyncResult = string.Equals(_preferences.StorageScope, "business", StringComparison.Ordinal)
+            ? await _businessSyncService.SyncAsync()
+            : null;
+        SyncStatus = FormatSyncSummary(result);
+        await ReloadAsync();
+        await WriteBackupAndUpdateAsync();
+        return result;
+    }
+
+    private string FormatSyncSummary(SyncResult result)
+    {
         var completedAt = result.CompletedAtUtc.ToLocalTime().ToString("g");
-        SyncStatus = UiText.Format(
+        var summary = UiText.Format(
             "T393",
             completedAt,
             result.Uploaded,
             result.LocalWins,
             result.RemoteWins,
             result.TotalEntries);
-        await ReloadAsync();
-        await WriteBackupAndUpdateAsync();
-        return result;
+
+        if (_lastBusinessSyncResult is null)
+        {
+            return summary;
+        }
+
+        var business = _lastBusinessSyncResult;
+        return $"{summary}{Environment.NewLine}{UiText.Format(
+            "T394",
+            business.ContactsTotal,
+            business.InvoicesTotal,
+            business.PaymentsTotal,
+            business.Uploaded,
+            business.LocalWins,
+            business.RemoteWins,
+            business.TotalRecords)}";
     }
 
     private async Task WriteBackupAndUpdateAsync()

@@ -34,6 +34,33 @@ public sealed class BusinessRepository
             .ToArray();
     }
 
+    public async Task<IReadOnlyList<AccountingContact>> GetContactsForSyncAsync(string userId)
+    {
+        var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
+        var rows = await database.Table<ContactRow>()
+            .Where(row => row.UserId == userId)
+            .ToListAsync();
+        return rows.Select(static row => row.ToModel()).ToArray();
+    }
+
+    public async Task UpsertContactsFromSyncAsync(string userId, IEnumerable<AccountingContact> contacts)
+    {
+        var materialized = contacts.ToArray();
+        foreach (var contact in materialized)
+        {
+            UserIsolation.EnsureOwner(userId, contact.UserId);
+        }
+
+        var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
+        await database.RunInTransactionAsync(connection =>
+        {
+            foreach (var contact in materialized)
+            {
+                connection.InsertOrReplace(ContactRow.FromModel(contact));
+            }
+        });
+    }
+
     public async Task UpsertContactAsync(string userId, AccountingContact contact)
     {
         UserIsolation.EnsureOwner(userId, contact.UserId);
@@ -71,6 +98,40 @@ public sealed class BusinessRepository
             .OrderByDescending(static invoice => invoice.IssueDate)
             .ThenByDescending(static invoice => invoice.Number, StringComparer.Ordinal)
             .ToArray();
+    }
+
+    public async Task UpsertInvoicesFromSyncAsync(string userId, IEnumerable<Invoice> invoices)
+    {
+        var materialized = invoices.ToArray();
+        foreach (var invoice in materialized)
+        {
+            UserIsolation.EnsureOwner(userId, invoice.UserId);
+            if (invoice.Status == InvoiceStatus.Posted)
+            {
+                BusinessDocumentValidator.EnsureValidInvoice(invoice);
+            }
+        }
+
+        var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
+        await database.RunInTransactionAsync(connection =>
+        {
+            foreach (var invoice in materialized)
+            {
+                connection.InsertOrReplace(InvoiceRow.FromModel(invoice));
+                connection.Execute("DELETE FROM invoice_lines WHERE InvoiceId = ? AND UserId = ?", invoice.InvoiceId, userId);
+                foreach (var line in invoice.Lines)
+                {
+                    connection.InsertOrReplace(InvoiceLineRow.FromModel(invoice.InvoiceId, userId, line));
+                }
+            }
+        });
+
+        foreach (var invoice in materialized.Where(static invoice => invoice.Status == InvoiceStatus.Posted))
+        {
+            await _accountingRepository.UpsertJournalEntryAsync(
+                userId,
+                DocumentJournalFactory.CreateInvoiceJournal(invoice));
+        }
     }
 
     public async Task UpsertInvoiceAsync(string userId, Invoice invoice)
@@ -111,6 +172,32 @@ public sealed class BusinessRepository
             .OrderByDescending(static payment => payment.PaymentDate)
             .ThenByDescending(static payment => payment.Number, StringComparer.Ordinal)
             .ToArray();
+    }
+
+    public async Task UpsertPaymentsFromSyncAsync(string userId, IEnumerable<Payment> payments)
+    {
+        var materialized = payments.ToArray();
+        foreach (var payment in materialized)
+        {
+            UserIsolation.EnsureOwner(userId, payment.UserId);
+            BusinessDocumentValidator.EnsureValidPayment(payment);
+        }
+
+        var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
+        await database.RunInTransactionAsync(connection =>
+        {
+            foreach (var payment in materialized)
+            {
+                connection.InsertOrReplace(PaymentRow.FromModel(payment));
+            }
+        });
+
+        foreach (var payment in materialized)
+        {
+            await _accountingRepository.UpsertJournalEntryAsync(
+                userId,
+                DocumentJournalFactory.CreatePaymentJournal(payment));
+        }
     }
 
     public async Task UpsertPaymentAsync(string userId, Payment payment)

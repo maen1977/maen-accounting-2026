@@ -57,18 +57,23 @@ public sealed class UserDatabaseFactory
             .Select(static row => row.Version)
             .ToHashSet();
 
-        var migrations = new (int Version, string Name, Func<Task> Apply)[]
+        var migrationActions = new Dictionary<int, Func<Task>>
         {
-            (1, "personal-movement-columns", () => EnsureProfitEntryColumnsAsync(connection)),
-            (2, "business-payment-account-code", () => EnsurePaymentColumnsAsync(connection)),
-            (3, "ledger-and-query-indexes", () => EnsureIndexesAsync(connection))
+            [1] = () => EnsureProfitEntryColumnsAsync(connection),
+            [2] = () => EnsurePaymentColumnsAsync(connection),
+            [3] = () => EnsureIndexesAsync(connection),
+            [4] = () => EnsureBusinessEntitySyncIndexesAsync(connection)
         };
 
-        foreach (var migration in migrations)
+        foreach (var migration in SchemaMigrationCatalog.All)
         {
             if (appliedVersions.Contains(migration.Version)) continue;
+            if (!migrationActions.TryGetValue(migration.Version, out var apply))
+            {
+                throw new InvalidOperationException($"Missing implementation for schema migration {migration.Version}.");
+            }
 
-            await migration.Apply();
+            await apply();
             await connection.InsertAsync(new SchemaMigrationRow
             {
                 Version = migration.Version,
@@ -100,6 +105,14 @@ public sealed class UserDatabaseFactory
         "ON invoice_lines(UserId, InvoiceId);" +
         "CREATE INDEX IF NOT EXISTS ix_payments_user_date " +
         "ON payments(UserId, PaymentDate);");
+
+    private static Task EnsureBusinessEntitySyncIndexesAsync(SQLiteAsyncConnection connection) => connection.ExecuteAsync(
+        "CREATE INDEX IF NOT EXISTS ix_contacts_user_updated " +
+        "ON contacts(UserId, UpdatedAtUtcTicks);" +
+        "CREATE INDEX IF NOT EXISTS ix_invoices_user_updated " +
+        "ON invoices(UserId, UpdatedAtUtcTicks);" +
+        "CREATE INDEX IF NOT EXISTS ix_payments_user_updated " +
+        "ON payments(UserId, UpdatedAtUtcTicks);");
 
     private static async Task EnsurePaymentColumnsAsync(SQLiteAsyncConnection connection)
     {

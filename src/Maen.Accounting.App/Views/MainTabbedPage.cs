@@ -14,7 +14,7 @@ public sealed class MainTabbedPage : Microsoft.Maui.Controls.TabbedPage
         MainStateViewModel state,
         DashboardPage dashboardPage,
         AccountingPage accountingPage,
-        BusinessPage businessPage,
+        BusinessTabbedPage businessPage,
         EntryPage entryPage,
         ReportsPage reportsPage,
         SettingsPage settingsPage)

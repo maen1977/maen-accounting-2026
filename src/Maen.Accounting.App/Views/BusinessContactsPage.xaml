@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Maen.Accounting.App.Views.BusinessContactsPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:local="clr-namespace:Maen.Accounting.App"
+    xmlns:views="clr-namespace:Maen.Accounting.App.Views">
+    <Grid RowDefinitions="Auto,*" Padding="18" MaximumWidthRequest="1100" HorizontalOptions="Center">
+        <views:BrandHeaderView
+            Eyebrow="Maen Accounting"
+            Title="{local:Tr Key=T073}"
+            Subtitle="{local:Tr Key=T038}"
+            Status="{Binding StatusMessage}"
+            HasStatus="True" />
+
+        <ScrollView Grid.Row="1" Margin="0,14,0,0">
+            <VerticalStackLayout Spacing="14">
+                <Border Style="{StaticResource CardBorder}">
+                    <VerticalStackLayout Spacing="10">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                            <Label Text="{local:Tr Key=T073}" Style="{StaticResource SectionTitle}" />
+                            <ActivityIndicator Grid.Column="1" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                            <Picker Title="{local:Tr Key=T050}" ItemsSource="{Binding ContactTypes}" SelectedItem="{Binding SelectedContactType}" ItemDisplayBinding="{Binding Label}" />
+                            <Entry Grid.Column="1" Text="{Binding ContactNameInput}" Placeholder="{local:Tr Key=T299}" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                            <Entry Text="{Binding ContactPhoneInput}" Placeholder="{local:Tr Key=T300}" Keyboard="Telephone" />
+                            <Button Grid.Column="1" Text="{local:Tr Key=T062}" Style="{StaticResource AccentButton}" Clicked="OnSaveContactClicked" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Label Text="{local:Tr Key=T073}" Style="{StaticResource SectionTitle}" />
+                <CollectionView ItemsSource="{Binding Contacts}" HeightRequest="360" EmptyView="{local:Tr Key=T084}">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource ListItemBorder}" Margin="0,0,0,8">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                    <VerticalStackLayout Spacing="3">
+                                        <Label Text="{Binding Name}" FontAttributes="Bold" />
+                                        <Label Text="{Binding Phone}" Style="{StaticResource MutedLabel}" />
+                                    </VerticalStackLayout>
+                                    <Border Grid.Column="1" BackgroundColor="{StaticResource PrimaryLight}" StrokeThickness="0" Padding="10,6" VerticalOptions="Center">
+                                        <Border.StrokeShape>
+                                            <RoundRectangle CornerRadius="10" />
+                                        </Border.StrokeShape>
+                                        <Label Text="{Binding TypeText}" TextColor="{StaticResource PrimaryDark}" FontAttributes="Bold" FontSize="12" />
+                                    </Border>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>

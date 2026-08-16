@@ -55,6 +55,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<BusinessRepository>();
         builder.Services.AddSingleton<BackupService>();
         builder.Services.AddSingleton<FirestoreSyncService>();
+        builder.Services.AddSingleton<BusinessFirestoreSyncService>();
         builder.Services.AddSingleton<MainStateViewModel>();
         builder.Services.AddSingleton<AccountingViewModel>();
         builder.Services.AddSingleton<BusinessViewModel>();
@@ -65,11 +66,14 @@ public static class MauiProgram
         builder.Services.AddTransient<DashboardPage>();
         builder.Services.AddTransient<PersonalDashboardPage>();
         builder.Services.AddTransient<AccountingPage>();
-        builder.Services.AddTransient<BusinessPage>();
+        builder.Services.AddTransient<BusinessContactsPage>();
+        builder.Services.AddTransient<BusinessInvoicesPage>();
+        builder.Services.AddTransient<BusinessPaymentsPage>();
         builder.Services.AddTransient<EntryPage>();
         builder.Services.AddTransient<PersonalEntryPage>();
         builder.Services.AddTransient<ReportsPage>();
         builder.Services.AddTransient<SettingsPage>();
+        builder.Services.AddTransient<BusinessTabbedPage>();
         builder.Services.AddTransient<MainTabbedPage>();
         builder.Services.AddTransient<PersonalTabbedPage>();
 
