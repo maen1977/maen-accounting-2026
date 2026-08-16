@@ -21,9 +21,14 @@ public sealed record ProfitEntry(
     string Wallet = "main",
     string Counterparty = "",
     string IntegrityHash = "",
-    string AttachmentBase64 = "")
+    string AttachmentBase64 = "",
+    string CurrencyCode = "")
 {
     public bool HasAttachment => !string.IsNullOrEmpty(AttachmentBase64);
+
+    /// <summary>Resolved currency code falling back to the user's display currency when unspecified.</summary>
+    public string ResolvedCurrency(string displayCurrency) =>
+        !string.IsNullOrEmpty(CurrencyCode) ? CurrencyCode : displayCurrency;
 
     public long GrossProfitMinor => checked(SalesMinor - CostMinor);
     public long NetProfitMinor => checked(GrossProfitMinor - ExpensesMinor);

@@ -276,4 +276,36 @@ public sealed class PlanningRepository
 
         await database.UpdateAllAsync(rows);
     }
+
+    public async Task<IReadOnlyList<BudgetPlanRow>> GetBudgetPlansAsync(string userId)
+    {
+        var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
+        var rows = await database.Table<BudgetPlanRow>()
+            .Where(row => row.UserId == userId && !row.IsDeleted)
+            .ToListAsync();
+        return rows
+            .OrderByDescending(row => row.YearMonth)
+            .ToArray();
+    }
+
+    public async Task UpsertBudgetPlanAsync(string userId, BudgetPlanRow row)
+    {
+        UserIsolation.EnsureOwner(userId, row.UserId);
+        var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
+        var database2 = database;
+        var existing = await database2.Table<BudgetPlanRow>()
+            .Where(row => row.YearMonth == row.YearMonth && row.UserId == userId && !row.IsDeleted)
+            .ToListAsync();
+        foreach (var prior in existing)
+        {
+            prior.IsActive = false;
+            prior.IsDeleted = true;
+            prior.UpdatedAtUtcTicks = DateTimeOffset.UtcNow.UtcDateTime.Ticks;
+            prior.Version = checked(prior.Version + 1);
+            prior.DeviceId = _deviceIdentity.GetOrCreate();
+        }
+
+        await database2.UpdateAllAsync(existing);
+        await database2.InsertOrReplaceAsync(row);
+    }
 }

@@ -41,6 +41,32 @@ public static class RecurringMovementCalculator
         return due.OrderBy(static item => item.NextOccurrence).ToArray();
     }
 
+    /// <summary>Returns the next <paramref name="count"/> due dates per active movement after <paramref name="asOf"/>.</summary>
+    public static IReadOnlyList<(RecurringMovement Movement, DateOnly[] Upcoming)> PreviewUpcoming(
+        IEnumerable<RecurringMovement> movements,
+        DateOnly asOf,
+        int count)
+    {
+        ArgumentNullException.ThrowIfNull(movements);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(count);
+
+        var result = new List<(RecurringMovement, DateOnly[])>();
+        foreach (var movement in movements.Where(static item => item.IsActive))
+        {
+            var upcoming = new List<DateOnly>(count);
+            var cursor = movement.NextOccurrence > asOf ? movement.NextOccurrence : AdvanceOccurrence(movement.NextOccurrence, movement.Cycle);
+            for (var i = 0; i < count; i++)
+            {
+                upcoming.Add(cursor);
+                cursor = AdvanceOccurrence(cursor, movement.Cycle);
+            }
+
+            result.Add((movement, upcoming.ToArray()));
+        }
+
+        return result.OrderBy(item => item.Item2[0]).ToArray();
+    }
+
     public static DateOnly AdvanceOccurrence(DateOnly current, string cycle) =>
         cycle switch
         {

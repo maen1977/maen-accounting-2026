@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Maen.Accounting.App.Views.AppLockPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:local="clr-namespace:Maen.Accounting.App"
+    Title="{local:Tr Key=T801}"
+    BackgroundColor="#F8FAF9">
+    <VerticalStackLayout Padding="32" Spacing="18" VerticalOptions="Center" MaximumWidthRequest="420" HorizontalOptions="Center">
+        <Label Text="{local:Tr Key=T801}" FontSize="26" FontAttributes="Bold" TextColor="#047857" HorizontalOptions="Center" />
+        <Label Text="{local:Tr Key=T802}" FontSize="14" TextColor="#64748B" HorizontalOptions="Center" />
+        <Border Style="{StaticResource CardBorder}">
+            <VerticalStackLayout Spacing="14">
+                <Entry
+                    x:Name="PinEntry"
+                    Keyboard="Numeric"
+                    IsPassword="True"
+                    Placeholder="{local:Tr Key=T803}"
+                    MaxLength="8"
+                    HorizontalTextAlignment="Center"
+                    FontSize="20" />
+                <Label x:Name="ErrorLabel" Text="" TextColor="#B42318" FontSize="13" HorizontalOptions="Center" LineBreakMode="WordWrap" />
+                <Button Text="{local:Tr Key=T804}" Clicked="OnUnlockClicked" Style="{StaticResource PrimaryButton}" HeightRequest="52" />
+            </VerticalStackLayout>
+        </Border>
+    </VerticalStackLayout>
+</ContentPage>

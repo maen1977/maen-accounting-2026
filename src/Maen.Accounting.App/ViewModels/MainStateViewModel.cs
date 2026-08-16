@@ -61,6 +61,7 @@ public sealed class MainStateViewModel : ObservableObject
     private string _categoryInput = string.Empty;
     private string _walletInput = string.Empty;
     private string _counterpartyInput = string.Empty;
+    private string _currencyInput = string.Empty;
     private string _monthlyBudgetInput = Preferences.Default.Get("maen_personal_monthly_budget_v1", string.Empty);
     private BusinessSyncResult? _lastBusinessSyncResult;
     private PersonalEntitySyncResult? _lastPersonalEntitySyncResult;
@@ -86,6 +87,9 @@ public sealed class MainStateViewModel : ObservableObject
     private MonthlyAmount[] _monthlyAmounts = [];
     private AuditSummary? _auditSummary;
     private RecurringMovementRow[] _recurringMovements = [];
+    private string _displayCurrency = "JOD";
+    private BudgetStatus? _currentBudgetStatus;
+    private bool _possibleDuplicateDetected;
 
     public string ReceivablesAgingTotalText => Money.Format(_debtAging?.Receivables.TotalMinor ?? 0);
     public string ReceivablesAgingCurrentText => Money.Format(_debtAging?.Receivables.CurrentMinor ?? 0);
@@ -129,6 +133,46 @@ public sealed class MainStateViewModel : ObservableObject
 
     public IReadOnlyList<RecurringMovementRow> RecurringMovements => _recurringMovements;
     public bool HasRecurringMovements => _recurringMovements.Length > 0;
+
+    public string DisplayCurrency
+    {
+        get => _displayCurrency;
+        set
+        {
+            if (SetProperty(ref _displayCurrency, value ?? _displayCurrency))
+            {
+                Preferences.Default.Set("maen_display_currency_v1", _displayCurrency);
+                RaiseCurrencyProperties();
+                RaiseReportSummary();
+            }
+        }
+    }
+
+    public BudgetStatus? CurrentBudgetStatus => _currentBudgetStatus;
+    public bool HasBudgetStatus => _currentBudgetStatus is not null;
+    public string BudgetStatusAlertText => _currentBudgetStatus?.Alert switch
+    {
+        BudgetAlert.Exceeded => UiText.Get("T818"),
+        BudgetAlert.Warning => UiText.Get("T819"),
+        _ => UiText.Get("T158")
+    };
+    public string BudgetStatusAlertColor => _currentBudgetStatus?.Alert switch
+    {
+        BudgetAlert.Exceeded => "#C2413A",
+        BudgetAlert.Warning => "#A16207",
+        _ => "#137A53"
+    };
+    public string BudgetRemainingText => _currentBudgetStatus is null
+        ? string.Empty
+        : Money.Format(Math.Max(0, _currentBudgetStatus.RemainingMinor));
+    public string BudgetProjectedText => _currentBudgetStatus is null
+        ? string.Empty
+        : Money.Format(_currentBudgetStatus.ProjectedMonthTotalMinor);
+    public bool PossibleDuplicateDetected
+    {
+        get => _possibleDuplicateDetected;
+        set => SetProperty(ref _possibleDuplicateDetected, value);
+    }
     public string HealthScoreText => _financialHealth?.Score.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "0";
     public string HealthLevelText => _financialHealth?.ScoreLevel switch
     {
@@ -293,6 +337,20 @@ public sealed class MainStateViewModel : ObservableObject
     public string CategoryInput { get => _categoryInput; set => SetProperty(ref _categoryInput, value); }
     public string WalletInput { get => _walletInput; set => SetProperty(ref _walletInput, value); }
     public string CounterpartyInput { get => _counterpartyInput; set => SetProperty(ref _counterpartyInput, value); }
+    public string CurrencyInput { get => _currencyInput; set => SetProperty(ref _currencyInput, value); }
+
+    public IReadOnlyList<string> DisplayCurrencyOptions => new[] { "JOD", "SAR", "USD", "EUR", "KWD", "AED", "EGP", "IQD", "SYP", "GBP" };
+
+    private string ResolveEntryCurrency(string userId)
+    {
+        var input = (CurrencyInput ?? string.Empty).Trim().ToUpperInvariant();
+        if (string.IsNullOrEmpty(input))
+        {
+            return string.Empty;
+        }
+
+        return CurrencyConverter.ResolveProfile(input) is not null ? input : DisplayCurrency;
+    }
     public string DirectionSummaryText => IsTransferMovement() ? UiText.Get("T352") : SelectedDirection;
     public string MonthlyBudgetInput { get => _monthlyBudgetInput; set => SetProperty(ref _monthlyBudgetInput, value); }
     private long MonthlyBudgetMinor => Money.TryParse(_monthlyBudgetInput, out var amount) && amount >= 0 ? amount : 0;
@@ -321,19 +379,13 @@ public sealed class MainStateViewModel : ObservableObject
 
     public void SaveMonthlyBudget()
     {
-        if (string.IsNullOrWhiteSpace(MonthlyBudgetInput))
-        {
-            Preferences.Default.Remove("maen_personal_monthly_budget_v1");
-        }
-        else if (!Money.TryParse(MonthlyBudgetInput, out var amount) || amount < 0)
+        if (!string.IsNullOrWhiteSpace(MonthlyBudgetInput)
+            && (!Money.TryParse(MonthlyBudgetInput, out var amount) || amount < 0))
         {
             throw new InvalidOperationException(UiText.Get("T187"));
         }
-        else
-        {
-            Preferences.Default.Set("maen_personal_monthly_budget_v1", MonthlyBudgetInput.Trim());
-        }
 
+        _ = SaveMonthlyBudgetAsync();
         RaiseBudgetProperties();
     }
 
@@ -552,6 +604,7 @@ public sealed class MainStateViewModel : ObservableObject
         RebuildAnnualReport(entries);
         await RebuildPlanningAsync(session.UserId, entries);
         await RebuildAnalyticsAndAuditAsync(session.UserId, entries);
+        await RebuildBudgetAsync(session.UserId, entries);
         RaiseSummaries();
     }
 
@@ -870,6 +923,7 @@ public sealed class MainStateViewModel : ObservableObject
         var sales = ParseEntryAmount(SalesInput, UiText.Get("T005"));
         var cost = ParseEntryAmount(CostInput, UiText.Get("T059"));
         var expenses = ParseEntryAmount(ExpensesInput, UiText.Get("T047"));
+        var entryCurrency = ResolveEntryCurrency(session.UserId);
 
         await RunBusyAsync(async () =>
         {
@@ -898,7 +952,15 @@ public sealed class MainStateViewModel : ObservableObject
                 string.IsNullOrWhiteSpace(WalletInput) ? "main" : WalletInput.Trim(),
                 CounterpartyInput.Trim(),
                 string.Empty,
-                (_editingEntry ?? existingByDate)?.AttachmentBase64 ?? string.Empty);
+                (_editingEntry ?? existingByDate)?.AttachmentBase64 ?? string.Empty,
+                entryCurrency);
+
+            var existingVisible = Models().Where(entry => !entry.IsDeleted).ToList();
+            PossibleDuplicateDetected = DuplicateDetector.IsLikelyDuplicate(entry, existingVisible);
+            if (PossibleDuplicateDetected)
+            {
+                StatusMessage = UiText.Get("T824");
+            }
 
             await _repository.UpsertAsync(session.UserId, entry);
             await WriteBackupAndUpdateAsync();
@@ -1118,6 +1180,7 @@ public sealed class MainStateViewModel : ObservableObject
         WalletInput = string.Empty;
         CounterpartyInput = string.Empty;
         NotesInput = string.Empty;
+        CurrencyInput = string.Empty;
         AttachmentBase64 = string.Empty;
         OnPropertyChanged(nameof(SaveButtonText));
         OnPropertyChanged(nameof(DirectionSummaryText));
@@ -1496,6 +1559,63 @@ public sealed class MainStateViewModel : ObservableObject
         OnPropertyChanged(nameof(MonthlyBudgetPercentText));
         OnPropertyChanged(nameof(MonthlyBudgetStatusText));
         OnPropertyChanged(nameof(MonthlyBudgetStatusColor));
+    }
+
+    private void RaiseCurrencyProperties()
+    {
+        OnPropertyChanged(nameof(DisplayCurrency));
+        OnPropertyChanged(nameof(HasBudgetStatus));
+        OnPropertyChanged(nameof(CurrentBudgetStatus));
+        OnPropertyChanged(nameof(BudgetStatusAlertText));
+        OnPropertyChanged(nameof(BudgetStatusAlertColor));
+        OnPropertyChanged(nameof(BudgetRemainingText));
+        OnPropertyChanged(nameof(BudgetProjectedText));
+        OnPropertyChanged(nameof(DisplayCurrencyOptions));
+    }
+
+    private async Task RebuildBudgetAsync(string userId, IReadOnlyList<ProfitEntry> entries)
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var yearMonth = today.Year * 100 + today.Month;
+        var plans = await _planningRepository.GetBudgetPlansAsync(userId);
+        var activePlan = plans.FirstOrDefault(plan => plan.YearMonth == yearMonth && plan.IsActive);
+        if (activePlan is null && plans.Count > 0)
+        {
+            activePlan = plans[0];
+        }
+
+        _currentBudgetStatus = activePlan is null
+            ? null
+            : BudgetPlannerCalculator.Assess(activePlan.AmountMinor, entries, today);
+        RaiseCurrencyProperties();
+    }
+
+    public async Task SaveMonthlyBudgetAsync()
+    {
+        if (!Money.TryParse(_monthlyBudgetInput, out var amountMinor) || amountMinor < 0)
+        {
+            return;
+        }
+
+        var session = RequireSession();
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var yearMonth = today.Year * 100 + today.Month;
+        var row = new BudgetPlanRow
+        {
+            PlanId = Guid.NewGuid().ToString("N"),
+            UserId = session.UserId,
+            YearMonth = yearMonth,
+            AmountMinor = amountMinor,
+            IsActive = true,
+            UpdatedAtUtcTicks = DateTimeOffset.UtcNow.UtcDateTime.Ticks,
+            Version = 1,
+            DeviceId = _deviceIdentity.GetOrCreate(),
+            IsDeleted = false
+        };
+
+        await _planningRepository.UpsertBudgetPlanAsync(session.UserId, row);
+        Preferences.Default.Set("maen_personal_monthly_budget_v1", _monthlyBudgetInput.Trim());
+        await ReloadAsync();
     }
 
     private void RaisePlanningProperties()

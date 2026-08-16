@@ -24,6 +24,10 @@ public static class MovementSearchEngine
             .Where(entry => query.MovementTypes.Count == 0
                 || query.MovementTypes.Contains(entry.MovementType, StringComparer.OrdinalIgnoreCase))
             .Where(entry => keyword.Length == 0 || MatchesKeyword(entry, keyword))
+            .Where(entry => string.IsNullOrEmpty(query.EntryIdPrefix)
+                || entry.EntryId.StartsWith(query.EntryIdPrefix, StringComparison.OrdinalIgnoreCase))
+            .Where(entry => query.HasAttachment is null || entry.HasAttachment == query.HasAttachment)
+            .Where(entry => query.IsRecurringSourced is null || IsRecurringSourced(entry) == query.IsRecurringSourced)
             .ToArray();
 
         return matches
@@ -31,6 +35,9 @@ public static class MovementSearchEngine
             .ThenByDescending(entry => entry.CreatedAtUtc)
             .ToArray();
     }
+
+    private static bool IsRecurringSourced(ProfitEntry entry) =>
+        entry.MovementType.Equals("recurring", StringComparison.OrdinalIgnoreCase);
 
     private static bool MatchesKeyword(ProfitEntry entry, string keyword)
     {
@@ -93,7 +100,10 @@ public sealed record MovementSearchQuery(
     string Keyword = "",
     DateOnly FromDate = default,
     DateOnly ToDate = default,
-    IReadOnlyCollection<string>? MovementTypes = null)
+    IReadOnlyCollection<string>? MovementTypes = null,
+    string? EntryIdPrefix = null,
+    bool? HasAttachment = null,
+    bool? IsRecurringSourced = null)
 {
     public IReadOnlyCollection<string> MovementTypes { get; } =
         MovementTypes ?? Array.Empty<string>();

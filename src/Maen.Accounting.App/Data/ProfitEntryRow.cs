@@ -34,6 +34,8 @@ public sealed class ProfitEntryRow
 
     public string AttachmentBase64 { get; set; } = string.Empty;
 
+    public string CurrencyCode { get; set; } = string.Empty;
+
     public static ProfitEntryRow FromModel(ProfitEntry entry) => new()
     {
         EntryId = entry.EntryId,
@@ -54,6 +56,7 @@ public sealed class ProfitEntryRow
         Wallet = entry.Wallet,
         Counterparty = entry.Counterparty,
         AttachmentBase64 = entry.AttachmentBase64,
+        CurrencyCode = entry.CurrencyCode,
         IntegrityHash = DataIntegrityService.ComputeProfitEntryHash(
             entry.EntryId,
             entry.UserId,
@@ -83,5 +86,6 @@ public sealed class ProfitEntryRow
         string.IsNullOrWhiteSpace(Wallet) ? "main" : Wallet,
         Counterparty,
         IntegrityHash,
-        AttachmentBase64);
+        AttachmentBase64,
+        string.IsNullOrWhiteSpace(CurrencyCode) ? string.Empty : CurrencyCode);
 }

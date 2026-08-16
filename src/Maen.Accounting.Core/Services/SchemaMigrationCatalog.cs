@@ -14,7 +14,8 @@ public static class SchemaMigrationCatalog
         new(6, "business-payment-soft-delete"),
         new(7, "document-integrity-hashes"),
         new(8, "personal-savings-goals"),
-        new(9, "entry-attachments-and-recurring-movements")
+        new(9, "entry-attachments-and-recurring-movements"),
+        new(10, "multi-currency-and-budget-plans")
     ];
 
     public static int CurrentVersion => All[^1].Version;

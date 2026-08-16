@@ -43,6 +43,9 @@ public sealed class UserDatabaseFactory
             await connection.CreateTableAsync<DepositRow>();
             await connection.CreateTableAsync<SavingsGoalRow>();
             await connection.CreateTableAsync<RecurringMovementRow>();
+            await connection.CreateTableAsync<BudgetPlanRow>();
+            await connection.CreateTableAsync<CurrencyProfileRow>();
+            await connection.CreateTableAsync<CurrencyRateRow>();
             await connection.CreateTableAsync<SchemaMigrationRow>();
             await ApplySchemaMigrationsAsync(connection);
 
@@ -72,7 +75,8 @@ public sealed class UserDatabaseFactory
             [6] = () => EnsurePaymentSoftDeleteColumnAsync(connection),
             [7] = () => EnsureIntegrityHashColumnsAsync(connection),
             [8] = () => EnsureSavingsGoalsTableAsync(connection),
-            [9] = () => EnsureAttachmentsAndRecurringAsync(connection)
+            [9] = () => EnsureAttachmentsAndRecurringAsync(connection),
+            [10] = () => EnsureMultiCurrencyAndBudgetAsync(connection)
         };
 
         foreach (var migration in SchemaMigrationCatalog.All)
@@ -234,6 +238,24 @@ public sealed class UserDatabaseFactory
     private sealed class SqliteColumnInfo
     {
         public string Name { get; set; } = string.Empty;
+    }
+
+    private static async Task EnsureMultiCurrencyAndBudgetAsync(SQLiteAsyncConnection connection)
+    {
+        await connection.CreateTableAsync<BudgetPlanRow>();
+        await connection.CreateTableAsync<CurrencyProfileRow>();
+        await connection.CreateTableAsync<CurrencyRateRow>();
+
+        var columns = await connection.QueryAsync<SqliteColumnInfo>("PRAGMA table_info(profit_entries);");
+        var existing = columns
+            .Select(static column => column.Name)
+            .Where(static name => !string.IsNullOrWhiteSpace(name))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        if (!existing.Contains(nameof(ProfitEntryRow.CurrencyCode)))
+        {
+            await connection.ExecuteAsync("ALTER TABLE profit_entries ADD COLUMN CurrencyCode TEXT NOT NULL DEFAULT '';");
+        }
     }
 
     public void ClearActiveConnection()
