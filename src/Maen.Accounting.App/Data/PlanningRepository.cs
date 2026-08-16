@@ -15,15 +15,17 @@ public sealed class PlanningRepository
         PropertyNameCaseInsensitive = true
     };
 
-    private readonly UserDatabaseFactory _databaseFactory;
+        private readonly UserDatabaseFactory _databaseFactory;
     private readonly AppPreferencesService _preferences;
-
+    private readonly DeviceIdentityService _deviceIdentity;
     public PlanningRepository(
         UserDatabaseFactory databaseFactory,
-        AppPreferencesService preferences)
+        AppPreferencesService preferences,
+        DeviceIdentityService deviceIdentity)
     {
         _databaseFactory = databaseFactory;
         _preferences = preferences;
+        _deviceIdentity = deviceIdentity;
     }
 
     public async Task<IReadOnlyList<FinancialPlanRow>> GetPlansAsync(string userId)
@@ -203,4 +205,75 @@ public sealed class PlanningRepository
 
     public static string SerializePaidOccurrences(IReadOnlyList<DateOnly> occurrences) =>
         JsonSerializer.Serialize(occurrences ?? [], JsonOptions);
+
+    public async Task<IReadOnlyList<RecurringMovementRow>> GetRecurringAsync(string userId)
+    {
+        var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
+        var rows = await database.Table<RecurringMovementRow>()
+            .Where(row => row.UserId == userId && !row.IsDeleted)
+            .ToListAsync();
+        return rows
+            .OrderBy(row => row.NextOccurrenceTicks)
+            .ThenBy(row => row.Title, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    public async Task UpsertRecurringAsync(string userId, RecurringMovementRow row)
+    {
+        UserIsolation.EnsureOwner(userId, row.UserId);
+        var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
+        await database.InsertOrReplaceAsync(row);
+    }
+
+    public async Task UpsertRecurringAsync(string userId, IEnumerable<RecurringMovementRow> rows)
+    {
+        var materialized = rows.ToArray();
+        foreach (var row in materialized)
+        {
+            UserIsolation.EnsureOwner(userId, row.UserId);
+        }
+
+        var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
+        await database.RunInTransactionAsync(connection =>
+        {
+            foreach (var row in materialized)
+            {
+                connection.InsertOrReplace(row);
+            }
+        });
+    }
+
+    public async Task SoftDeleteRecurringAsync(string userId, string recurringId)
+    {
+        var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
+        var rows = await database.Table<RecurringMovementRow>()
+            .Where(row => row.RecurringId == recurringId && row.UserId == userId && !row.IsDeleted)
+            .ToListAsync();
+        foreach (var row in rows)
+        {
+            row.IsDeleted = true;
+            row.UpdatedAtUtcTicks = DateTimeOffset.UtcNow.UtcDateTime.Ticks;
+            row.Version = checked(row.Version + 1);
+            row.DeviceId = _deviceIdentity.GetOrCreate();
+        }
+
+        await database.UpdateAllAsync(rows);
+    }
+
+    public async Task AdvanceOccurrenceAsync(string userId, string recurringId, DateOnly nextOccurrence)
+    {
+        var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
+        var rows = await database.Table<RecurringMovementRow>()
+            .Where(row => row.RecurringId == recurringId && row.UserId == userId && !row.IsDeleted)
+            .ToListAsync();
+        foreach (var row in rows)
+        {
+            row.NextOccurrenceTicks = nextOccurrence.ToDateTime(TimeOnly.MinValue).Ticks;
+            row.UpdatedAtUtcTicks = DateTimeOffset.UtcNow.UtcDateTime.Ticks;
+            row.Version = checked(row.Version + 1);
+            row.DeviceId = _deviceIdentity.GetOrCreate();
+        }
+
+        await database.UpdateAllAsync(rows);
+    }
 }

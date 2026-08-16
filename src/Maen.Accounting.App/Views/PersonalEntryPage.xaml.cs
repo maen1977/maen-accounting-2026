@@ -63,4 +63,37 @@ public partial class PersonalEntryPage : ContentPage
             if (button is not null) button.IsEnabled = true;
         }
     }
+
+    private async void OnAttachPhotoClicked(object? sender, EventArgs e)
+    {
+        try
+        {
+            var options = new PickOptions { PickerTitle = UiText.Get("T722") };
+            var result = await FilePicker.Default.PickAsync(options);
+            if (result is null)
+            {
+                return;
+            }
+
+            using var stream = await result.OpenReadAsync();
+            using var memory = new MemoryStream();
+            await stream.CopyToAsync(memory);
+            if (memory.Length > 4 * 1024 * 1024)
+            {
+                await DisplayAlertAsync(UiText.Get("T121"), UiText.Get("T736"), UiText.Get("T122"));
+                return;
+            }
+
+            _state.AttachmentBase64 = Convert.ToBase64String(memory.ToArray());
+        }
+        catch (Exception exception)
+        {
+            await DisplayAlertAsync(UiText.Get("T121"), exception.Message, UiText.Get("T122"));
+        }
+    }
+
+    private void OnRemoveAttachmentClicked(object? sender, EventArgs e)
+    {
+        _state.AttachmentBase64 = string.Empty;
+    }
 }

@@ -40,6 +40,7 @@ public sealed class MainStateViewModel : ObservableObject
     private string _costInput = "0";
     private string _expensesInput = "0";
     private string _notesInput = string.Empty;
+    private string _attachmentBase64 = string.Empty;
     private DateTime _reportMonth = new(DateTime.Today.Year, DateTime.Today.Month, 1);
     private ReportScope _reportScope = ReportScope.Month;
     private string _searchText = string.Empty;
@@ -81,6 +82,10 @@ public sealed class MainStateViewModel : ObservableObject
     private SavingsGoalRow[] _savingsGoals = [];
     private FinancialHealthSummary? _financialHealth;
     private CashForecast? _cashForecast;
+    private CategoryAnalytics[] _categoryAnalytics = [];
+    private MonthlyAmount[] _monthlyAmounts = [];
+    private AuditSummary? _auditSummary;
+    private RecurringMovementRow[] _recurringMovements = [];
 
     public string ReceivablesAgingTotalText => Money.Format(_debtAging?.Receivables.TotalMinor ?? 0);
     public string ReceivablesAgingCurrentText => Money.Format(_debtAging?.Receivables.CurrentMinor ?? 0);
@@ -96,6 +101,34 @@ public sealed class MainStateViewModel : ObservableObject
     public FinancialHealthSummary? FinancialHealth => _financialHealth;
     public CashForecast? CashForecast => _cashForecast;
     public bool HasGoals => _savingsGoals.Length > 0;
+
+    public bool HasCategoryAnalytics => _categoryAnalytics.Length > 0;
+    public IReadOnlyList<CategoryAnalytics> CategoryAnalytics => _categoryAnalytics;
+    public CategoryAnalytics? TopCategory => _categoryAnalytics.Length > 0 ? _categoryAnalytics[0] : null;
+    public string TopCategoryText => TopCategory is null ? UiText.Get("T729") : $"{TopCategory.Category} — {TopCategory.AmountText} ({TopCategory.SharePercent:0.#}%)";
+    public IReadOnlyList<MonthlyAmount> MonthlyAmounts => _monthlyAmounts;
+    public bool HasMonthlyAmounts => _monthlyAmounts.Length > 0;
+    public MonthlyAmount? PeakMonth => _monthlyAmounts
+        .OrderByDescending(item => item.SpendingMinor)
+        .FirstOrDefault();
+    public MonthlyAmount? LowMonth => _monthlyAmounts
+        .Where(static item => item.SpendingMinor > 0)
+        .OrderBy(item => item.SpendingMinor)
+        .FirstOrDefault();
+
+    public AuditSummary? AuditSummary => _auditSummary;
+    public bool HasAuditSummary => _auditSummary is not null;
+    public string AuditVerdictText => _auditSummary?.IsHealthy == true ? UiText.Get("T734") : UiText.Get("T735");
+    public string AuditVerdictColor => _auditSummary?.IsHealthy == true ? "#137A53" : "#2F7DB8";
+    public string AuditedRecordsText => UiText.Format("T731") + $" {_auditSummary?.ActiveRecordCount ?? 0}";
+    public string PeakMonthLabel => PeakMonth is null ? string.Empty : FormatMonth(PeakMonth.Month);
+    public string PeakMonthAmountText => PeakMonth is null ? string.Empty : Money.Format(PeakMonth.SpendingMinor);
+    public string LowMonthLabel => LowMonth is null ? string.Empty : FormatMonth(LowMonth.Month);
+    public string LowMonthAmountText => LowMonth is null ? string.Empty : Money.Format(LowMonth.SpendingMinor);
+    private static string FormatMonth(DateOnly month) => month.ToString("yyyy-MM", System.Globalization.CultureInfo.InvariantCulture);
+
+    public IReadOnlyList<RecurringMovementRow> RecurringMovements => _recurringMovements;
+    public bool HasRecurringMovements => _recurringMovements.Length > 0;
     public string HealthScoreText => _financialHealth?.Score.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "0";
     public string HealthLevelText => _financialHealth?.ScoreLevel switch
     {
@@ -189,6 +222,39 @@ public sealed class MainStateViewModel : ObservableObject
     public string CostInput { get => _costInput; set { if (SetProperty(ref _costInput, value)) RefreshPreview(); } }
     public string ExpensesInput { get => _expensesInput; set { if (SetProperty(ref _expensesInput, value)) RefreshPreview(); } }
     public string NotesInput { get => _notesInput; set => SetProperty(ref _notesInput, value); }
+    public string AttachmentBase64
+    {
+        get => _attachmentBase64;
+        set
+        {
+            if (SetProperty(ref _attachmentBase64, value))
+            {
+                OnPropertyChanged(nameof(HasAttachment));
+                OnPropertyChanged(nameof(AttachmentImage));
+            }
+        }
+    }
+    public bool HasAttachment => !string.IsNullOrEmpty(_attachmentBase64);
+    public ImageSource? AttachmentImage
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(_attachmentBase64))
+            {
+                return null;
+            }
+
+            try
+            {
+                var bytes = Convert.FromBase64String(_attachmentBase64);
+                return ImageSource.FromStream(() => new MemoryStream(bytes));
+            }
+            catch (FormatException)
+            {
+                return null;
+            }
+        }
+    }
     public DateTime ReportMonth
     {
         get => _reportMonth;
@@ -485,6 +551,7 @@ public sealed class MainStateViewModel : ObservableObject
         RebuildReport();
         RebuildAnnualReport(entries);
         await RebuildPlanningAsync(session.UserId, entries);
+        await RebuildAnalyticsAndAuditAsync(session.UserId, entries);
         RaiseSummaries();
     }
 
@@ -547,6 +614,7 @@ public sealed class MainStateViewModel : ObservableObject
             .Take(10)
             .ToArray();
         await RebuildGoalsAndForecastAsync(userId, entries, today, obligations);
+        await RebuildRecurringAsync(userId, entries);
 
         var registryItems = CategoryRegistryCalculator.ComputeRegistry(
             entries.Select(static item => new CategoryEntry(item.Category, item.EntryDate)),
@@ -828,7 +896,9 @@ public sealed class MainStateViewModel : ObservableObject
                 IsBusinessExperience ? source?.MovementType ?? PersonalMovementTypes.Other : ResolveMovementType(SelectedMovementType),
                 CategoryInput.Trim(),
                 string.IsNullOrWhiteSpace(WalletInput) ? "main" : WalletInput.Trim(),
-                CounterpartyInput.Trim());
+                CounterpartyInput.Trim(),
+                string.Empty,
+                (_editingEntry ?? existingByDate)?.AttachmentBase64 ?? string.Empty);
 
             await _repository.UpsertAsync(session.UserId, entry);
             await WriteBackupAndUpdateAsync();
@@ -1048,6 +1118,7 @@ public sealed class MainStateViewModel : ObservableObject
         WalletInput = string.Empty;
         CounterpartyInput = string.Empty;
         NotesInput = string.Empty;
+        AttachmentBase64 = string.Empty;
         OnPropertyChanged(nameof(SaveButtonText));
         OnPropertyChanged(nameof(DirectionSummaryText));
     }
@@ -1459,6 +1530,21 @@ public sealed class MainStateViewModel : ObservableObject
         OnPropertyChanged(nameof(ForecastWorstText));
         OnPropertyChanged(nameof(ForecastNextMonthText));
         OnPropertyChanged(nameof(ForecastNextMonthColor));
+        OnPropertyChanged(nameof(CategoryAnalytics));
+        OnPropertyChanged(nameof(HasCategoryAnalytics));
+        OnPropertyChanged(nameof(TopCategory));
+        OnPropertyChanged(nameof(TopCategoryText));
+        OnPropertyChanged(nameof(MonthlyAmounts));
+        OnPropertyChanged(nameof(HasMonthlyAmounts));
+        OnPropertyChanged(nameof(PeakMonth));
+        OnPropertyChanged(nameof(LowMonth));
+        OnPropertyChanged(nameof(AuditSummary));
+        OnPropertyChanged(nameof(HasAuditSummary));
+        OnPropertyChanged(nameof(AuditVerdictText));
+        OnPropertyChanged(nameof(AuditVerdictColor));
+        OnPropertyChanged(nameof(AuditedRecordsText));
+        OnPropertyChanged(nameof(RecurringMovements));
+        OnPropertyChanged(nameof(HasRecurringMovements));
     }
 
     private void RaiseAnnualReportProperties()
@@ -1528,6 +1614,151 @@ public sealed class MainStateViewModel : ObservableObject
 
     private AuthSession RequireSession() =>
         _session ?? throw new InvalidOperationException(UiText.Get("T140"));
+
+    private async Task RebuildRecurringAsync(string userId, IReadOnlyList<ProfitEntry> entries)
+    {
+        var rows = await _planningRepository.GetRecurringAsync(userId);
+        _recurringMovements = rows.ToArray();
+
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var models = rows
+            .Select(static row => new RecurringMovement(
+                row.RecurringId,
+                row.UserId,
+                row.Title,
+                row.Category,
+                row.AmountMinor,
+                row.Kind,
+                DateOnly.FromDateTime(new DateTime(row.StartDateTicks, DateTimeKind.Utc)),
+                row.Cycle,
+                DateOnly.FromDateTime(new DateTime(row.NextOccurrenceTicks, DateTimeKind.Utc)),
+                row.IsActive,
+                row.Notes))
+            .ToArray();
+
+        var due = RecurringMovementCalculator.DueMovements(models, today);
+        if (due.Count > 0)
+        {
+            var newEntries = new List<ProfitEntry>();
+            foreach (var movement in due)
+            {
+                var (sales, cost, expenses) = RecurringMovementCalculator.BuildAmounts(movement);
+                var nowUtc = DateTimeOffset.UtcNow;
+                var entry = new ProfitEntry(
+                    Guid.NewGuid().ToString("N"),
+                    userId,
+                    today,
+                    sales,
+                    cost,
+                    expenses,
+                    string.IsNullOrEmpty(movement.Notes)
+                        ? movement.Title
+                        : $"{movement.Title} — {movement.Notes}",
+                    false,
+                    nowUtc,
+                    nowUtc,
+                    1,
+                    _deviceIdentity.GetOrCreate(),
+                    movement.AmountMinor,
+                    movement.Kind.Equals("income", StringComparison.OrdinalIgnoreCase) ? "income" : "expense",
+                    movement.Category);
+                newEntries.Add(entry);
+                await _planningRepository.AdvanceOccurrenceAsync(userId, movement.RecurringId, RecurringMovementCalculator.AdvanceOccurrence(movement.NextOccurrence, movement.Cycle));
+            }
+
+            await _repository.UpsertManyAsync(userId, newEntries);
+            _statusMessage = UiText.Get("T712");
+            OnPropertyChanged(nameof(StatusMessage));
+        }
+
+        OnPropertyChanged(nameof(RecurringMovements));
+        OnPropertyChanged(nameof(HasRecurringMovements));
+    }
+
+    public async Task UpsertRecurringMovementAsync(
+        string title,
+        string category,
+        long amountMinor,
+        string kind,
+        string cycle,
+        DateOnly startDate,
+        string notes = "")
+    {
+        var session = RequireSession();
+        var deviceId = _deviceIdentity.GetOrCreate();
+        var sanitizedTitle = InputSanitizer.SanitizeName(title);
+        var row = new RecurringMovementRow
+        {
+            RecurringId = Guid.NewGuid().ToString("N"),
+            UserId = session.UserId,
+            Title = sanitizedTitle,
+            Category = InputSanitizer.SanitizeName(category),
+            AmountMinor = amountMinor,
+            Kind = kind,
+            StartDateTicks = startDate.ToDateTime(TimeOnly.MinValue).Ticks,
+            Cycle = cycle,
+            NextOccurrenceTicks = startDate.ToDateTime(TimeOnly.MinValue).Ticks,
+            IsActive = true,
+            Notes = notes,
+            UpdatedAtUtcTicks = DateTimeOffset.UtcNow.UtcDateTime.Ticks,
+            Version = 1,
+            DeviceId = deviceId,
+            IsDeleted = false
+        };
+
+        await _planningRepository.UpsertRecurringAsync(session.UserId, row);
+        await ReloadAsync();
+    }
+
+    public async Task DeleteRecurringMovementAsync(string recurringId)
+    {
+        var session = RequireSession();
+        await _planningRepository.SoftDeleteRecurringAsync(session.UserId, recurringId);
+        await ReloadAsync();
+    }
+
+    private async Task RebuildAnalyticsAndAuditAsync(string userId, IReadOnlyList<ProfitEntry> entries)
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var currentMonth = new DateOnly(today.Year, today.Month, 1);
+        var analyticsTask = Task.Run(() =>
+            (Analytics: TopCategoryAnalyticsEngine.Analyze(entries, currentMonth),
+             Totals: TopCategoryAnalyticsEngine.MonthlyTotals(entries, 12)));
+
+        var syncTask = _personalEntitySyncService
+            .SyncAsync()
+            .ContinueWith(task => task.IsCompletedSuccessfully ? task.Result : null, TaskScheduler.Default);
+
+        var (analytics, totals) = await analyticsTask;
+        _categoryAnalytics = analytics.ToArray();
+        _monthlyAmounts = totals.ToArray();
+        OnPropertyChanged(nameof(CategoryAnalytics));
+        OnPropertyChanged(nameof(HasCategoryAnalytics));
+        OnPropertyChanged(nameof(TopCategory));
+        OnPropertyChanged(nameof(TopCategoryText));
+        OnPropertyChanged(nameof(MonthlyAmounts));
+        OnPropertyChanged(nameof(HasMonthlyAmounts));
+
+        try
+        {
+            _auditSummary = AuditTrailCalculator.Summarize(
+                entries,
+                verifiedHashCount: 0,
+                totalRecords: entries.Count,
+                lastSyncUtc: null);
+            OnPropertyChanged(nameof(AuditSummary));
+            OnPropertyChanged(nameof(HasAuditSummary));
+            OnPropertyChanged(nameof(AuditVerdictText));
+            OnPropertyChanged(nameof(AuditVerdictColor));
+            OnPropertyChanged(nameof(AuditedRecordsText));
+        }
+        catch
+        {
+            _auditSummary = null;
+        }
+
+        _ = syncTask;
+    }
 
     private async Task RunBusyAsync(Func<Task> action)
     {

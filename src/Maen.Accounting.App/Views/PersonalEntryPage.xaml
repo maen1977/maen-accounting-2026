@@ -53,6 +53,16 @@
 
                     <Label Text="{local:Tr Key=T093}" FontAttributes="Bold" Margin="0,6,0,0" />
                     <Editor Text="{Binding NotesInput}" AutoSize="TextChanges" MinimumHeightRequest="90" />
+
+                    <Label Text="{local:Tr Key=T721}" FontAttributes="Bold" Margin="0,6,0,0" IsVisible="{Binding HasAttachment, Converter={x:Static local:InverseBooleanConverter.Instance}}" />
+                    <Button Text="{local:Tr Key=T722}" Clicked="OnAttachPhotoClicked" BackgroundColor="#E1ECFF" TextColor="#1D4ED8" CornerRadius="14" IsVisible="{Binding HasAttachment, Converter={x:Static local:InverseBooleanConverter.Instance}}" />
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" IsVisible="{Binding HasAttachment}">
+                        <Border HeightRequest="140" StrokeThickness="0">
+                        <Border.StrokeShape><RoundRectangle CornerRadius="14" /></Border.StrokeShape>
+                        <Image Source="{Binding AttachmentImage}" Aspect="AspectFit" HeightRequest="140" />
+                    </Border>
+                        <Button Grid.Column="1" Text="{local:Tr Key=T723}" Clicked="OnRemoveAttachmentClicked" Style="{StaticResource DangerButton}" />
+                    </Grid>
                 </VerticalStackLayout>
             </Border>
 

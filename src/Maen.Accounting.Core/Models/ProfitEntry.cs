@@ -20,8 +20,11 @@ public sealed record ProfitEntry(
     string Category = "",
     string Wallet = "main",
     string Counterparty = "",
-    string IntegrityHash = "")
+    string IntegrityHash = "",
+    string AttachmentBase64 = "")
 {
+    public bool HasAttachment => !string.IsNullOrEmpty(AttachmentBase64);
+
     public long GrossProfitMinor => checked(SalesMinor - CostMinor);
     public long NetProfitMinor => checked(GrossProfitMinor - ExpensesMinor);
 
@@ -31,6 +34,8 @@ public sealed record ProfitEntry(
 
     public bool IsIncome => SalesMinor > 0;
     public bool IsOutflow => checked(CostMinor + ExpensesMinor) > 0;
+
+    public ProfitEntry WithAttachment(string base64) => this with { AttachmentBase64 = base64, Version = checked(Version + 1), UpdatedAtUtc = DateTimeOffset.UtcNow };
 
     public ProfitEntry MarkDeleted(DateTimeOffset nowUtc, string deviceId) => this with
     {

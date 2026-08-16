@@ -100,6 +100,39 @@
 
             <Border Style="{StaticResource CardBorder}">
                 <VerticalStackLayout Spacing="10">
+                    <Label Text="{local:Tr Key=T700}" FontSize="17" FontAttributes="Bold" />
+                    <Label Text="{local:Tr Key=T701}" Style="{StaticResource MutedLabel}" FontSize="12" />
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Entry Grid.Column="0" Text="{Binding RecurringTitleInput}" Placeholder="{local:Tr Key=T714}" />
+                        <Entry Grid.Column="1" Text="{Binding RecurringAmountInput}" Placeholder="{local:Tr Key=T715}" Keyboard="Numeric" />
+                    </Grid>
+                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+                        <Picker Grid.Column="0" Title="{local:Tr Key=T423}" ItemsSource="{Binding RecurringCategories}" SelectedItem="{Binding RecurringCategorySelection}" />
+                        <Picker Grid.Column="1" Title="{local:Tr Key=T705}" ItemsSource="{Binding RecurringCycleSelections}" SelectedItem="{Binding RecurringCycleSelection}" />
+                        <Picker Grid.Column="2" Title="{local:Tr Key=T703}" ItemsSource="{Binding RecurringKindSelections}" SelectedItem="{Binding RecurringKindSelection}" />
+                    </Grid>
+                    <DatePicker Date="{Binding RecurringStartDate}" />
+                    <Button Text="{local:Tr Key=T702}" Clicked="OnAddRecurringClicked" Style="{StaticResource SecondaryButton}" />
+                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding RecurringItems}" Spacing="8">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10" VerticalOptions="Center">
+                                    <VerticalStackLayout Spacing="2">
+                                        <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="14" />
+                                        <Label Text="{Binding SummaryText}" Style="{StaticResource MutedLabel}" FontSize="12" />
+                                    </VerticalStackLayout>
+                                    <Label Grid.Column="1" Text="{Binding NextText}" Style="{StaticResource MutedLabel}" FontSize="12" VerticalTextAlignment="Center" />
+                                    <Button Grid.Column="2" Text="{local:Tr Key=T460}" Clicked="OnDeleteRecurringClicked" Style="{StaticResource DangerButton}" Padding="6,2" FontSize="12" />
+                                </Grid>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                    <Label Text="{local:Tr Key=T711}" Style="{StaticResource MutedLabel}" IsVisible="{Binding HasRecurringMovements, Converter={x:Static local:InverseBooleanConverter.Instance}}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource CardBorder}">
+                <VerticalStackLayout Spacing="10">
                     <Label Text="{local:Tr Key=T431}" FontSize="17" FontAttributes="Bold" />
                     <Label Text="{local:Tr Key=T432}" Style="{StaticResource MutedLabel}" />
                     <Entry Text="{Binding DepositTitleInput}" Placeholder="{local:Tr Key=T454}" />

@@ -58,6 +58,41 @@ public sealed class ObligationRow
     public bool IsDeleted { get; set; }
 }
 
+[Table("recurring_movements")]
+public sealed class RecurringMovementRow
+{
+    [PrimaryKey]
+    public string RecurringId { get; set; } = string.Empty;
+
+    public string UserId { get; set; } = string.Empty;
+
+    public string Title { get; set; } = string.Empty;
+
+    public string Category { get; set; } = string.Empty;
+
+    public long AmountMinor { get; set; }
+
+    public string Kind { get; set; } = "expense";
+
+    public long StartDateTicks { get; set; }
+
+    public string Cycle { get; set; } = "monthly";
+
+    public long NextOccurrenceTicks { get; set; }
+
+    public bool IsActive { get; set; } = true;
+
+    public string Notes { get; set; } = string.Empty;
+
+    public long UpdatedAtUtcTicks { get; set; }
+
+    public int Version { get; set; } = 1;
+
+    public string DeviceId { get; set; } = string.Empty;
+
+    public bool IsDeleted { get; set; }
+}
+
 [Table("deposits")]
 public sealed class DepositRow
 {

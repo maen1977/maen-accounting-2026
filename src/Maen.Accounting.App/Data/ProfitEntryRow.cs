@@ -32,6 +32,8 @@ public sealed class ProfitEntryRow
     public string Counterparty { get; set; } = string.Empty;
     public string IntegrityHash { get; set; } = string.Empty;
 
+    public string AttachmentBase64 { get; set; } = string.Empty;
+
     public static ProfitEntryRow FromModel(ProfitEntry entry) => new()
     {
         EntryId = entry.EntryId,
@@ -51,6 +53,7 @@ public sealed class ProfitEntryRow
         Category = entry.Category,
         Wallet = entry.Wallet,
         Counterparty = entry.Counterparty,
+        AttachmentBase64 = entry.AttachmentBase64,
         IntegrityHash = DataIntegrityService.ComputeProfitEntryHash(
             entry.EntryId,
             entry.UserId,
@@ -78,5 +81,7 @@ public sealed class ProfitEntryRow
         string.IsNullOrWhiteSpace(MovementType) ? "other" : MovementType,
         Category,
         string.IsNullOrWhiteSpace(Wallet) ? "main" : Wallet,
-        Counterparty);
+        Counterparty,
+        IntegrityHash,
+        AttachmentBase64);
 }

@@ -125,6 +125,50 @@
                     </CollectionView>
                 </VerticalStackLayout>
             </Border>
+            <Border Style="{StaticResource CardBorder}" IsVisible="{Binding HasCategoryAnalytics}">
+                <VerticalStackLayout Spacing="9">
+                    <Label Text="{local:Tr Key=T724}" Style="{StaticResource SectionTitle}" />
+                    <Label Text="{local:Tr Key=T725}" Style="{StaticResource MutedLabel}" FontSize="12" />
+                    <Border StrokeThickness="1" Stroke="#E2E8F0" StrokeShape="RoundRectangle 10" BackgroundColor="#F8FAFC" Padding="12">
+                        <VerticalStackLayout Spacing="4">
+                            <Label Text="{local:Tr Key=T726}" Style="{StaticResource MetricCaption}" />
+                            <Label Text="{Binding TopCategoryText}" FontSize="18" FontAttributes="Bold" TextColor="#137A53" />
+                        </VerticalStackLayout>
+                    </Border>
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Border Grid.Column="0" StrokeThickness="1" Stroke="#E2E8F0" StrokeShape="RoundRectangle 10" BackgroundColor="#F8FAFC" Padding="12" IsVisible="{Binding PeakMonth, Converter={x:Static local:NonNullConverter.Instance}}">
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="{local:Tr Key=T727}" Style="{StaticResource MetricCaption}" />
+                                <Label Text="{Binding PeakMonthLabel}" FontAttributes="Bold" FontSize="14" />
+                                <Label Text="{Binding PeakMonthAmountText}" FontAttributes="Bold" TextColor="#C2413A" FontSize="13" />
+                            </VerticalStackLayout>
+                        </Border>
+                        <Border Grid.Column="1" StrokeThickness="1" Stroke="#E2E8F0" StrokeShape="RoundRectangle 10" BackgroundColor="#F8FAFC" Padding="12" IsVisible="{Binding LowMonth, Converter={x:Static local:NonNullConverter.Instance}}">
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="{local:Tr Key=T728}" Style="{StaticResource MetricCaption}" />
+                                <Label Text="{Binding LowMonthLabel}" FontAttributes="Bold" FontSize="14" />
+                                <Label Text="{Binding LowMonthAmountText}" FontAttributes="Bold" TextColor="#137A53" FontSize="13" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </Grid>
+                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding CategoryAnalytics}" Spacing="6">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" VerticalOptions="Center">
+                                    <VerticalStackLayout Spacing="2">
+                                        <Label Text="{Binding Category}" FontAttributes="Bold" FontSize="14" />
+                                        <Label Text="{Binding PeriodText}" Style="{StaticResource MutedLabel}" FontSize="11"/>
+                                    </VerticalStackLayout>
+                                    <VerticalStackLayout Grid.Column="1" Spacing="2" HorizontalOptions="End">
+                                        <Label Text="{Binding AmountText}" FontAttributes="Bold" FontSize="13" HorizontalTextAlignment="End" />
+                                        <Label Text="{Binding ShareText}" Style="{StaticResource MutedLabel}" FontSize="11" HorizontalTextAlignment="End" />
+                                    </VerticalStackLayout>
+                                </Grid>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+            </Border>
             <Grid IsVisible="{Binding IsBusinessExperience}" ColumnDefinitions="*,*" ColumnSpacing="10">
                 <Button Text="{local:Tr Key=T376}" Clicked="OnExportCsvClicked" Style="{StaticResource SecondaryButton}" />
                 <Button Grid.Column="1" Text="{local:Tr Key=T201}" Clicked="OnShareClicked" Style="{StaticResource SecondaryButton}" />

@@ -42,6 +42,7 @@ public sealed class UserDatabaseFactory
             await connection.CreateTableAsync<ObligationRow>();
             await connection.CreateTableAsync<DepositRow>();
             await connection.CreateTableAsync<SavingsGoalRow>();
+            await connection.CreateTableAsync<RecurringMovementRow>();
             await connection.CreateTableAsync<SchemaMigrationRow>();
             await ApplySchemaMigrationsAsync(connection);
 
@@ -70,7 +71,8 @@ public sealed class UserDatabaseFactory
             [5] = () => EnsurePlansObligationsDepositsAsync(connection),
             [6] = () => EnsurePaymentSoftDeleteColumnAsync(connection),
             [7] = () => EnsureIntegrityHashColumnsAsync(connection),
-            [8] = () => EnsureSavingsGoalsTableAsync(connection)
+            [8] = () => EnsureSavingsGoalsTableAsync(connection),
+            [9] = () => EnsureAttachmentsAndRecurringAsync(connection)
         };
 
         foreach (var migration in SchemaMigrationCatalog.All)
@@ -145,6 +147,25 @@ public sealed class UserDatabaseFactory
     }
 
     private static Task EnsureSavingsGoalsTableAsync(SQLiteAsyncConnection connection) => connection.CreateTableAsync<SavingsGoalRow>();
+
+    private static async Task EnsureAttachmentsAndRecurringAsync(SQLiteAsyncConnection connection)
+    {
+        await connection.CreateTableAsync<RecurringMovementRow>();
+
+        var columns = await connection.QueryAsync<SqliteColumnInfo>("PRAGMA table_info(profit_entries);");
+        var existing = columns
+            .Select(static column => column.Name)
+            .Where(static name => !string.IsNullOrWhiteSpace(name))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        if (!existing.Contains(nameof(ProfitEntryRow.AttachmentBase64)))
+        {
+            await connection.ExecuteAsync(
+                "ALTER TABLE profit_entries ADD COLUMN AttachmentBase64 TEXT NOT NULL DEFAULT '';" +
+                "CREATE INDEX IF NOT EXISTS ix_recurring_user_active " +
+                "ON recurring_movements(UserId, IsActive, NextOccurrenceTicks) WHERE IsDeleted = 0;");
+        }
+    }
 
     private static async Task EnsureIntegrityHashColumnsAsync(SQLiteAsyncConnection connection)
     {

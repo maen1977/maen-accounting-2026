@@ -20,6 +20,19 @@ public sealed class ObligationStatusConverter : IValueConverter
 }
 
 /// <summary>
+/// Converts a non-null value to true for conditional visibility bindings.
+/// </summary>
+public sealed class NonNullConverter : IValueConverter
+{
+    public static readonly NonNullConverter Instance = new();
+
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => value is not null;
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => throw new NotSupportedException();
+}
+
+/// <summary>
 /// Inverts a boolean value for inverse visibility bindings.
 /// </summary>
 public sealed class InverseBooleanConverter : IValueConverter

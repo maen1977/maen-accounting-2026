@@ -13,7 +13,8 @@ public static class SchemaMigrationCatalog
         new(5, "personal-plans-obligations-deposits"),
         new(6, "business-payment-soft-delete"),
         new(7, "document-integrity-hashes"),
-        new(8, "personal-savings-goals")
+        new(8, "personal-savings-goals"),
+        new(9, "entry-attachments-and-recurring-movements")
     ];
 
     public static int CurrentVersion => All[^1].Version;

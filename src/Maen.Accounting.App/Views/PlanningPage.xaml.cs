@@ -51,6 +51,21 @@ public sealed partial class PlanningPage : ContentPage
         await _model.AddDepositAsync(_deviceIdentity);
     }
 
+    private async void OnAddRecurringClicked(object? sender, EventArgs e)
+    {
+        await _model.AddRecurringAsync(_deviceIdentity);
+    }
+
+    private async void OnDeleteRecurringClicked(object? sender, EventArgs e)
+    {
+        if (sender is not Button button || button.BindingContext is not RecurringItem item)
+        {
+            return;
+        }
+
+        await _model.DeleteRecurringMovementAsync(item);
+    }
+
     private async void OnToggleObligationClicked(object? sender, EventArgs e)
     {
         if (sender is not Button button || button.BindingContext is not ObligationItem item)
@@ -119,6 +134,18 @@ public sealed class PlanningViewModel : ObservableObject
     public string DepositAmountInput { get; set; } = string.Empty;
     public DateTime DepositDate { get; set; } = DateTime.Today;
 
+    public string RecurringTitleInput { get; set; } = string.Empty;
+    public string RecurringAmountInput { get; set; } = string.Empty;
+    public List<string> RecurringCategories { get; } = [string.Empty, "راتب", "إيجار", "مواصلات", "طعام", "فواتير", "تسوق", "صحة", "تعليم", "ترفيه", "ادخار"];
+    public List<string> RecurringCycleSelections { get; } = [UiText.Get("T706"), UiText.Get("T707"), UiText.Get("T708")];
+    public List<string> RecurringKindSelections { get; } = [UiText.Get("T703"), UiText.Get("T704")];
+    public string RecurringCategorySelection { get; set; } = "راتب";
+    public string RecurringCycleSelection { get; set; } = UiText.Get("T706");
+    public string RecurringKindSelection { get; set; } = UiText.Get("T703");
+    public DateTime RecurringStartDate { get; set; } = DateTime.Today;
+    public System.Collections.ObjectModel.ObservableCollection<RecurringItem> RecurringItems { get; } = new();
+    public bool HasRecurringMovements => RecurringItems.Count > 0;
+
     public System.Collections.ObjectModel.ObservableCollection<DepositItem> Deposits { get; } = new();
     public bool HasDeposits => Deposits.Count > 0;
     public System.Collections.ObjectModel.ObservableCollection<CashForecastSliceItem> ForecastSlices { get; } = new();
@@ -134,6 +161,7 @@ public sealed class PlanningViewModel : ObservableObject
         await LoadObligationsAsync();
         await LoadDepositsAsync();
         await LoadForecastAsync();
+        await LoadRecurringAsync();
     }
 
     private async Task LoadPlanAsync()
@@ -415,6 +443,130 @@ public sealed class PlanningViewModel : ObservableObject
         await ReloadAsync();
     }
 
+    public async Task AddRecurringClicked(DeviceIdentityService deviceIdentity) { /* handled by page */ }
+
+    private async Task LoadRecurringAsync()
+    {
+        var userId = await GetUserIdAsync();
+        if (userId is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var rows = await _repository.GetRecurringAsync(userId);
+            RecurringItems.Clear();
+            foreach (var row in rows.Where(item => !item.IsDeleted && item.IsActive))
+            {
+                var next = new DateTime(row.NextOccurrenceTicks, DateTimeKind.Unspecified).Date;
+                RecurringItems.Add(new RecurringItem(
+                    row.RecurringId,
+                    row.Title,
+                    $"{Money.Format(row.AmountMinor)} — {TranslateCycle(row.Cycle)}",
+                    next.ToString("D"),
+                    row));
+            }
+
+            OnPropertyChanged(nameof(HasRecurringMovements));
+        }
+        catch (Exception)
+        {
+            // Keep list empty.
+        }
+    }
+
+    public async Task AddRecurringAsync(DeviceIdentityService deviceIdentity)
+    {
+        var userId = await GetUserIdAsync();
+        if (userId is null)
+        {
+            await ShowMessageAsync(UiText.Get("T140"));
+            return;
+        }
+
+        var title = RecurringTitleInput.Trim();
+        var amount = ParseMinor(RecurringAmountInput);
+        if (title.Length == 0 || amount <= 0)
+        {
+            await ShowMessageAsync(UiText.Get("T139"));
+            return;
+        }
+
+        var cycle = RecurringCycleSelection == UiText.Get("T707")
+            ? "weekly"
+            : RecurringCycleSelection == UiText.Get("T708")
+                ? "yearly"
+                : "monthly";
+        var kind = RecurringKindSelection == UiText.Get("T703") ? "income" : "expense";
+
+        var row = new RecurringMovementRow
+        {
+            RecurringId = Guid.NewGuid().ToString("N"),
+            UserId = userId,
+            Title = title,
+            Category = RecurringCategorySelection,
+            AmountMinor = amount,
+            Kind = kind,
+            StartDateTicks = RecurringStartDate.Date.Ticks,
+            Cycle = cycle,
+            NextOccurrenceTicks = RecurringStartDate.Date.Ticks,
+            IsActive = true,
+            Notes = string.Empty,
+            UpdatedAtUtcTicks = DateTime.UtcNow.Ticks,
+            Version = 1,
+            IsDeleted = false,
+            DeviceId = deviceIdentity.GetOrCreate(),
+        };
+
+        await _repository.UpsertRecurringAsync(userId, row);
+        RecurringTitleInput = string.Empty;
+        RecurringAmountInput = string.Empty;
+        OnPropertyChanged(nameof(RecurringTitleInput));
+        OnPropertyChanged(nameof(RecurringAmountInput));
+        await ShowMessageAsync(UiText.Get("T710"));
+        await ReloadAsync();
+    }
+
+    public async Task DeleteRecurringMovementAsync(RecurringItem item)
+    {
+        try
+        {
+            var userId = await GetUserIdAsync();
+            if (userId is null)
+            {
+                return;
+            }
+
+            var row = item.Row;
+            var updated = new RecurringMovementRow
+            {
+                RecurringId = row.RecurringId,
+                UserId = row.UserId,
+                Title = row.Title,
+                Category = row.Category,
+                AmountMinor = row.AmountMinor,
+                Kind = row.Kind,
+                StartDateTicks = row.StartDateTicks,
+                Cycle = row.Cycle,
+                NextOccurrenceTicks = row.NextOccurrenceTicks,
+                IsActive = false,
+                Notes = row.Notes,
+                UpdatedAtUtcTicks = DateTime.UtcNow.Ticks,
+                Version = row.Version + 1,
+                IsDeleted = true,
+                DeviceId = row.DeviceId,
+            };
+            await _repository.UpsertRecurringAsync(userId, updated);
+            await ShowMessageAsync(UiText.Get("T460"));
+            await ReloadAsync();
+        }
+        catch (Exception)
+        {
+            // Delete ignored — next reload restores state.
+        }
+    }
+
     public async Task ToggleObligationAsync(ObligationItem item, bool active)
     {
         try
@@ -521,6 +673,8 @@ public sealed class PlanningViewModel : ObservableObject
 }
 
 public sealed record CategoryLimitItem(string Category, string LimitText);
+
+public sealed record RecurringItem(string RecurringId, string Title, string SummaryText, string NextText, RecurringMovementRow Row);
 
 public sealed class ObligationItem : ObservableObject
 {

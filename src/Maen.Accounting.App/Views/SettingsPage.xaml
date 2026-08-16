@@ -54,6 +54,17 @@
                 </VerticalStackLayout>
             </Border>
 
+            <Border Style="{StaticResource CardBorder}" IsVisible="{Binding HasAuditSummary}">
+                <VerticalStackLayout Spacing="10">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                        <Label Text="{local:Tr Key=T730}" Style="{StaticResource SectionTitle}" />
+                        <Label Grid.Column="1" Text="{Binding AuditVerdictText}" FontSize="13" FontAttributes="Bold" TextColor="{Binding AuditVerdictColor}" VerticalOptions="Center" HorizontalTextAlignment="End"/>
+                    </Grid>
+                    <Label Text="{Binding AuditedRecordsText}" Style="{StaticResource MutedLabel}" />
+                    <Label Text="{local:Tr Key=T732}" Style="{StaticResource MutedLabel}" FontSize="11" />
+                </VerticalStackLayout>
+            </Border>
+
             <Border Style="{StaticResource CardBorder}">
                 <VerticalStackLayout Spacing="8">
                     <Label Text="{local:Tr Key=T028}" Style="{StaticResource SectionTitle}" />
