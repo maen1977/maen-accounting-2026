@@ -44,6 +44,43 @@
                     </Border>
                 </Grid>
 
+                <Border Style="{StaticResource CardBorder}" IsVisible="{Binding HasFinancialPosition, Mode=OneWay}">
+                    <VerticalStackLayout Spacing="14">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <VerticalStackLayout Spacing="3">
+                                <Label Text="{local:Tr Key=T413}" Style="{StaticResource SectionTitle}" />
+                                <Label Text="{local:Tr Key=T068}" Style="{StaticResource MutedLabel}" />
+                            </VerticalStackLayout>
+                            <Border Grid.Column="1" BackgroundColor="#EFF6FF" Padding="10,6" StrokeThickness="0" VerticalOptions="Center">
+                                <Border.StrokeShape><RoundRectangle CornerRadius="12" /></Border.StrokeShape>
+                                <Label Text="{local:Tr Key=T097}" TextColor="#1D4ED8" FontSize="12" FontAttributes="Bold" />
+                            </Border>
+                        </Grid>
+                        <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                            <Border Grid.Row="0" Grid.Column="0" BackgroundColor="#F0FDFA" Padding="12" StrokeThickness="0">
+                                <Border.StrokeShape><RoundRectangle CornerRadius="14" /></Border.StrokeShape>
+                                <VerticalStackLayout Spacing="3"><Label Text="{local:Tr Key=T414}" Style="{StaticResource MetricCaption}"/><Label Text="{Binding ReceivableNetText}" TextColor="#0F766E" FontAttributes="Bold" FontSize="19"/></VerticalStackLayout>
+                            </Border>
+                            <Border Grid.Row="0" Grid.Column="1" BackgroundColor="#FFF7ED" Padding="12" StrokeThickness="0">
+                                <Border.StrokeShape><RoundRectangle CornerRadius="14" /></Border.StrokeShape>
+                                <VerticalStackLayout Spacing="3"><Label Text="{local:Tr Key=T415}" Style="{StaticResource MetricCaption}"/><Label Text="{Binding PayableNetText}" TextColor="#C2410C" FontAttributes="Bold" FontSize="19"/></VerticalStackLayout>
+                            </Border>
+                            <Border Grid.Row="0" Grid.Column="2" BackgroundColor="#F5F3FF" Padding="12" StrokeThickness="0">
+                                <Border.StrokeShape><RoundRectangle CornerRadius="14" /></Border.StrokeShape>
+                                <VerticalStackLayout Spacing="3"><Label Text="{local:Tr Key=T416}" Style="{StaticResource MetricCaption}"/><Label Text="{Binding NetPositionText}" TextColor="{Binding NetPositionColor}" FontAttributes="Bold" FontSize="19"/></VerticalStackLayout>
+                            </Border>
+                            <Border Grid.Row="1" Grid.Column="0" BackgroundColor="#FFF1F2" Padding="12" StrokeThickness="0">
+                                <Border.StrokeShape><RoundRectangle CornerRadius="14" /></Border.StrokeShape>
+                                <VerticalStackLayout Spacing="3"><Label Text="{local:Tr Key=T417}" Style="{StaticResource MetricCaption}"/><Label Text="{Binding OverdueSalesText}" TextColor="#BE123C" FontAttributes="Bold" FontSize="19"/></VerticalStackLayout>
+                            </Border>
+                            <Border Grid.Row="1" Grid.Column="1" BackgroundColor="#F0F9FF" Padding="12" StrokeThickness="0">
+                                <Border.StrokeShape><RoundRectangle CornerRadius="14" /></Border.StrokeShape>
+                                <VerticalStackLayout Spacing="3"><Label Text="{local:Tr Key=T418}" Style="{StaticResource MetricCaption}"/><Label Text="{Binding OverduePurchasesText}" TextColor="#075985" FontAttributes="Bold" FontSize="19"/></VerticalStackLayout>
+                            </Border>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
                 <Border Style="{StaticResource CardBorder}">
                     <VerticalStackLayout Spacing="14">
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">

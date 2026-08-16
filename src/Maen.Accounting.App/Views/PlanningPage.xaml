@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Maen.Accounting.App.Views.PlanningPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:local="clr-namespace:Maen.Accounting.App"
+    xmlns:views="clr-namespace:Maen.Accounting.App.Views"
+    Title="{local:Tr Key=T451}"
+    BackgroundColor="{StaticResource AppBackground}">
+    <ScrollView>
+        <VerticalStackLayout Padding="18,20,18,32" Spacing="16" MaximumWidthRequest="760" HorizontalOptions="Center">
+            <views:BrandHeaderView
+                Eyebrow="{local:Tr Key=T452}"
+                Title="{local:Tr Key=T451}"
+                Subtitle="{local:Tr Key=T452}" />
+
+            <Border Style="{StaticResource CardBorder}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="{local:Tr Key=T446}" FontSize="17" FontAttributes="Bold" />
+                    <Label Text="{local:Tr Key=T452}" Style="{StaticResource MutedLabel}" />
+                    <Entry Text="{Binding PlanIncomeInput}" Placeholder="{local:Tr Key=T429}" Keyboard="Numeric" />
+                    <Entry Text="{Binding PlanSpendingLimitInput}" Placeholder="{local:Tr Key=T398}" Keyboard="Numeric" />
+                    <Entry Text="{Binding PlanSavingsTargetInput}" Placeholder="{local:Tr Key=T399}" Keyboard="Numeric" />
+                    <Label Text="{local:Tr Key=T445}" FontSize="14" FontAttributes="Bold" />
+                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding PlanLimitCategories}" Spacing="8">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" VerticalOptions="Center">
+                                    <BoxView WidthRequest="10" HeightRequest="10" CornerRadius="5" Color="{Binding ColorHex}" VerticalOptions="Center" />
+                                    <Label Text="{Binding Category}" VerticalTextAlignment="Center" />
+                                    <Entry Grid.Column="2" Text="{Binding LimitText}" Placeholder="0" Keyboard="Numeric" WidthRequest="110" />
+                                </Grid>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                    <Button Text="{local:Tr Key=T420}" Clicked="OnSavePlanClicked" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource CardBorder}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="{local:Tr Key=T400}" FontSize="17" FontAttributes="Bold" />
+                    <Label Text="{local:Tr Key=T401}" Style="{StaticResource MutedLabel}" />
+                    <Entry Text="{Binding ObligationTitleInput}" Placeholder="{local:Tr Key=T453}" />
+                    <Entry Text="{Binding ObligationAmountInput}" Placeholder="{local:Tr Key=T336}" Keyboard="Numeric" />
+                    <Picker Title="{local:Tr Key=T423}" ItemsSource="{Binding ObligationCycles}" SelectedItem="{Binding ObligationCycleSelection}" />
+                    <Button Text="{local:Tr Key=T461}" Clicked="OnAddObligationClicked" Style="{StaticResource SecondaryButton}" />
+                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding Obligations}" Spacing="8">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10" VerticalOptions="Center">
+                                    <VerticalStackLayout Spacing="2">
+                                        <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="14" />
+                                        <Label Text="{Binding AmountText}" Style="{StaticResource MutedLabel}" FontSize="12" />
+                                    </VerticalStackLayout>
+                                    <Label Grid.Column="1" Text="{Binding CycleText}" Style="{StaticResource MutedLabel}" VerticalTextAlignment="Center" />
+                                    <Switch Grid.Column="2" IsToggled="{Binding IsActive, Mode=TwoWay}" VerticalOptions="Center" />
+                                </Grid>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                    <Label Text="{local:Tr Key=T441}" Style="{StaticResource MutedLabel}" IsVisible="{Binding HasObligations, Converter={x:Static local:InverseBooleanConverter.Instance}}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource CardBorder}">
+                <VerticalStackLayout Spacing="10">
+                    <Label Text="{local:Tr Key=T431}" FontSize="17" FontAttributes="Bold" />
+                    <Label Text="{local:Tr Key=T432}" Style="{StaticResource MutedLabel}" />
+                    <Entry Text="{Binding DepositTitleInput}" Placeholder="{local:Tr Key=T454}" />
+                    <Entry Text="{Binding DepositAmountInput}" Placeholder="{local:Tr Key=T336}" Keyboard="Numeric" />
+                    <DatePicker Date="{Binding DepositDate}" />
+                    <Button Text="{local:Tr Key=T462}" Clicked="OnAddDepositClicked" Style="{StaticResource SecondaryButton}" />
+                    <VerticalStackLayout BindableLayout.ItemsSource="{Binding Deposits}" Spacing="8">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate>
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" VerticalOptions="Center">
+                                    <VerticalStackLayout Spacing="2">
+                                        <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="14" />
+                                        <Label Text="{Binding DateText}" Style="{StaticResource MutedLabel}" FontSize="12" />
+                                    </VerticalStackLayout>
+                                    <Label Grid.Column="1" Text="{Binding AmountText}" TextColor="{StaticResource PrimaryDark}" FontAttributes="Bold" VerticalTextAlignment="Center" />
+                                </Grid>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                    <Label Text="{local:Tr Key=T438}" Style="{StaticResource MutedLabel}" IsVisible="{Binding HasDeposits, Converter={x:Static local:InverseBooleanConverter.Instance}}" />
+                </VerticalStackLayout>
+            </Border>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

@@ -38,6 +38,9 @@ public sealed class UserDatabaseFactory
             await connection.CreateTableAsync<InvoiceRow>();
             await connection.CreateTableAsync<InvoiceLineRow>();
             await connection.CreateTableAsync<PaymentRow>();
+            await connection.CreateTableAsync<FinancialPlanRow>();
+            await connection.CreateTableAsync<ObligationRow>();
+            await connection.CreateTableAsync<DepositRow>();
             await connection.CreateTableAsync<SchemaMigrationRow>();
             await ApplySchemaMigrationsAsync(connection);
 
@@ -62,7 +65,8 @@ public sealed class UserDatabaseFactory
             [1] = () => EnsureProfitEntryColumnsAsync(connection),
             [2] = () => EnsurePaymentColumnsAsync(connection),
             [3] = () => EnsureIndexesAsync(connection),
-            [4] = () => EnsureBusinessEntitySyncIndexesAsync(connection)
+            [4] = () => EnsureBusinessEntitySyncIndexesAsync(connection),
+            [5] = () => EnsurePlansObligationsDepositsAsync(connection)
         };
 
         foreach (var migration in SchemaMigrationCatalog.All)
@@ -113,6 +117,14 @@ public sealed class UserDatabaseFactory
         "ON invoices(UserId, UpdatedAtUtcTicks);" +
         "CREATE INDEX IF NOT EXISTS ix_payments_user_updated " +
         "ON payments(UserId, UpdatedAtUtcTicks);");
+
+    private static Task EnsurePlansObligationsDepositsAsync(SQLiteAsyncConnection connection) => connection.ExecuteAsync(
+        "CREATE INDEX IF NOT EXISTS ix_plans_user_updated " +
+        "ON financial_plans(UserId, UpdatedAtUtcTicks) WHERE IsDeleted = 0;" +
+        "CREATE INDEX IF NOT EXISTS ix_obligations_user_active " +
+        "ON obligations(UserId, IsActive, UpdatedAtUtcTicks) WHERE IsDeleted = 0;" +
+        "CREATE INDEX IF NOT EXISTS ix_deposits_user_updated " +
+        "ON deposits(UserId, UpdatedAtUtcTicks) WHERE IsDeleted = 0;");
 
     private static async Task EnsurePaymentColumnsAsync(SQLiteAsyncConnection connection)
     {

@@ -105,6 +105,97 @@
                     </VerticalStackLayout>
                 </Border>
 
+                <Border Style="{StaticResource CardBorder}" IsVisible="{Binding HasPlan}">
+                    <VerticalStackLayout Spacing="10">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="{local:Tr Key=T396}" FontSize="17" FontAttributes="Bold" />
+                                <Label Text="{local:Tr Key=T412}" Style="{StaticResource MutedLabel}" />
+                            </VerticalStackLayout>
+                            <Label Grid.Column="1" Text="{Binding PlanProgressPercentText}" TextColor="{StaticResource PrimaryDark}" FontSize="22" FontAttributes="Bold" VerticalOptions="Center" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="12" RowDefinitions="Auto,Auto">
+                            <Border Style="{StaticResource MetricCard}">
+                                <VerticalStackLayout Spacing="5">
+                                    <Label Text="{local:Tr Key=T397}" Style="{StaticResource MetricCaption}" />
+                                    <Label Text="{Binding PlanExpectedIncomeText}" TextColor="#137A53" FontSize="20" FontAttributes="Bold" />
+                                </VerticalStackLayout>
+                            </Border>
+                            <Border Grid.Column="1" Style="{StaticResource MetricCard}">
+                                <VerticalStackLayout Spacing="5">
+                                    <Label Text="{local:Tr Key=T399}" Style="{StaticResource MetricCaption}" />
+                                    <Label Text="{Binding PlanSavingsTargetText}" TextColor="#075985" FontSize="20" FontAttributes="Bold" />
+                                </VerticalStackLayout>
+                            </Border>
+                            <Border Grid.Row="1" Style="{StaticResource MetricCard}">
+                                <VerticalStackLayout Spacing="5">
+                                    <Label Text="{local:Tr Key=T398}" Style="{StaticResource MetricCaption}" />
+                                    <Label Text="{Binding PlanSpendingLimitText}" TextColor="#C2413A" FontSize="20" FontAttributes="Bold" />
+                                </VerticalStackLayout>
+                            </Border>
+                            <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource MetricCard}">
+                                <VerticalStackLayout Spacing="5">
+                                    <Label Text="{local:Tr Key=T108}" Style="{StaticResource MetricCaption}" />
+                                    <Label Text="{Binding PlanActualIncomeText}" TextColor="#137A53" FontSize="20" FontAttributes="Bold" />
+                                </VerticalStackLayout>
+                            </Border>
+                        </Grid>
+                        <ProgressBar Progress="{Binding PlanSpendingProgress}" ProgressColor="#E27852" BackgroundColor="#E7EDEA" HeightRequest="8" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource CardBorder}">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="{local:Tr Key=T405}" FontSize="17" FontAttributes="Bold" />
+                        <Entry Text="{Binding MovementSearchText}" Placeholder="{local:Tr Key=T406}" TextChanged="OnMovementSearchTextChanged" />
+                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding MovementSearchResults}" Spacing="8">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                        <VerticalStackLayout Spacing="2">
+                                            <Label Text="{Binding TitleText}" FontAttributes="Bold" FontSize="14" />
+                                            <Label Text="{Binding DetailText}" Style="{StaticResource MutedLabel}" FontSize="12" />
+                                            <Label Text="{Binding DateText}" Style="{StaticResource MutedLabel}" FontSize="12" />
+                                        </VerticalStackLayout>
+                                        <VerticalStackLayout Grid.Column="1" Spacing="2" HorizontalOptions="End">
+                                            <Label Text="{Binding AmountText}" TextColor="{Binding AmountColor}" FontAttributes="Bold" FontSize="16" HorizontalTextAlignment="End" />
+                                            <Label Text="{Binding MovementTypeText}" Style="{StaticResource MutedLabel}" FontSize="12" HorizontalTextAlignment="End" />
+                                        </VerticalStackLayout>
+                                    </Grid>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                        <Label Text="{local:Tr Key=T407}" Style="{StaticResource MutedLabel}" IsVisible="{Binding HasMovementSearchResults, Converter={x:Static local:InverseBooleanConverter.Instance}}" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource CardBorder}">
+                    <VerticalStackLayout Spacing="10">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="{local:Tr Key=T400}" FontSize="17" FontAttributes="Bold" />
+                                <Label Text="{local:Tr Key=T411}" Style="{StaticResource MutedLabel}" />
+                            </VerticalStackLayout>
+                        </Grid>
+                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding UpcomingObligations}" Spacing="8">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                        <VerticalStackLayout Spacing="2">
+                                            <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="14" />
+                                            <Label Text="{Binding DueDate}" TextColor="{StaticResource PrimaryDark}" FontSize="12" />
+                                        </VerticalStackLayout>
+                                        <Border Grid.Column="1" BackgroundColor="{Binding IsPaid, Converter={x:Static local:ObligationStatusConverter.Instance}}" WidthRequest="80" HeightRequest="26" StrokeThickness="0" VerticalOptions="Center">
+                                            <Border.StrokeShape><RoundRectangle CornerRadius="13" /></Border.StrokeShape>
+                                            <Label Text="{Binding IsPaid, Converter={x:Static local:ObligationTextConverter.Instance}}" FontSize="12" FontAttributes="Bold" TextColor="#FFFFFF" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                                        </Border>
+                                    </Grid>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
                 <Border Style="{StaticResource CardBorder}">
                     <VerticalStackLayout Spacing="12">
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
@@ -125,6 +216,31 @@
                                 <Label Text="{Binding CurrentMonthEntryCountText}" FontAttributes="Bold" TextColor="{StaticResource PrimaryDark}" />
                             </VerticalStackLayout>
                         </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource CardBorder}">
+                    <VerticalStackLayout Spacing="10">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="{local:Tr Key=T446}" FontSize="17" FontAttributes="Bold" />
+                                <Label Text="{local:Tr Key=T418}" Style="{StaticResource MutedLabel}" />
+                            </VerticalStackLayout>
+                        </Grid>
+                        <FlexLayout BindableLayout.ItemsSource="{Binding CategoryRegistryItems}" Wrap="Wrap" JustifyContent="SpaceBetween" Direction="Row" AlignItems="Start">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Margin="0,0,8,0" BackgroundColor="#F7F0E1" StrokeThickness="0" WidthRequest="140" HeightRequest="72">
+                                        <Border.StrokeShape><RoundRectangle CornerRadius="10" /></Border.StrokeShape>
+                                        <VerticalStackLayout Spacing="3" Padding="8" HorizontalOptions="Center" VerticalOptions="Center">
+                                            <BoxView HeightRequest="8" WidthRequest="8" CornerRadius="4" Color="{Binding ColorHex}" HorizontalOptions="Center" />
+                                            <Label Text="{Binding Category}" FontSize="11" FontAttributes="Bold" HorizontalTextAlignment="Center" LineBreakMode="WordWrap" MaxLines="2" />
+                                            <Label Text="{Binding EntriesCountText}" FontSize="10" Style="{StaticResource MutedLabel}" HorizontalTextAlignment="Center" />
+                                        </VerticalStackLayout>
+                                    </Border>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </FlexLayout>
                     </VerticalStackLayout>
                 </Border>
 

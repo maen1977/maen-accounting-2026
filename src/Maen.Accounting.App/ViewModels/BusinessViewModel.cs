@@ -15,6 +15,9 @@ public sealed class BusinessViewModel : ObservableObject
     private readonly SemaphoreSlim _gate = new(1, 1);
     private AuthSession? _session;
     private bool _isBusy;
+    private IReadOnlyList<AccountingContact> _rawContacts = [];
+    private IReadOnlyList<Invoice> _rawInvoices = [];
+    private IReadOnlyList<Payment> _rawPayments = [];
     private string _statusMessage = string.Empty;
     private string _contactNameInput = string.Empty;
     private string _contactPhoneInput = string.Empty;
@@ -56,6 +59,18 @@ public sealed class BusinessViewModel : ObservableObject
     public ObservableCollection<InvoiceItemViewModel> Invoices { get; } = [];
     public ObservableCollection<PaymentItemViewModel> Payments { get; } = [];
 
+    public BusinessFinancialSummary? FinancialPosition => _financialPosition;
+    public string ReceivableNetText => Money.Format(_financialPosition?.ReceivableNetMinor ?? 0);
+    public string PayableNetText => Money.Format(_financialPosition?.PayableNetMinor ?? 0);
+    public string NetPositionText => Money.Format(_financialPosition?.NetPositionMinor ?? 0);
+    public string NetPositionColor =>
+        (_financialPosition?.NetPositionMinor ?? 0) >= 0 ? "#137A53" : "#C2413A";
+    public string OverdueSalesText => Money.Format(_financialPosition?.OverdueSalesMinor ?? 0);
+    public string OverduePurchasesText => Money.Format(_financialPosition?.OverduePurchasesMinor ?? 0);
+    public bool HasFinancialPosition => _financialPosition is not null;
+
+    private BusinessFinancialSummary? _financialPosition;
+
     public bool IsBusy { get => _isBusy; private set => SetProperty(ref _isBusy, value); }
     public string StatusMessage { get => _statusMessage; private set => SetProperty(ref _statusMessage, value); }
     public string ContactNameInput { get => _contactNameInput; set => SetProperty(ref _contactNameInput, value); }
@@ -87,18 +102,19 @@ public sealed class BusinessViewModel : ObservableObject
         await RunBusyAsync(async () =>
         {
             var session = RequireSession();
-            var contacts = await _repository.GetContactsAsync(session.UserId);
-            var invoices = await _repository.GetInvoicesAsync(session.UserId);
-            var payments = await _repository.GetPaymentsAsync(session.UserId);
+            _rawContacts = await _repository.GetContactsAsync(session.UserId);
+            _rawInvoices = await _repository.GetInvoicesAsync(session.UserId);
+            _rawPayments = await _repository.GetPaymentsAsync(session.UserId);
             Contacts.Clear();
-            foreach (var contact in contacts) Contacts.Add(new ContactItemViewModel(contact));
+            foreach (var contact in _rawContacts) Contacts.Add(new ContactItemViewModel(contact));
             Invoices.Clear();
-            foreach (var invoice in invoices) Invoices.Add(new InvoiceItemViewModel(invoice, contacts));
+            foreach (var invoice in _rawInvoices) Invoices.Add(new InvoiceItemViewModel(invoice, _rawContacts));
             Payments.Clear();
-            foreach (var payment in payments) Payments.Add(new PaymentItemViewModel(payment, contacts));
+            foreach (var payment in _rawPayments) Payments.Add(new PaymentItemViewModel(payment, _rawContacts));
             SelectedInvoiceContact ??= Contacts.FirstOrDefault();
             SelectedPaymentContact ??= Contacts.FirstOrDefault();
             SelectedPaymentAccount ??= PaymentAccounts[0];
+            RebuildFinancialPosition();
         });
     }
 
@@ -170,17 +186,37 @@ public sealed class BusinessViewModel : ObservableObject
     private async Task ReloadCoreAsync()
     {
         var session = RequireSession();
-        var contacts = await _repository.GetContactsAsync(session.UserId);
-        var invoices = await _repository.GetInvoicesAsync(session.UserId);
-        var payments = await _repository.GetPaymentsAsync(session.UserId);
+        _rawContacts = await _repository.GetContactsAsync(session.UserId);
+        _rawInvoices = await _repository.GetInvoicesAsync(session.UserId);
+        _rawPayments = await _repository.GetPaymentsAsync(session.UserId);
         Contacts.Clear();
-        foreach (var contact in contacts) Contacts.Add(new ContactItemViewModel(contact));
+        foreach (var contact in _rawContacts) Contacts.Add(new ContactItemViewModel(contact));
         Invoices.Clear();
-        foreach (var invoice in invoices) Invoices.Add(new InvoiceItemViewModel(invoice, contacts));
+        foreach (var invoice in _rawInvoices) Invoices.Add(new InvoiceItemViewModel(invoice, _rawContacts));
         Payments.Clear();
-        foreach (var payment in payments) Payments.Add(new PaymentItemViewModel(payment, contacts));
+        foreach (var payment in _rawPayments) Payments.Add(new PaymentItemViewModel(payment, _rawContacts));
         SelectedInvoiceContact ??= Contacts.FirstOrDefault();
         SelectedPaymentContact ??= Contacts.FirstOrDefault();
+        RebuildFinancialPosition();
+    }
+
+    private void RebuildFinancialPosition()
+    {
+        _financialPosition = _rawContacts.Count == 0 && _rawInvoices.Count == 0 && _rawPayments.Count == 0
+            ? null
+            : BusinessFinancialSummaryCalculator.Summarize(
+                _rawContacts,
+                _rawInvoices,
+                _rawPayments,
+                DateOnly.FromDateTime(DateTime.Today));
+        OnPropertyChanged(nameof(FinancialPosition));
+        OnPropertyChanged(nameof(HasFinancialPosition));
+        OnPropertyChanged(nameof(ReceivableNetText));
+        OnPropertyChanged(nameof(PayableNetText));
+        OnPropertyChanged(nameof(NetPositionText));
+        OnPropertyChanged(nameof(NetPositionColor));
+        OnPropertyChanged(nameof(OverdueSalesText));
+        OnPropertyChanged(nameof(OverduePurchasesText));
     }
 
     private AuthSession RequireSession() => _session ?? throw new InvalidOperationException(UiText.Get("T245"));

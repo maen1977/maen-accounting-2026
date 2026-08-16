@@ -23,6 +23,8 @@ public sealed class MainStateViewModel : ObservableObject
     private readonly BackupService _backupService;
     private readonly FirestoreSyncService _syncService;
     private readonly BusinessFirestoreSyncService _businessSyncService;
+    private readonly PersonalFirestoreSyncService _personalEntitySyncService;
+    private readonly PlanningRepository _planningRepository;
     private readonly DeviceIdentityService _deviceIdentity;
     private readonly AuthSessionStore _sessionStore;
     private readonly AppPreferencesService _preferences;
@@ -41,6 +43,9 @@ public sealed class MainStateViewModel : ObservableObject
     private DateTime _reportMonth = new(DateTime.Today.Year, DateTime.Today.Month, 1);
     private ReportScope _reportScope = ReportScope.Month;
     private string _searchText = string.Empty;
+    private string _movementSearchText = string.Empty;
+    private string _movementSearchQueryText = string.Empty;
+    private readonly System.Collections.ObjectModel.ObservableCollection<MovementSearchItemViewModel> _movementSearchResults = new();
     private bool _isBusy;
     private string _statusMessage = string.Empty;
     private string _syncStatus = UiText.Get("T130");
@@ -53,6 +58,10 @@ public sealed class MainStateViewModel : ObservableObject
     private string _counterpartyInput = string.Empty;
     private string _monthlyBudgetInput = Preferences.Default.Get("maen_personal_monthly_budget_v1", string.Empty);
     private BusinessSyncResult? _lastBusinessSyncResult;
+    private PersonalEntitySyncResult? _lastPersonalEntitySyncResult;
+    private PersonalPlanProgress? _planProgress;
+    private IReadOnlyList<ObligationEvent> _upcomingObligations = Array.Empty<ObligationEvent>();
+    private readonly System.Collections.ObjectModel.ObservableCollection<CategoryRegistryItem> _categoryRegistryItems = new();
 
     public MainStateViewModel(
         ProfitEntryRepository repository,
@@ -61,6 +70,8 @@ public sealed class MainStateViewModel : ObservableObject
         BackupService backupService,
         FirestoreSyncService syncService,
         BusinessFirestoreSyncService businessSyncService,
+        PersonalFirestoreSyncService personalEntitySyncService,
+        PlanningRepository planningRepository,
         DeviceIdentityService deviceIdentity,
         AuthSessionStore sessionStore,
         AppPreferencesService preferences)
@@ -71,6 +82,8 @@ public sealed class MainStateViewModel : ObservableObject
         _backupService = backupService;
         _syncService = syncService;
         _businessSyncService = businessSyncService;
+        _personalEntitySyncService = personalEntitySyncService;
+        _planningRepository = planningRepository;
         _deviceIdentity = deviceIdentity;
         _sessionStore = sessionStore;
         _preferences = preferences;
@@ -108,6 +121,9 @@ public sealed class MainStateViewModel : ObservableObject
         }
     }
     public string SearchText { get => _searchText; set { if (SetProperty(ref _searchText, value)) RebuildReport(); } }
+    public string MovementSearchText { get => _movementSearchText; set { if (SetProperty(ref _movementSearchText, value)) RebuildReport(); } }
+    public System.Collections.ObjectModel.ObservableCollection<MovementSearchItemViewModel> MovementSearchResults => _movementSearchResults;
+    public bool HasMovementSearchResults => _movementSearchResults.Count > 0;
     public bool IsBusy { get => _isBusy; private set => SetProperty(ref _isBusy, value); }
     public string StatusMessage { get => _statusMessage; private set => SetProperty(ref _statusMessage, value); }
     public string SyncStatus { get => _syncStatus; private set => SetProperty(ref _syncStatus, value); }
@@ -345,8 +361,81 @@ public sealed class MainStateViewModel : ObservableObject
         RebuildRecent();
         RebuildCategorySpending();
         RebuildReport();
+        await RebuildPlanningAsync(session.UserId, entries);
         RaiseSummaries();
     }
+
+    public PersonalPlanProgress? PlanProgress => _planProgress;
+
+    public string PlanExpectedIncomeText => Money.Format(_planProgress?.ExpectedIncomeMinor ?? 0);
+    public string PlanSpendingLimitText => Money.Format(_planProgress?.ExpectedSpendingLimitMinor ?? 0);
+    public string PlanSavingsTargetText => Money.Format(_planProgress?.ExpectedSavingsTargetMinor ?? 0);
+    public string PlanActualIncomeText => Money.Format(_planProgress?.ActualIncomeMinor ?? 0);
+    public string PlanActualSpendingText => Money.Format(_planProgress?.ActualSpendingMinor ?? 0);
+    public double PlanSpendingProgress =>
+        _planProgress is null ? 0.0 : SafeProgress(_planProgress.ActualSpendingMinor, _planProgress.ExpectedSpendingLimitMinor);
+    public double PlanSavingsProgress => _planProgress?.SavingsProgressPercent ?? 0.0;
+    public string PlanProgressPercentText =>
+        _planProgress is null ? string.Empty : $"{Math.Clamp(_planProgress.ActualSpendingMinor >= 0 && _planProgress.ExpectedSpendingLimitMinor > 0 ? _planProgress.ActualSpendingMinor / (double)_planProgress.ExpectedSpendingLimitMinor * 100.0 : 0.0, 0, 100):F0}%";
+    public bool HasPlan => _planProgress is not null;
+
+    public IReadOnlyList<ObligationEvent> UpcomingObligations => _upcomingObligations;
+    public int OverdueObligationsCount => _upcomingObligations.Count(static item => !item.IsPaid && item.DueDate < DateOnly.FromDateTime(DateTime.Today));
+    public System.Collections.ObjectModel.ObservableCollection<CategoryRegistryItem> CategoryRegistryItems => _categoryRegistryItems;
+
+    private static double SafeProgress(long actual, long limit) =>
+        limit > 0 ? Math.Clamp(actual / (double)limit, 0, 1) : 0.0;
+
+    private async Task RebuildPlanningAsync(string userId, IReadOnlyList<ProfitEntry> entries)
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var plans = await _planningRepository.GetPlansAsync(userId);
+        var latestPlan = plans
+            .OrderByDescending(row => row.UpdatedAtUtcTicks)
+            .FirstOrDefault();
+
+        _planProgress = latestPlan is null
+            ? null
+            : PersonalFinancialPlanCalculator.TrackPlan(
+                ToPlanModel(latestPlan),
+                entries,
+                today);
+
+        var obligations = await _planningRepository.GetObligationsAsync(userId);
+        _upcomingObligations = ObligationScheduleCalculator.UpcomingEvents(
+            obligations.Select(ToObligationModel),
+            today,
+            lookAheadDays: 45)
+            .Take(10)
+            .ToArray();
+
+        var registryItems = CategoryRegistryCalculator.ComputeRegistry(
+            entries.Select(static item => new CategoryEntry(item.Category, item.EntryDate)),
+            [UiText.Get("T390")]);
+        _categoryRegistryItems.Clear();
+        foreach (var item in registryItems)
+        {
+            _categoryRegistryItems.Add(item);
+        }
+        OnPropertyChanged(nameof(CategoryRegistryItems));
+    }
+
+    private static FinancialPlan ToPlanModel(FinancialPlanRow row) => new(
+        row.MonthlyIncomeMinor,
+        row.MonthlySpendingLimitMinor,
+        row.MonthlySavingsTargetMinor,
+        PlanningRepository.ParseCategoryLimits(row.CategoryLimitsJson).ToArray());
+
+    private static Obligation ToObligationModel(ObligationRow row) => new(
+        row.ObligationId,
+        row.UserId,
+        row.Title,
+        row.Category,
+        row.AmountMinor,
+        DateOnly.FromDateTime(new DateTime(row.StartDateTicks, DateTimeKind.Utc)),
+        row.Cycle,
+        row.IsActive,
+        PlanningRepository.ParsePaidOccurrences(row.PaidOccurrencesJson).ToArray());
 
     public void BeginNewEntry()
     {
@@ -582,6 +671,9 @@ public sealed class MainStateViewModel : ObservableObject
         _lastBusinessSyncResult = string.Equals(_preferences.StorageScope, "business", StringComparison.Ordinal)
             ? await _businessSyncService.SyncAsync()
             : null;
+        _lastPersonalEntitySyncResult = string.Equals(_preferences.StorageScope, "personal", StringComparison.Ordinal)
+            ? await _personalEntitySyncService.SyncAsync()
+            : null;
         SyncStatus = FormatSyncSummary(result);
         await ReloadAsync();
         await WriteBackupAndUpdateAsync();
@@ -598,6 +690,25 @@ public sealed class MainStateViewModel : ObservableObject
             result.LocalWins,
             result.RemoteWins,
             result.TotalEntries);
+
+        if (_lastBusinessSyncResult is null && _lastPersonalEntitySyncResult is null)
+        {
+            return summary;
+        }
+
+        if (_lastPersonalEntitySyncResult is not null)
+        {
+            var personal = _lastPersonalEntitySyncResult;
+            summary = $"{summary}{Environment.NewLine}{UiText.Format(
+                "T395",
+                personal.PlansTotal,
+                personal.ObligationsTotal,
+                personal.DepositsTotal,
+                personal.Uploaded,
+                personal.LocalWins,
+                personal.RemoteWins,
+                personal.TotalRecords)}";
+        }
 
         if (_lastBusinessSyncResult is null)
         {
@@ -686,7 +797,7 @@ public sealed class MainStateViewModel : ObservableObject
         _ => PersonalMovementTypes.Other
     };
 
-    private static string DisplayMovementType(string movementType) => movementType switch
+    internal static string DisplayMovementType(string movementType) => movementType switch
     {
         PersonalMovementTypes.Salary => UiText.Get("T332"),
         PersonalMovementTypes.Freelance => UiText.Get("T333"),
@@ -782,7 +893,15 @@ public sealed class MainStateViewModel : ObservableObject
     {
         ReportEntries.Clear();
         ReportDays.Clear();
-        var query = SearchText.Trim();
+        _movementSearchQueryText = MovementSearchText;
+        _movementSearchResults.Clear();
+        foreach (var entry in MovementSearchEngine.Search(Models(), new MovementSearchQuery(Keyword: MovementSearchText.Trim())))
+        {
+            _movementSearchResults.Add(new MovementSearchItemViewModel(entry));
+        }
+        OnPropertyChanged(nameof(MovementSearchResults));
+        OnPropertyChanged(nameof(HasMovementSearchResults));
+        var query = _movementSearchQueryText.Trim();
         var range = GetReportRange();
         var filtered = Entries.Where(item =>
                      item.Model.EntryDate >= range.FromDate &&
@@ -884,6 +1003,7 @@ public sealed class MainStateViewModel : ObservableObject
         OnPropertyChanged(nameof(CurrentYearNetText));
         OnPropertyChanged(nameof(TotalExpensesText));
         RaiseBudgetProperties();
+        RaisePlanningProperties();
         RaiseReportSummary();
     }
 
@@ -894,6 +1014,21 @@ public sealed class MainStateViewModel : ObservableObject
         OnPropertyChanged(nameof(MonthlyBudgetPercentText));
         OnPropertyChanged(nameof(MonthlyBudgetStatusText));
         OnPropertyChanged(nameof(MonthlyBudgetStatusColor));
+    }
+
+    private void RaisePlanningProperties()
+    {
+        OnPropertyChanged(nameof(PlanExpectedIncomeText));
+        OnPropertyChanged(nameof(PlanSpendingLimitText));
+        OnPropertyChanged(nameof(PlanSavingsTargetText));
+        OnPropertyChanged(nameof(PlanActualIncomeText));
+        OnPropertyChanged(nameof(PlanActualSpendingText));
+        OnPropertyChanged(nameof(PlanSpendingProgress));
+        OnPropertyChanged(nameof(PlanSavingsProgress));
+        OnPropertyChanged(nameof(PlanProgressPercentText));
+        OnPropertyChanged(nameof(HasPlan));
+        OnPropertyChanged(nameof(UpcomingObligations));
+        OnPropertyChanged(nameof(OverdueObligationsCount));
     }
 
     private void RaiseReportSummary()
