@@ -16,7 +16,7 @@ public static class UiText
         ["T006"] = ("إجمالي المدفوعات", "Total payments"),
         ["T007"] = ("إجمالي المدين", "Total debit"),
         ["T008"] = ("إجمالي المصروفات", "Total expenses"),
-        ["T009"] = ("إدخال", "Entry"),
+        ["T009"] = ("إضافة سجل", "Add entry"),
         ["T010"] = ("إضافة سجل جديد", "Add new entry"),
         ["T011"] = ("إنشاء حساب جديد", "Create account"),
         ["T012"] = ("ابدأ بدون تسجيل", "Continue without registration"),
@@ -42,7 +42,7 @@ public static class UiText
         ["T032"] = ("الرئيسية", "Home"),
         ["T033"] = ("الربح الإجمالي", "Gross profit"),
         ["T034"] = ("الربح الإجمالي للشهر", "Monthly gross profit"),
-        ["T035"] = ("السجل اليومي", "Daily entry"),
+        ["T035"] = ("إضافة سجل يومي", "Add daily entry"),
         ["T036"] = ("الشركات والمحلات", "Business & shops"),
         ["T037"] = ("العربية", "Arabic"),
         ["T038"] = ("العملاء والموردون والفواتير والمدفوعات", "Customers, suppliers, invoices and payments"),
@@ -666,6 +666,14 @@ public static class UiText
         ["T826"] = ("بعد", "in"),
         ["T827"] = ("بمرفقات", "With attachments"),
         ["T828"] = ("دورية", "Recurring"),
+        ["T829"] = ("ابدأ بإضافة سجل اليوم لمتابعة مبيعاتك ومصروفاتك.", "Start by adding today's entry to track sales and expenses."),
+        ["T830"] = ("إضافة أول سجل", "Add first entry"),
+        ["T831"] = ("تعديل السجل", "Edit entry"),
+        ["T832"] = ("حذف السجل", "Delete entry"),
+        ["T833"] = ("تم الحذف", "Deleted"),
+        ["T834"] = ("تم حذف السجل بنجاح.", "The entry was deleted successfully."),
+        ["T835"] = ("غيّر الشهر أو أضف سجلًا جديدًا من تبويب إضافة سجل.", "Change the month or add a new entry from the Add entry tab."),
+        ["T836"] = ("التقارير والسجلات", "Reports & entries"),
     };
 
 

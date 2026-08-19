@@ -9,7 +9,7 @@
         <VerticalStackLayout Spacing="12">
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                 <VerticalStackLayout Spacing="3">
-                    <Label Text="{local:Tr Key=T022}" Style="{StaticResource TitleLabel}" />
+                    <Label Text="{local:Tr Key=T836}" Style="{StaticResource TitleLabel}" />
                     <Label Text="{Binding ReportPeriodText}" Style="{StaticResource MutedLabel}" />
                 </VerticalStackLayout>
                 <DatePicker Grid.Column="1" Date="{Binding ReportMonth}" Format="MMMM yyyy" DateSelected="OnReportDateSelected" VerticalOptions="Center" />
@@ -183,7 +183,13 @@
             </Grid>
         </VerticalStackLayout>
 
-        <CollectionView Grid.Row="1" ItemsSource="{Binding ReportEntries}" Margin="0,14,0,0" EmptyView="{local:Tr Key=T079}">
+        <CollectionView Grid.Row="1" ItemsSource="{Binding ReportEntries}" Margin="0,14,0,0">
+            <CollectionView.EmptyView>
+                <VerticalStackLayout Spacing="8" Padding="12,24" HorizontalOptions="Center">
+                    <Label Text="{local:Tr Key=T079}" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                    <Label Text="{local:Tr Key=T835}" Style="{StaticResource MutedLabel}" HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+            </CollectionView.EmptyView>
             <CollectionView.ItemTemplate>
                 <DataTemplate>
                     <Border Style="{StaticResource CardBorder}" Margin="0,0,0,10">
@@ -199,8 +205,8 @@
                                 <Label Grid.Column="2" Text="{Binding ExpensesSummaryText}" FontSize="12" />
                             </Grid>
                             <Grid ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,6,0,0">
-                                <Button Text="{local:Tr Key=T058}" Style="{StaticResource SecondaryButton}" CommandParameter="{Binding .}" Clicked="OnEditClicked" />
-                                <Button Grid.Column="1" Text="{local:Tr Key=T061}" Style="{StaticResource DangerButton}" CommandParameter="{Binding .}" Clicked="OnDeleteClicked" />
+                                <Button Text="{local:Tr Key=T831}" Style="{StaticResource SecondaryButton}" CommandParameter="{Binding .}" Clicked="OnEditClicked" />
+                                <Button Grid.Column="1" Text="{local:Tr Key=T832}" Style="{StaticResource DangerButton}" CommandParameter="{Binding .}" Clicked="OnDeleteClicked" />
                             </Grid>
                         </VerticalStackLayout>
                     </Border>

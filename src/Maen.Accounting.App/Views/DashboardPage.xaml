@@ -164,7 +164,14 @@
                     </Border>
                 </Grid>
 
-                <CollectionView ItemsSource="{Binding RecentEntries}" EmptyView="{local:Tr Key=T078}">
+                <CollectionView ItemsSource="{Binding RecentEntries}">
+                    <CollectionView.EmptyView>
+                        <VerticalStackLayout Spacing="8" Padding="12,18" HorizontalOptions="Center">
+                            <Label Text="{local:Tr Key=T078}" FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                            <Label Text="{local:Tr Key=T829}" Style="{StaticResource MutedLabel}" HorizontalTextAlignment="Center" />
+                            <Button Text="{local:Tr Key=T830}" Style="{StaticResource SecondaryButton}" Clicked="OnAddClicked" />
+                        </VerticalStackLayout>
+                    </CollectionView.EmptyView>
                     <CollectionView.ItemTemplate>
                         <DataTemplate>
                             <Border Style="{StaticResource CardBorder}" Margin="0,0,0,10" Padding="16">
@@ -172,7 +179,7 @@
                                     <Label Text="{Binding DateText}" FontAttributes="Bold" />
                                     <Label Grid.Column="1" Text="{Binding NetText}" FontSize="19" FontAttributes="Bold" TextColor="{StaticResource PrimaryDark}" />
                                     <Label Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding NotesText}" Style="{StaticResource MutedLabel}" LineBreakMode="TailTruncation" Margin="0,5,0,0" />
-                                    <Button Grid.Row="2" Grid.ColumnSpan="2" Text="{local:Tr Key=T058}" Style="{StaticResource SecondaryButton}" CommandParameter="{Binding .}" Clicked="OnEditClicked" Margin="0,10,0,0" />
+                                    <Button Grid.Row="2" Grid.ColumnSpan="2" Text="{local:Tr Key=T831}" Style="{StaticResource SecondaryButton}" CommandParameter="{Binding .}" Clicked="OnEditClicked" Margin="0,10,0,0" />
                                 </Grid>
                             </Border>
                         </DataTemplate>
