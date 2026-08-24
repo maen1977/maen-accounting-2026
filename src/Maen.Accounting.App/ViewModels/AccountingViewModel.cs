@@ -384,7 +384,7 @@ public sealed class AccountingViewModel : ObservableObject
         TotalDebitText = Money.Format(trialBalance.TotalDebitMinor);
         TotalCreditText = Money.Format(trialBalance.TotalCreditMinor);
         BalanceStatusText = trialBalance.IsBalanced ? UiText.Get("T200") : UiText.Get("T199");
-        PostedEntriesText = entries.Count(static entry => entry.Status == JournalEntryStatus.Posted).ToString();
+        PostedEntriesText = entries.Count(static entry => entry.Status == JournalEntryStatus.Posted).ToString(System.Globalization.CultureInfo.CurrentCulture);
         OnPropertyChanged(nameof(TotalDebitText));
         OnPropertyChanged(nameof(TotalCreditText));
         OnPropertyChanged(nameof(BalanceStatusText));

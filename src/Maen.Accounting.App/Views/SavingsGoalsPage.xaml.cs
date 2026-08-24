@@ -233,7 +233,7 @@ public sealed class GoalProgressItem
         CategoryLabel = string.IsNullOrWhiteSpace(progress.Goal.Category) ? UiText.Get("T615") : progress.Goal.Category;
         SavedText = progress.SavedText;
         RemainingText = progress.RemainingText;
-        DeadlineText = deadline.ToString("D");
+        DeadlineText = deadline.ToString("D", System.Globalization.CultureInfo.CurrentCulture);
     }
 
     public string Title { get; }

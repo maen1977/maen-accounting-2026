@@ -37,7 +37,7 @@ public sealed class SavingsTrendPointItem
 {
     public SavingsTrendPointItem(SavingsTrendPoint point, long maxAbsSaved)
     {
-        MonthText = new DateTime(point.Year, point.Month, 1).ToString("MMM");
+        MonthText = new DateTime(point.Year, point.Month, 1).ToString("MMM", System.Globalization.CultureInfo.CurrentCulture);
         SavedText = FormatSigned(point.SavedMinor);
         StatusText = point.IsOnTarget ? UiText.Get("T475") : UiText.Get("T476");
         var progress = maxAbsSaved > 0 ? Math.Clamp(Math.Abs(point.SavedMinor) / (double)maxAbsSaved, 0, 1) : 0.0;

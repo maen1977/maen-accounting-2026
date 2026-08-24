@@ -502,7 +502,7 @@ public sealed class MainStateViewModel : ObservableObject
     public System.Collections.ObjectModel.ObservableCollection<SavingsTrendPointItem> SavingsTrendPoints => _savingsTrendPoints;
 
     private static string YearMonthName(int year, int month) =>
-        new DateTime(year, Math.Clamp(month, 1, 12), 1).ToString("MMM yyyy");
+        new DateTime(year, Math.Clamp(month, 1, 12), 1).ToString("MMM yyyy", System.Globalization.CultureInfo.CurrentCulture);
     public string CurrentYearNetText => Money.Format(_ledgerSummary.CurrentYear.NetProfitMinor);
     public string TotalExpensesText => Money.Format(_ledgerSummary.Overall.ExpensesMinor);
     public string ReportGrossText => Money.Format(SummarizeReport().GrossProfitMinor);

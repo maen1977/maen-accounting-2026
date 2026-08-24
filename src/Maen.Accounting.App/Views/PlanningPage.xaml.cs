@@ -247,7 +247,7 @@ public sealed class PlanningViewModel : ObservableObject
                     row.DepositId,
                     string.IsNullOrEmpty(row.Title) ? row.OwnerName : row.Title,
                     Money.Format(row.AmountMinor),
-                    date.ToString("D"),
+                    date.ToString("D", System.Globalization.CultureInfo.CurrentCulture),
                     row));
             }
 
@@ -464,7 +464,7 @@ public sealed class PlanningViewModel : ObservableObject
                     row.RecurringId,
                     row.Title,
                     $"{Money.Format(row.AmountMinor)} — {TranslateCycle(row.Cycle)}",
-                    next.ToString("D"),
+                    next.ToString("D", System.Globalization.CultureInfo.CurrentCulture),
                     row));
             }
 

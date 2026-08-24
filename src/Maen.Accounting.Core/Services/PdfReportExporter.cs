@@ -37,7 +37,7 @@ public static class PdfReportExporter
           .Append(".row b{color:#047857;}")
           .Append(".footer{margin-top:20px;font-size:11px;color:#9ca3af;text-align:center;}")
           .Append("</style></head><body>")
-          .Append($"<h1>{Escape(title)}</h1><h2>{Escape(subtitle)}</h2>");
+          .Append(System.Globalization.CultureInfo.InvariantCulture, $"<h1>{Escape(title)}</h1><h2>{Escape(subtitle)}</h2>");
 
         foreach (var (label, value) in rows)
         {
