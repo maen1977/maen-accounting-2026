@@ -95,7 +95,7 @@ public static class RecurringMovementCalculator
     {
         ArgumentNullException.ThrowIfNull(movement);
         var amount = Math.Abs(movement.AmountMinor);
-        return movement.Kind.Equals("income", StringComparison.OrdinalIgnoreCase)
+        return (movement.Kind ?? string.Empty).Equals("income", StringComparison.OrdinalIgnoreCase)
             ? (amount, 0L, 0L)
             : (0L, 0L, amount);
     }

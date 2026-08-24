@@ -37,7 +37,7 @@ public static class MovementSearchEngine
     }
 
     private static bool IsRecurringSourced(ProfitEntry entry) =>
-        entry.MovementType.Equals("recurring", StringComparison.OrdinalIgnoreCase);
+        (entry.MovementType ?? string.Empty).Equals("recurring", StringComparison.OrdinalIgnoreCase);
 
     private static bool MatchesKeyword(ProfitEntry entry, string keyword)
     {
