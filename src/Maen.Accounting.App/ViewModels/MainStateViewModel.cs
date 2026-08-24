@@ -580,8 +580,43 @@ public sealed class MainStateViewModel : ObservableObject
         OnPropertyChanged(nameof(IsCloudAccount));
         OnPropertyChanged(nameof(AccountModeText));
         await ReloadAsync();
+        if (!session.IsLocal)
+        {
+            await RestoreLegacyCloudBackupAsync(session);
+        }
+
         var info = await _backupService.ReadInfoAsync(session.UserId);
         SetBackupStatus(info);
+    }
+
+    private async Task RestoreLegacyCloudBackupAsync(AuthSession session)
+    {
+        try
+        {
+            var restoredCount = await _syncService.RestoreLegacyBackupIfEmptyAsync(session);
+            if (restoredCount <= 0)
+            {
+                return;
+            }
+
+            await ReloadAsync();
+            await WriteBackupAndUpdateAsync();
+            StatusMessage = UiText.Format("T860", restoredCount);
+
+            try
+            {
+                await SyncInternalAsync();
+                StatusMessage = $"{StatusMessage}{Environment.NewLine}{SyncStatus}";
+            }
+            catch (Exception exception)
+            {
+                SyncStatus = $"{UiText.Get("T135")} {exception.Message}";
+            }
+        }
+        catch (Exception exception)
+        {
+            SyncStatus = $"{UiText.Get("T135")} {exception.Message}";
+        }
     }
 
     public async Task ReloadAsync()

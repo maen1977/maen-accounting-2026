@@ -166,6 +166,7 @@ public sealed class FirebaseAuthService
             "WEAK_PASSWORD" => UiText.Get("T234"),
             "USER_DISABLED" => UiText.Get("T235"),
             "TOO_MANY_ATTEMPTS_TRY_LATER" => UiText.Get("T236"),
+            "OPERATION_NOT_ALLOWED" or "API_KEY_INVALID" or "INVALID_API_KEY" or "PROJECT_NOT_FOUND" => UiText.Get("T861"),
             _ => UiText.Get("T237")
         };
     }

@@ -697,6 +697,9 @@ public static class UiText
         ["T857"] = ("لا توجد قيود بعد.", "No journal entries yet."),
         ["T858"] = ("تم حذف الحساب.", "Account deleted."),
         ["T859"] = ("إضافة حساب جديد", "Add new account"),
+        ["T860"] = ("تم استرجاع {0} سجلًا من النسخة القديمة المرتبطة بهذا البريد.", "Restored {0} records from the legacy backup linked to this email."),
+        ["T861"] = ("إعداد Firebase غير مكتمل. فعّل Email/Password وتحقق من مفتاح Web API في مشروع Firebase.", "Firebase is not configured correctly. Enable Email/Password and verify the Web API key in the Firebase project."),
+        ["T862"] = ("تعذر قراءة النسخة السحابية القديمة.", "The legacy cloud backup could not be read."),
     };
 
 

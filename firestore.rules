@@ -6,23 +6,52 @@ service cloud.firestore {
         return request.auth != null && request.auth.uid == userId;
       }
 
-      function allowedCollection() {
+      function isLedgerCollection() {
         return collection == 'entries' || collection == 'personalEntries';
+      }
+
+      function isBusinessEntityCollection() {
+        return collection == 'businessContacts'
+            || collection == 'businessInvoices'
+            || collection == 'businessPayments';
+      }
+
+      function isPersonalEntityCollection() {
+        return collection == 'personalPlans'
+            || collection == 'personalObligations'
+            || collection == 'personalDeposits';
+      }
+
+      function allowedCollection() {
+        return isLedgerCollection()
+            || isBusinessEntityCollection()
+            || isPersonalEntityCollection();
       }
 
       function scopeMatchesCollection() {
         return (collection == 'entries' && request.resource.data.accountScope == 'business')
-            || (collection == 'personalEntries' && request.resource.data.accountScope == 'personal');
+            || (collection == 'personalEntries' && request.resource.data.accountScope == 'personal')
+            || (isBusinessEntityCollection() && request.resource.data.accountScope == 'business')
+            || (isPersonalEntityCollection() && request.resource.data.accountScope == 'personal');
+      }
+
+      function entityTypeMatchesCollection() {
+        return (collection == 'businessContacts' && request.resource.data.entityType == 'contact')
+            || (collection == 'businessInvoices' && request.resource.data.entityType == 'invoice')
+            || (collection == 'businessPayments' && request.resource.data.entityType == 'payment')
+            || (collection == 'personalPlans' && request.resource.data.entityType == 'plan')
+            || (collection == 'personalObligations' && request.resource.data.entityType == 'obligation')
+            || (collection == 'personalDeposits' && request.resource.data.entityType == 'deposit');
       }
 
       function validEntry() {
-        return allowedCollection()
+        return isLedgerCollection()
         && request.resource.data.keys().hasOnly([
           'accountScope', 'entryId', 'userId', 'entryDate',
           'salesMinor', 'costMinor', 'expensesMinor',
           'notes', 'isDeleted', 'createdAtUtc', 'updatedAtUtc',
           'version', 'deviceId', 'amountMinor', 'movementType',
-          'category', 'wallet', 'counterparty'
+          'category', 'wallet', 'counterparty', 'integrityHash'
         ])
         && request.resource.data.accountScope is string
         && scopeMatchesCollection()
@@ -47,12 +76,46 @@ service cloud.firestore {
         && (!request.resource.data.keys().hasAny(['movementType']) || (request.resource.data.movementType is string && request.resource.data.movementType.size() <= 64))
         && (!request.resource.data.keys().hasAny(['category']) || (request.resource.data.category is string && request.resource.data.category.size() <= 120))
         && (!request.resource.data.keys().hasAny(['wallet']) || (request.resource.data.wallet is string && request.resource.data.wallet.size() <= 120))
-        && (!request.resource.data.keys().hasAny(['counterparty']) || (request.resource.data.counterparty is string && request.resource.data.counterparty.size() <= 200));
+        && (!request.resource.data.keys().hasAny(['counterparty']) || (request.resource.data.counterparty is string && request.resource.data.counterparty.size() <= 200))
+        && (!request.resource.data.keys().hasAny(['integrityHash']) || (request.resource.data.integrityHash is string && request.resource.data.integrityHash.size() <= 128));
+      }
+
+      function validEntity() {
+        return !isLedgerCollection()
+        && request.resource.data.keys().hasOnly([
+          'accountScope', 'entityType', 'recordId', 'userId',
+          'updatedAtUtc', 'version', 'deviceId', 'payload'
+        ])
+        && request.resource.data.accountScope is string
+        && scopeMatchesCollection()
+        && entityTypeMatchesCollection()
+        && request.resource.data.recordId == entryId
+        && request.resource.data.userId == userId
+        && request.resource.data.updatedAtUtc is string
+        && request.resource.data.version is int
+        && request.resource.data.version >= 1
+        && request.resource.data.deviceId is string
+        && request.resource.data.payload is string
+        && request.resource.data.payload.size() <= 1000000;
       }
 
       allow read: if signedInAsOwner() && allowedCollection();
-      allow create, update: if signedInAsOwner() && validEntry();
+      allow create, update: if signedInAsOwner() && (validEntry() || validEntity());
+      // The clients use soft delete fields so changes merge safely across devices.
       allow delete: if false;
+    }
+
+    // Read-only migration path for backups created by the old Flutter app.
+    // The document id is the normalized email; no listing or writes are allowed.
+    match /profit_tracker_backups/{email} {
+      function signedInAsMatchingEmail() {
+        return request.auth != null
+            && request.auth.token.email is string
+            && request.auth.token.email == email;
+      }
+
+      allow get: if signedInAsMatchingEmail();
+      allow list, create, update, delete: if false;
     }
   }
 }
