@@ -73,6 +73,17 @@ public sealed class BusinessRepository
         await database.InsertOrReplaceAsync(ContactRow.FromModel(contact));
     }
 
+    public async Task DeleteContactAsync(string userId, string contactId)
+    {
+        var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
+        await database.ExecuteAsync(
+            "UPDATE contacts SET IsActive = 0, Version = Version + 1, UpdatedAtUtcTicks = ?, DeviceId = ? WHERE ContactId = ? AND UserId = ?",
+            DateTimeOffset.UtcNow.UtcDateTime.Ticks,
+            "deleted",
+            contactId,
+            userId);
+    }
+
     public async Task<IReadOnlyList<Invoice>> GetInvoicesAsync(string userId)
     {
         var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);

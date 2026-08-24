@@ -416,10 +416,10 @@
                             <Label Text="{local:Tr Key=T078}" Style="{StaticResource MutedLabel}" HorizontalTextAlignment="Center" />
                         </Border>
                     </CollectionView.EmptyView>
-                    <CollectionView.ItemTemplate>
+                            <CollectionView.ItemTemplate>
                         <DataTemplate>
                             <Border Style="{StaticResource ListItemBorder}" Margin="0,0,0,10">
-                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                                <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12" RowSpacing="10">
                                     <Border BackgroundColor="#EAF8F2" WidthRequest="42" HeightRequest="42" StrokeThickness="0">
                                         <Border.StrokeShape><RoundRectangle CornerRadius="14" /></Border.StrokeShape>
                                         <Label Text="{local:Tr Key=T085}" TextColor="#087A55" FontAttributes="Bold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
@@ -430,6 +430,10 @@
                                         <Label Text="{Binding NotesText}" Style="{StaticResource MutedLabel}" LineBreakMode="TailTruncation" />
                                     </VerticalStackLayout>
                                     <Label Grid.Column="2" Text="{Binding AmountText}" TextColor="{StaticResource PrimaryDark}" FontAttributes="Bold" VerticalOptions="Center" />
+                                    <Grid Grid.Row="1" Grid.ColumnSpan="3" ColumnDefinitions="*,*" ColumnSpacing="8">
+                                        <Button Text="{local:Tr Key=T831}" Style="{StaticResource SecondaryButton}" Clicked="OnEditClicked" CommandParameter="{Binding .}" />
+                                        <Button Grid.Column="1" Text="{local:Tr Key=T832}" Style="{StaticResource DangerButton}" Clicked="OnDeleteClicked" CommandParameter="{Binding .}" />
+                                    </Grid>
                                 </Grid>
                             </Border>
                         </DataTemplate>

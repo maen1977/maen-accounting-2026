@@ -179,7 +179,10 @@
                                     <Label Text="{Binding DateText}" FontAttributes="Bold" />
                                     <Label Grid.Column="1" Text="{Binding NetText}" FontSize="19" FontAttributes="Bold" TextColor="{StaticResource PrimaryDark}" />
                                     <Label Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding NotesText}" Style="{StaticResource MutedLabel}" LineBreakMode="TailTruncation" Margin="0,5,0,0" />
-                                    <Button Grid.Row="2" Grid.ColumnSpan="2" Text="{local:Tr Key=T831}" Style="{StaticResource SecondaryButton}" CommandParameter="{Binding .}" Clicked="OnEditClicked" Margin="0,10,0,0" />
+                                    <Grid Grid.Row="2" Grid.ColumnSpan="2" ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,10,0,0">
+                                        <Button Text="{local:Tr Key=T831}" Style="{StaticResource SecondaryButton}" CommandParameter="{Binding .}" Clicked="OnEditClicked" />
+                                        <Button Grid.Column="1" Text="{local:Tr Key=T832}" Style="{StaticResource DangerButton}" CommandParameter="{Binding .}" Clicked="OnDeleteClicked" />
+                                    </Grid>
                                 </Grid>
                             </Border>
                         </DataTemplate>

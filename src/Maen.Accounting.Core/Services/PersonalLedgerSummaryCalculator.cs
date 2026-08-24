@@ -34,7 +34,7 @@ public static class PersonalLedgerSummaryCalculator
             CurrentMonthPurchasesMinor: SumByMovement(monthEntries, PersonalMovementTypes.Purchase, PersonalMovementTypes.Expense),
             CurrentMonthWithdrawalsMinor: SumByMovement(monthEntries, PersonalMovementTypes.Withdrawal),
             CurrentMonthDebtPaymentsMinor: SumByMovement(monthEntries, PersonalMovementTypes.DebtPayment),
-            CurrentMonthAvailableBalanceMinor: monthEntries.Sum(static entry => checked(entry.SalesMinor - entry.CostMinor - entry.ExpensesMinor)),
+            CurrentMonthAvailableBalanceMinor: monthEntries.Where(IsCashWallet).Sum(static entry => checked(entry.SalesMinor - entry.CostMinor - entry.ExpensesMinor)),
             CurrentMonthCategorySpending: SummarizeCategories(monthEntries));
     }
 
@@ -97,6 +97,8 @@ public static class PersonalLedgerSummaryCalculator
 
     private static bool IsBankWallet(ProfitEntry entry) =>
         string.Equals(entry.Wallet, "bank", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsCashWallet(ProfitEntry entry) => !IsBankWallet(entry);
 }
 
 public sealed record PersonalLedgerSummary(

@@ -27,6 +27,23 @@ public sealed class PersonalLedgerSummaryTests
     }
 
     [Fact]
+    public void Summary_excludes_bank_wallet_profit_loss_from_cash_available_balance()
+    {
+        var entries = new[]
+        {
+            Entry("cash-income", new DateOnly(2026, 8, 1), sales: 20_000, movementType: PersonalMovementTypes.Salary),
+            Entry("cash-spending", new DateOnly(2026, 8, 2), cost: 5_000, movementType: PersonalMovementTypes.Purchase),
+            Entry("bank-income", new DateOnly(2026, 8, 3), sales: 10_000, movementType: PersonalMovementTypes.Salary, wallet: "bank"),
+            Entry("bank-spending", new DateOnly(2026, 8, 4), cost: 3_000, movementType: PersonalMovementTypes.Purchase, wallet: "bank"),
+        };
+
+        var summary = PersonalLedgerSummaryCalculator.Summarize(entries, new DateOnly(2026, 8, 16));
+
+        Assert.Equal(15_000, summary.CurrentMonthAvailableBalanceMinor);
+        Assert.Equal(7_000, summary.BankBalanceMinor);
+    }
+
+    [Fact]
     public void Summary_groups_current_month_spending_by_category()
     {
         var entries = new[]

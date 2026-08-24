@@ -75,7 +75,7 @@
             </Border>
 
             <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="{StaticResource Primary}" />
-            <Button Text="{local:Tr Key=T062}" Clicked="OnSaveClicked" Style="{StaticResource PrimaryButton}" HeightRequest="56" />
+            <Button Text="{Binding SaveButtonText}" Clicked="OnSaveClicked" Style="{StaticResource PrimaryButton}" HeightRequest="56" />
             <Label Text="{Binding StatusMessage}" Style="{StaticResource MutedLabel}" LineBreakMode="WordWrap" />
         </VerticalStackLayout>
     </ScrollView>

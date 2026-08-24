@@ -25,7 +25,7 @@ public sealed class AccountingRepository
         var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
         await EnsureDefaultAccountsAsync(userId, database);
         var rows = await database.Table<AccountRow>()
-            .Where(row => row.UserId == userId)
+            .Where(row => row.UserId == userId && row.IsActive)
             .ToListAsync();
         return rows
             .Select(static row => row.ToModel())
@@ -44,6 +44,58 @@ public sealed class AccountingRepository
 
         var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
         await database.InsertOrReplaceAsync(AccountRow.FromModel(account));
+    }
+
+    public async Task DeleteAccountAsync(string userId, string accountId)
+    {
+        var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
+        var account = await database.Table<AccountRow>()
+            .FirstOrDefaultAsync(row => row.UserId == userId && row.AccountId == accountId && row.IsActive);
+        if (account is null)
+        {
+            return;
+        }
+
+        if (account.IsSystem)
+        {
+            throw new InvalidOperationException(UiText.Get("T848"));
+        }
+
+        var used = await database.Table<JournalLineRow>()
+            .Where(row => row.UserId == userId && row.AccountId == accountId)
+            .CountAsync() > 0;
+        if (used)
+        {
+            throw new InvalidOperationException("لا يمكن حذف حساب مستخدم في قيد محاسبي.");
+        }
+
+        account.IsActive = false;
+        account.Version = checked(account.Version + 1);
+        account.UpdatedAtUtcTicks = DateTimeOffset.UtcNow.UtcDateTime.Ticks;
+        account.DeviceId = "deleted";
+        await database.UpdateAsync(account);
+    }
+
+    public async Task DeleteJournalEntryAsync(string userId, string entryId)
+    {
+        var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
+        var entry = await database.Table<JournalEntryRow>()
+            .FirstOrDefaultAsync(row => row.UserId == userId && row.EntryId == entryId);
+        if (entry is null)
+        {
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(entry.Reference))
+        {
+            throw new InvalidOperationException(UiText.Get("T850"));
+        }
+
+        await database.RunInTransactionAsync(connection =>
+        {
+            connection.Execute("DELETE FROM journal_lines WHERE EntryId = ? AND UserId = ?", entryId, userId);
+            connection.Execute("DELETE FROM journal_entries WHERE EntryId = ? AND UserId = ?", entryId, userId);
+        });
     }
 
     public async Task<IReadOnlyList<JournalEntry>> GetJournalEntriesAsync(

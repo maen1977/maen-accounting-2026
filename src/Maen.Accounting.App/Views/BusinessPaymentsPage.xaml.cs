@@ -25,10 +25,18 @@ public partial class BusinessPaymentsPage : ContentPage
         }
     }
 
+    private void OnEditPaymentClicked(object? sender, EventArgs e)
+    {
+        if (sender is Button { CommandParameter: PaymentItemViewModel item })
+        {
+            _viewModel.EditPayment(item);
+        }
+    }
+
     private async void OnDeletePaymentClicked(object? sender, EventArgs e)
     {
         if (sender is not Button button || button.CommandParameter is not PaymentItemViewModel item) return;
-        var confirmed = await DisplayAlertAsync(UiText.Get("T493"), UiText.Get("T493"), UiText.Get("T495"), UiText.Get("T496"));
+        var confirmed = await DisplayAlertAsync(UiText.Get("T490"), UiText.Format("T842", item.Number), UiText.Get("T177"), UiText.Get("T178"));
         if (!confirmed) return;
         try
         {
