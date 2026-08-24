@@ -582,11 +582,30 @@ public sealed class MainStateViewModel : ObservableObject
         await ReloadAsync();
         if (!session.IsLocal)
         {
-            await RestoreLegacyCloudBackupAsync(session);
+            await SynchronizeCloudOnStartupAsync(session);
         }
 
         var info = await _backupService.ReadInfoAsync(session.UserId);
         SetBackupStatus(info);
+    }
+
+    private async Task SynchronizeCloudOnStartupAsync(AuthSession session)
+    {
+        try
+        {
+            var syncResult = await SyncInternalAsync();
+            StatusMessage = FormatSyncSummary(syncResult);
+        }
+        catch (Exception exception)
+        {
+            var detail = exception.Message.Trim();
+            SyncStatus = string.IsNullOrWhiteSpace(detail)
+                ? UiText.Get("T135")
+                : $"{UiText.Get("T135")} {detail}";
+        }
+
+        // إذا لم توجد بيانات في المسار الجديد، جرّب نسخة Flutter القديمة المرتبطة بالبريد.
+        await RestoreLegacyCloudBackupAsync(session);
     }
 
     private async Task RestoreLegacyCloudBackupAsync(AuthSession session)

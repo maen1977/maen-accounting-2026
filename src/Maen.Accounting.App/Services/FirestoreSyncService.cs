@@ -48,7 +48,7 @@ public sealed class FirestoreSyncService
         await _gate.WaitAsync(cancellationToken);
         try
         {
-            var local = await _repository.GetVisibleAsync(session.UserId);
+            var local = await _repository.GetAllForSyncAsync(session.UserId);
             if (local.Count > 0)
             {
                 return 0;
