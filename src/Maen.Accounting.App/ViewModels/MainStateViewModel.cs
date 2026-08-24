@@ -321,6 +321,7 @@ public sealed class MainStateViewModel : ObservableObject
     public bool IsBusy { get => _isBusy; private set => SetProperty(ref _isBusy, value); }
     public string StatusMessage { get => _statusMessage; private set => SetProperty(ref _statusMessage, value); }
     public string SyncStatus { get => _syncStatus; private set => SetProperty(ref _syncStatus, value); }
+    public string StartupCloudDataMessage { get; private set; } = string.Empty;
     public string BackupStatus { get => _backupStatus; private set => SetProperty(ref _backupStatus, value); }
     public string SaveButtonText => _editingEntry is null ? UiText.Get("T128") : UiText.Get("T129");
     public IReadOnlyList<string> MovementTypes => new[]
@@ -576,6 +577,8 @@ public sealed class MainStateViewModel : ObservableObject
     public async Task InitializeAsync(AuthSession session)
     {
         _session = session;
+        StartupCloudDataMessage = string.Empty;
+        OnPropertyChanged(nameof(StartupCloudDataMessage));
         OnPropertyChanged(nameof(UserEmail));
         OnPropertyChanged(nameof(IsCloudAccount));
         OnPropertyChanged(nameof(AccountModeText));
@@ -594,6 +597,13 @@ public sealed class MainStateViewModel : ObservableObject
         try
         {
             var syncResult = await SyncInternalAsync();
+            if (syncResult.RemoteWins > 0
+                || (_lastBusinessSyncResult?.RemoteWins ?? 0) > 0
+                || (_lastPersonalEntitySyncResult?.RemoteWins ?? 0) > 0)
+            {
+                StartupCloudDataMessage = UiText.Get("T863");
+            }
+
             StatusMessage = FormatSyncSummary(syncResult);
         }
         catch (Exception exception)
@@ -621,6 +631,7 @@ public sealed class MainStateViewModel : ObservableObject
             await ReloadAsync();
             await WriteBackupAndUpdateAsync();
             StatusMessage = UiText.Format("T860", restoredCount);
+            StartupCloudDataMessage = StatusMessage;
 
             try
             {

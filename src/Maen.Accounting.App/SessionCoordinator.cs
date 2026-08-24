@@ -123,11 +123,17 @@ public sealed class SessionCoordinator
             }
             else
             {
+                // يجب أن تسبق مزامنة MainState تحميل صفحات الشركات كي تظهر البيانات المستعادة فورًا.
+                await state.InitializeAsync(session).WaitAsync(StartupInitializationTimeout);
                 await Task.WhenAll(
-                    state.InitializeAsync(session),
                     accounting.InitializeAsync(session),
                     business.InitializeAsync(session))
                     .WaitAsync(StartupInitializationTimeout);
+            }
+
+            if (!string.IsNullOrWhiteSpace(state.StartupCloudDataMessage))
+            {
+                await ShowStartupAlertAsync(state.StartupCloudDataMessage);
             }
         }
         catch (TimeoutException)
