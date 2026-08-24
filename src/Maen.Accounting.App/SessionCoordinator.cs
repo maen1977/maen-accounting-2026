@@ -142,7 +142,7 @@ public sealed class SessionCoordinator
         }
         catch (Exception exception)
         {
-            await ShowStartupAlertAsync(UiText.Format("T227", exception.Message));
+            await ShowStartupAlertAsync(UiText.Format("T227", CloudSyncExceptionFormatter.GetDetail(exception)));
         }
     }
 
@@ -177,7 +177,7 @@ public sealed class SessionCoordinator
         {
             if (_window?.Page is Page page)
             {
-                await page.DisplayAlertAsync(UiText.Get("T228"), exception.Message, UiText.Get("T122"));
+                await page.DisplayAlertAsync(UiText.Get("T228"), CloudSyncExceptionFormatter.GetDetail(exception), UiText.Get("T122"));
             }
         }
     }

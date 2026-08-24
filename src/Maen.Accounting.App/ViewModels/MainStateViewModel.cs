@@ -608,7 +608,7 @@ public sealed class MainStateViewModel : ObservableObject
         }
         catch (Exception exception)
         {
-            var detail = exception.Message.Trim();
+            var detail = CloudSyncExceptionFormatter.GetDetail(exception);
             SyncStatus = string.IsNullOrWhiteSpace(detail)
                 ? UiText.Get("T135")
                 : $"{UiText.Get("T135")} {detail}";
@@ -641,12 +641,12 @@ public sealed class MainStateViewModel : ObservableObject
             }
             catch (Exception exception)
             {
-                SyncStatus = $"{UiText.Get("T135")} {exception.Message}";
+                SyncStatus = $"{UiText.Get("T135")} {CloudSyncExceptionFormatter.GetDetail(exception)}";
             }
         }
         catch (Exception exception)
         {
-            SyncStatus = $"{UiText.Get("T135")} {exception.Message}";
+            SyncStatus = $"{UiText.Get("T135")} {CloudSyncExceptionFormatter.GetDetail(exception)}";
         }
     }
 
@@ -1050,7 +1050,7 @@ public sealed class MainStateViewModel : ObservableObject
                 }
                 catch (Exception exception)
                 {
-                    var detail = exception.Message.Trim();
+                    var detail = CloudSyncExceptionFormatter.GetDetail(exception);
                     StatusMessage = string.IsNullOrWhiteSpace(detail)
                         ? UiText.Get("T135")
                         : $"{UiText.Get("T135")} {detail}";
@@ -1086,7 +1086,7 @@ public sealed class MainStateViewModel : ObservableObject
                 }
                 catch (Exception exception)
                 {
-                    var detail = exception.Message.Trim();
+                    var detail = CloudSyncExceptionFormatter.GetDetail(exception);
                     StatusMessage = string.IsNullOrWhiteSpace(detail)
                         ? UiText.Get("T318")
                         : UiText.Format("T319", detail);
@@ -1911,10 +1911,6 @@ public sealed class MainStateViewModel : ObservableObject
             (Analytics: TopCategoryAnalyticsEngine.Analyze(entries, currentMonth),
              Totals: TopCategoryAnalyticsEngine.MonthlyTotals(entries, 12)));
 
-        var syncTask = _personalEntitySyncService
-            .SyncAsync()
-            .ContinueWith(task => task.IsCompletedSuccessfully ? task.Result : null, TaskScheduler.Default);
-
         var (analytics, totals) = await analyticsTask;
         _categoryAnalytics = analytics.ToArray();
         _monthlyAmounts = totals.ToArray();
@@ -1943,7 +1939,6 @@ public sealed class MainStateViewModel : ObservableObject
             _auditSummary = null;
         }
 
-        _ = syncTask;
     }
 
     private async Task RunBusyAsync(Func<Task> action)

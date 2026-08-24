@@ -27,7 +27,17 @@ public sealed class AuthTokenProvider
             }
 
             session = await _authService.RefreshAsync(session, cancellationToken);
-            await _store.SaveAsync(session);
+            try
+            {
+                await _store.SaveAsync(session);
+            }
+            catch (Exception exception)
+            {
+                // A transient Android SecureStorage failure must not discard a valid refreshed token.
+                // The current sync can continue in memory; the next app launch can ask the user to sign in again.
+                System.Diagnostics.Debug.WriteLine($"[AuthSession] Refreshed token could not be persisted: {exception}");
+            }
+
             return session;
         }
         finally
