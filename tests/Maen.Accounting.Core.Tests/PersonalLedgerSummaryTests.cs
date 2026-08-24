@@ -66,6 +66,21 @@ public sealed class PersonalLedgerSummaryTests
     }
 
     [Fact]
+    public void Summary_tolerates_legacy_null_category()
+    {
+        var entries = new[]
+        {
+            Entry("legacy-purchase", new DateOnly(2026, 8, 5), cost: 7_500, movementType: PersonalMovementTypes.Purchase, category: null!)
+        };
+
+        var summary = PersonalLedgerSummaryCalculator.Summarize(entries, new DateOnly(2026, 8, 16));
+
+        var category = Assert.Single(summary.CurrentMonthCategorySpending);
+        Assert.Equal(string.Empty, category.Category);
+        Assert.Equal(7_500, category.AmountMinor);
+    }
+
+    [Fact]
     public void Summary_ignores_deleted_bank_movements_and_filters_month()
     {
         var entries = new[]
