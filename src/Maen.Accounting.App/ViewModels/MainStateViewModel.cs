@@ -1158,17 +1158,38 @@ public sealed class MainStateViewModel : ObservableObject
 
     private async Task<SyncResult> SyncInternalAsync()
     {
-        var result = await _syncService.SyncAsync();
-        _lastBusinessSyncResult = string.Equals(_preferences.StorageScope, "business", StringComparison.Ordinal)
-            ? await _businessSyncService.SyncAsync()
-            : null;
-        _lastPersonalEntitySyncResult = string.Equals(_preferences.StorageScope, "personal", StringComparison.Ordinal)
-            ? await _personalEntitySyncService.SyncAsync()
-            : null;
-        SyncStatus = FormatSyncSummary(result);
-        await ReloadAsync();
-        await WriteBackupAndUpdateAsync();
-        return result;
+        var syncStage = UiText.Get("T872");
+        try
+        {
+            var result = await _syncService.SyncAsync();
+
+            if (string.Equals(_preferences.StorageScope, "business", StringComparison.Ordinal))
+            {
+                syncStage = UiText.Get("T873");
+                _lastBusinessSyncResult = await _businessSyncService.SyncAsync();
+                _lastPersonalEntitySyncResult = null;
+            }
+            else
+            {
+                syncStage = UiText.Get("T873");
+                _lastBusinessSyncResult = null;
+                _lastPersonalEntitySyncResult = await _personalEntitySyncService.SyncAsync();
+            }
+
+            syncStage = UiText.Get("T874");
+            SyncStatus = FormatSyncSummary(result);
+            await ReloadAsync();
+            syncStage = UiText.Get("T875");
+            await WriteBackupAndUpdateAsync();
+            return result;
+        }
+        catch (Exception exception)
+        {
+            var detail = CloudSyncExceptionFormatter.GetDetail(exception);
+            throw new InvalidOperationException(
+                UiText.Format("T876", string.IsNullOrWhiteSpace(detail) ? syncStage : $"{syncStage} — {detail}"),
+                exception);
+        }
     }
 
     private string FormatSyncSummary(SyncResult result)

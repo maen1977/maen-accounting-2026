@@ -78,6 +78,16 @@ public sealed class V300RecurringMovementTests
     }
 
     [Fact]
+    public void BuildAmounts_NullKindDefaultsToExpense()
+    {
+        var movement = Movement(new DateOnly(2026, 8, 1), kind: null!);
+
+        var amounts = RecurringMovementCalculator.BuildAmounts(movement);
+
+        Assert.Equal((0L, 0L, 50_000L), amounts);
+    }
+
+    [Fact]
     public void DaysUntil_NegativeWhenDue()
     {
         var movement = Movement(new DateOnly(2026, 8, 16));

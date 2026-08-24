@@ -709,6 +709,11 @@ public static class UiText
         ["T869"] = ("إنشاء النسخة الاحتياطية المحلية", "creating the local backup"),
         ["T870"] = ("تحديث الشاشة بعد الحفظ", "refreshing the screen after saving"),
         ["T871"] = ("المزامنة السحابية", "cloud synchronization"),
+        ["T872"] = ("مزامنة الحركات مع السحابة", "syncing ledger entries with the cloud"),
+        ["T873"] = ("مزامنة بيانات التخطيط الشخصية", "syncing personal planning data"),
+        ["T874"] = ("تحديث الشاشة بعد المزامنة", "refreshing the screen after sync"),
+        ["T875"] = ("إنشاء النسخة الاحتياطية بعد المزامنة", "creating the backup after sync"),
+        ["T876"] = ("فشلت المزامنة في المرحلة «{0}». السبب: {1}. تم الاحتفاظ بالحركة محليًا؛ اضغط مزامنة الآن لإعادة المحاولة.", "Cloud sync failed at stage “{0}”. Reason: {1}. The record was kept locally; tap Sync now to retry."),
     };
 
 

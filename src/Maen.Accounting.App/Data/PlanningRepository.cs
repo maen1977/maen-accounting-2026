@@ -35,12 +35,14 @@ public sealed class PlanningRepository
             .Where(row => row.UserId == userId && !row.IsDeleted)
             .ToListAsync();
         return rows
+            .Select(static row => Normalize(row))
             .OrderByDescending(row => row.UpdatedAtUtcTicks)
             .ToArray();
     }
 
     public async Task UpsertPlanAsync(string userId, FinancialPlanRow row)
     {
+        Normalize(row);
         UserIsolation.EnsureOwner(userId, row.UserId);
         var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
         await database.InsertOrReplaceAsync(row);
@@ -48,7 +50,7 @@ public sealed class PlanningRepository
 
     public async Task UpsertPlansAsync(string userId, IEnumerable<FinancialPlanRow> rows)
     {
-        var materialized = rows.ToArray();
+        var materialized = rows.Select(static row => Normalize(row)).ToArray();
         foreach (var row in materialized)
         {
             UserIsolation.EnsureOwner(userId, row.UserId);
@@ -71,6 +73,7 @@ public sealed class PlanningRepository
             .Where(row => row.UserId == userId && !row.IsDeleted)
             .ToListAsync();
         return rows
+            .Select(static row => Normalize(row))
             .OrderBy(static row => row.StartDateTicks)
             .ThenBy(row => row.Title, StringComparer.OrdinalIgnoreCase)
             .ToArray();
@@ -78,6 +81,7 @@ public sealed class PlanningRepository
 
     public async Task UpsertObligationAsync(string userId, ObligationRow row)
     {
+        Normalize(row);
         UserIsolation.EnsureOwner(userId, row.UserId);
         var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
         await database.InsertOrReplaceAsync(row);
@@ -85,7 +89,7 @@ public sealed class PlanningRepository
 
     public async Task UpsertObligationsAsync(string userId, IEnumerable<ObligationRow> rows)
     {
-        var materialized = rows.ToArray();
+        var materialized = rows.Select(static row => Normalize(row)).ToArray();
         foreach (var row in materialized)
         {
             UserIsolation.EnsureOwner(userId, row.UserId);
@@ -108,12 +112,14 @@ public sealed class PlanningRepository
             .Where(row => row.UserId == userId && !row.IsDeleted)
             .ToListAsync();
         return rows
+            .Select(static row => Normalize(row))
             .OrderByDescending(row => row.DepositDateTicks)
             .ToArray();
     }
 
     public async Task UpsertDepositAsync(string userId, DepositRow row)
     {
+        Normalize(row);
         UserIsolation.EnsureOwner(userId, row.UserId);
         var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
         await database.InsertOrReplaceAsync(row);
@@ -121,7 +127,7 @@ public sealed class PlanningRepository
 
     public async Task UpsertDepositsAsync(string userId, IEnumerable<DepositRow> rows)
     {
-        var materialized = rows.ToArray();
+        var materialized = rows.Select(static row => Normalize(row)).ToArray();
         foreach (var row in materialized)
         {
             UserIsolation.EnsureOwner(userId, row.UserId);
@@ -160,6 +166,7 @@ public sealed class PlanningRepository
             .Where(row => row.UserId == userId && !row.IsDeleted)
             .ToListAsync();
         return rows
+            .Select(static row => Normalize(row))
             .OrderByDescending(row => row.DeadlineTicks)
             .ThenBy(row => row.Title, StringComparer.OrdinalIgnoreCase)
             .ToArray();
@@ -167,6 +174,7 @@ public sealed class PlanningRepository
 
     public async Task UpsertGoalAsync(string userId, SavingsGoalRow row)
     {
+        Normalize(row);
         UserIsolation.EnsureOwner(userId, row.UserId);
         var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
         await database.InsertOrReplaceAsync(row);
@@ -174,7 +182,7 @@ public sealed class PlanningRepository
 
     public async Task UpsertGoalsAsync(string userId, IEnumerable<SavingsGoalRow> rows)
     {
-        var materialized = rows.ToArray();
+        var materialized = rows.Select(static row => Normalize(row)).ToArray();
         foreach (var row in materialized)
         {
             UserIsolation.EnsureOwner(userId, row.UserId);
@@ -213,6 +221,7 @@ public sealed class PlanningRepository
             .Where(row => row.UserId == userId && !row.IsDeleted)
             .ToListAsync();
         return rows
+            .Select(static row => Normalize(row))
             .OrderBy(row => row.NextOccurrenceTicks)
             .ThenBy(row => row.Title, StringComparer.OrdinalIgnoreCase)
             .ToArray();
@@ -220,6 +229,7 @@ public sealed class PlanningRepository
 
     public async Task UpsertRecurringAsync(string userId, RecurringMovementRow row)
     {
+        Normalize(row);
         UserIsolation.EnsureOwner(userId, row.UserId);
         var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
         await database.InsertOrReplaceAsync(row);
@@ -227,7 +237,7 @@ public sealed class PlanningRepository
 
     public async Task UpsertRecurringAsync(string userId, IEnumerable<RecurringMovementRow> rows)
     {
-        var materialized = rows.ToArray();
+        var materialized = rows.Select(static row => Normalize(row)).ToArray();
         foreach (var row in materialized)
         {
             UserIsolation.EnsureOwner(userId, row.UserId);
@@ -284,12 +294,14 @@ public sealed class PlanningRepository
             .Where(row => row.UserId == userId && !row.IsDeleted)
             .ToListAsync();
         return rows
+            .Select(static row => Normalize(row))
             .OrderByDescending(row => row.YearMonth)
             .ToArray();
     }
 
     public async Task UpsertBudgetPlanAsync(string userId, BudgetPlanRow row)
     {
+        Normalize(row);
         UserIsolation.EnsureOwner(userId, row.UserId);
         var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
         var database2 = database;
@@ -307,5 +319,69 @@ public sealed class PlanningRepository
 
         await database2.UpdateAllAsync(existing);
         await database2.InsertOrReplaceAsync(row);
+    }
+
+    private static FinancialPlanRow Normalize(FinancialPlanRow row)
+    {
+        row.PlanId ??= string.Empty;
+        row.UserId ??= string.Empty;
+        row.CategoryLimitsJson ??= "[]";
+        row.DeviceId ??= string.Empty;
+        return row;
+    }
+
+    private static ObligationRow Normalize(ObligationRow row)
+    {
+        row.ObligationId ??= string.Empty;
+        row.UserId ??= string.Empty;
+        row.Title ??= string.Empty;
+        row.Category ??= string.Empty;
+        row.Cycle = string.IsNullOrWhiteSpace(row.Cycle) ? "monthly" : row.Cycle;
+        row.PaidOccurrencesJson ??= "[]";
+        row.DeviceId ??= string.Empty;
+        return row;
+    }
+
+    private static DepositRow Normalize(DepositRow row)
+    {
+        row.DepositId ??= string.Empty;
+        row.UserId ??= string.Empty;
+        row.Title ??= string.Empty;
+        row.OwnerName ??= string.Empty;
+        row.Kind = string.IsNullOrWhiteSpace(row.Kind) ? "deposit" : row.Kind;
+        row.Notes ??= string.Empty;
+        row.DeviceId ??= string.Empty;
+        return row;
+    }
+
+    private static SavingsGoalRow Normalize(SavingsGoalRow row)
+    {
+        row.GoalId ??= string.Empty;
+        row.UserId ??= string.Empty;
+        row.Title ??= string.Empty;
+        row.Category ??= string.Empty;
+        row.DeviceId ??= string.Empty;
+        return row;
+    }
+
+    private static RecurringMovementRow Normalize(RecurringMovementRow row)
+    {
+        row.RecurringId ??= string.Empty;
+        row.UserId ??= string.Empty;
+        row.Title ??= string.Empty;
+        row.Category ??= string.Empty;
+        row.Kind = string.IsNullOrWhiteSpace(row.Kind) ? "expense" : row.Kind;
+        row.Cycle = string.IsNullOrWhiteSpace(row.Cycle) ? "monthly" : row.Cycle;
+        row.Notes ??= string.Empty;
+        row.DeviceId ??= string.Empty;
+        return row;
+    }
+
+    private static BudgetPlanRow Normalize(BudgetPlanRow row)
+    {
+        row.PlanId ??= string.Empty;
+        row.UserId ??= string.Empty;
+        row.DeviceId ??= string.Empty;
+        return row;
     }
 }
