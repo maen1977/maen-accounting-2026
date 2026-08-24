@@ -991,9 +991,13 @@ public sealed class MainStateViewModel : ObservableObject
         var expenses = ParseEntryAmount(ExpensesInput, UiText.Get("T047"));
         var entryCurrency = ResolveEntryCurrency(session.UserId);
 
-        await RunBusyAsync(async () =>
+        var saveStage = UiText.Get("T867");
+        try
         {
-            var date = DateOnly.FromDateTime(EntryDate);
+            await RunBusyAsync(async () =>
+            {
+                saveStage = UiText.Get("T867");
+                var date = DateOnly.FromDateTime(EntryDate);
             var existingByDate = IsBusinessExperience
                 ? await _repository.FindByDateAsync(session.UserId, date)
                 : null;
@@ -1028,14 +1032,18 @@ public sealed class MainStateViewModel : ObservableObject
                 StatusMessage = UiText.Get("T824");
             }
 
+            saveStage = UiText.Get("T868");
             await _repository.UpsertAsync(session.UserId, entry);
+            saveStage = UiText.Get("T869");
             await WriteBackupAndUpdateAsync();
+            saveStage = UiText.Get("T870");
             await ReloadAsync();
             ResetEditor();
             StatusMessage = UiText.Get("T132");
 
             if (!session.IsLocal)
             {
+                saveStage = UiText.Get("T871");
                 try
                 {
                     var syncResult = await SyncInternalAsync();
@@ -1057,7 +1065,14 @@ public sealed class MainStateViewModel : ObservableObject
                     SyncStatus = StatusMessage;
                 }
             }
-        });
+            });
+        }
+        catch (Exception exception)
+        {
+            var detail = CloudSyncExceptionFormatter.GetDetail(exception);
+            throw new InvalidOperationException(
+                UiText.Format("T866", $"{saveStage} {detail}"), exception);
+        }
     }
 
     public async Task DeleteAsync(ProfitEntryItemViewModel item)

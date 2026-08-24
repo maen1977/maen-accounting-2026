@@ -1,4 +1,5 @@
 using Maen.Accounting.App.ViewModels;
+using Maen.Accounting.App.Services;
 
 namespace Maen.Accounting.App.Views;
 
@@ -56,7 +57,7 @@ public partial class PersonalEntryPage : ContentPage
         }
         catch (Exception exception)
         {
-            await DisplayAlertAsync(UiText.Get("T121"), exception.Message, UiText.Get("T122"));
+            await DisplayAlertAsync(UiText.Get("T121"), CloudSyncExceptionFormatter.GetDetail(exception), UiText.Get("T122"));
         }
         finally
         {
@@ -88,7 +89,7 @@ public partial class PersonalEntryPage : ContentPage
         }
         catch (Exception exception)
         {
-            await DisplayAlertAsync(UiText.Get("T121"), exception.Message, UiText.Get("T122"));
+            await DisplayAlertAsync(UiText.Get("T121"), CloudSyncExceptionFormatter.GetDetail(exception), UiText.Get("T122"));
         }
     }
 
