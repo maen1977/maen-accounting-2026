@@ -612,9 +612,10 @@ public sealed class MainStateViewModel : ObservableObject
             SyncStatus = string.IsNullOrWhiteSpace(detail)
                 ? UiText.Get("T135")
                 : $"{UiText.Get("T135")} {detail}";
+            StartupCloudDataMessage = SyncStatus;
         }
-
         // إذا لم توجد بيانات في المسار الجديد، جرّب نسخة Flutter القديمة المرتبطة بالبريد.
+
         await RestoreLegacyCloudBackupAsync(session);
     }
 

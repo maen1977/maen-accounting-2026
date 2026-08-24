@@ -701,6 +701,7 @@ public static class UiText
         ["T861"] = ("إعداد Firebase غير مكتمل. فعّل Email/Password وتحقق من مفتاح Web API في مشروع Firebase.", "Firebase is not configured correctly. Enable Email/Password and verify the Web API key in the Firebase project."),
         ["T862"] = ("تعذر قراءة النسخة السحابية القديمة.", "The legacy cloud backup could not be read."),
         ["T863"] = ("وجدنا بيانات مرتبطة بهذا البريد وحمّلناها تلقائيًا. يمكنك الآن تعديلها ومتابعة العمل.", "We found data linked to this email and loaded it automatically. You can edit it and continue working."),
+        ["T864"] = ("رفض Firebase تنزيل البيانات (HTTP 401/403). قد تكون جلسة الدخول منتهية أو قواعد Firestore الجديدة غير منشورة. سجّل الخروج والدخول، وإذا استمر الخطأ انشر ملف firestore.rules على مشروع maen-accountings.", "Firebase rejected the data download (HTTP 401/403). The sign-in session may have expired, or the new Firestore rules may not be deployed. Sign out and sign in again; if it continues, deploy firestore.rules to project maen-accountings."),
     };
 
 

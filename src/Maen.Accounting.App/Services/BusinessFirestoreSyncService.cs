@@ -401,6 +401,11 @@ public sealed class BusinessFirestoreSyncService
         System.Net.HttpStatusCode statusCode,
         string payload)
     {
+        if (statusCode is System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden)
+        {
+            return new InvalidOperationException(UiText.Get("T864"));
+        }
+
         var detail = ExtractFirestoreError(payload);
         var suffix = string.IsNullOrWhiteSpace(detail) ? string.Empty : $": {detail}";
         return new InvalidOperationException(
