@@ -1187,7 +1187,10 @@ public sealed class MainStateViewModel : ObservableObject
         {
             var detail = CloudSyncExceptionFormatter.GetDetail(exception);
             throw new InvalidOperationException(
-                UiText.Format("T876", string.IsNullOrWhiteSpace(detail) ? syncStage : $"{syncStage} — {detail}"),
+                UiText.Format(
+                    "T876",
+                    syncStage,
+                    string.IsNullOrWhiteSpace(detail) ? UiText.Get("T865") : detail),
                 exception);
         }
     }
