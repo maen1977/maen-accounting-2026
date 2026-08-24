@@ -43,7 +43,7 @@ public static class PersonalLedgerSummaryCalculator
             .Where(entry => movementTypes.Contains(entry.MovementType, StringComparer.Ordinal))
             .Sum(static entry => entry.EffectiveAmountMinor);
 
-    private static IReadOnlyList<PersonalCategorySummary> SummarizeCategories(IEnumerable<ProfitEntry> entries)
+    private static PersonalCategorySummary[] SummarizeCategories(IEnumerable<ProfitEntry> entries)
     {
         var grouped = entries
             .Where(IsCategorySpending)

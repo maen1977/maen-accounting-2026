@@ -455,7 +455,7 @@ public sealed class JournalEntryItemViewModel(JournalEntry entry)
     public JournalEntry Model => entry;
     public string EntryId => entry.EntryId;
     public string EntryNumber => entry.EntryNumber;
-    public string DateText => entry.EntryDate.ToString("yyyy-MM-dd");
+    public string DateText => entry.EntryDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
     public string Description => entry.Description;
     public string DebitText => Money.Format(entry.TotalDebitMinor);
     public string CreditText => Money.Format(entry.TotalCreditMinor);

@@ -143,7 +143,8 @@ public sealed class DataQualityCheckerTests
 
         var warnings = DataQualityChecker.CheckBusiness(invoices, Array.Empty<Payment>(), Array.Empty<Contact>());
 
-        var draft = Assert.Single(warnings.Where(warning => warning.Code == "DraftInvoices"));
+        var draft = Assert.Single(warnings, warning => warning.Code == "DraftInvoices");
+
         Assert.Equal("2", draft.Detail);
     }
 

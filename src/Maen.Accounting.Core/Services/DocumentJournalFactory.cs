@@ -107,7 +107,7 @@ public static class DocumentJournalFactory
     }
 
     private static void AddTaxLine(
-        ICollection<JournalLine> lines,
+        List<JournalLine> lines,
         Invoice invoice,
         string taxAccount,
         bool credit)

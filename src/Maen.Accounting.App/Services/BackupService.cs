@@ -42,7 +42,7 @@ public sealed class BackupService
             {
                 entry.EntryId,
                 entry.UserId,
-                entryDate = entry.EntryDate.ToString("yyyy-MM-dd"),
+                entryDate = entry.EntryDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
                 entry.SalesMinor,
                 entry.CostMinor,
                 entry.ExpensesMinor,

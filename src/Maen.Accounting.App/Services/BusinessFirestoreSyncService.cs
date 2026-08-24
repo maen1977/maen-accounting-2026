@@ -352,7 +352,8 @@ public sealed class BusinessFirestoreSyncService
             _ => null
         };
 
-        if (expectedHash is null || string.IsNullOrWhiteSpace(expectedHash))
+        if (expectedHash is null || string.IsNullOrWhiteSpace(expectedHash)
+            || string.IsNullOrWhiteSpace(storedHash))
         {
             return;
         }

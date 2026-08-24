@@ -63,7 +63,7 @@ public sealed class FirestoreSyncService
                     remoteEntry.UpdatedAtUtc < entry.UpdatedAtUtc)
                 {
                     throw new InvalidOperationException(
-                        UiText.Format("T309", entry.EntryDate.ToString("yyyy-MM-dd")));
+                        UiText.Format("T309", entry.EntryDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)));
                 }
             }
 
@@ -126,7 +126,7 @@ public sealed class FirestoreSyncService
         {
             var payload = await response.Content.ReadAsStringAsync(cancellationToken);
             throw CreateFirestoreException(
-                UiText.Format("T311", entry.EntryDate.ToString("yyyy-MM-dd")),
+                UiText.Format("T311", entry.EntryDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)),
                 response.StatusCode,
                 payload);
         }
@@ -162,7 +162,7 @@ public sealed class FirestoreSyncService
         ["accountScope"] = StringField(_preferences.StorageScope),
         ["entryId"] = StringField(entry.EntryId),
         ["userId"] = StringField(entry.UserId),
-        ["entryDate"] = StringField(entry.EntryDate.ToString("yyyy-MM-dd")),
+        ["entryDate"] = StringField(entry.EntryDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)),
         ["salesMinor"] = IntegerField(entry.SalesMinor),
         ["costMinor"] = IntegerField(entry.CostMinor),
         ["expensesMinor"] = IntegerField(entry.ExpensesMinor),
@@ -257,8 +257,8 @@ public sealed class FirestoreSyncService
             Integer("expensesMinor"),
             String("notes"),
             Boolean("isDeleted"),
-            DateTimeOffset.Parse(String("createdAtUtc")),
-            DateTimeOffset.Parse(String("updatedAtUtc")),
+            DateTimeOffset.Parse(String("createdAtUtc"), System.Globalization.CultureInfo.InvariantCulture),
+            DateTimeOffset.Parse(String("updatedAtUtc"), System.Globalization.CultureInfo.InvariantCulture),
             checked((int)Integer("version")),
             String("deviceId"),
             OptionalInteger("amountMinor", checked(Integer("salesMinor") + Integer("costMinor") + Integer("expensesMinor"))),

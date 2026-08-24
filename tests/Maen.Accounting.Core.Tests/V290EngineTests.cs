@@ -358,7 +358,7 @@ public sealed class V290CashForecastTests
 
         var result = CashForecastCalculator.Forecast(entries, obligations, Today);
 
-        Assert.True(result.Slices.Any(slice => slice.ObligationsMinor == 25_000));
+        Assert.Contains(result.Slices, slice => slice.ObligationsMinor == 25_000);
     }
 
     [Fact]

@@ -708,5 +708,5 @@ public static class UiText
     }
 
     public static string Format(string key, params object?[] arguments) =>
-        string.Format(System.Globalization.CultureInfo.CurrentUICulture, Get(key), arguments);
+        string.Format(System.Globalization.CultureInfo.CurrentCulture, Get(key), arguments);
 }

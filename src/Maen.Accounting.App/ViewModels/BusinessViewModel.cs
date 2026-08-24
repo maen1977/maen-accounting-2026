@@ -528,7 +528,7 @@ public sealed class BusinessViewModel : ObservableObject
 public sealed class ReconciledInvoiceItem(ReconciledInvoice reconciled, IReadOnlyList<AccountingContact> contacts)
 {
     public string Number => reconciled.Invoice.Number;
-    public string DateText => reconciled.Invoice.IssueDate.ToString("yyyy-MM-dd");
+    public string DateText => reconciled.Invoice.IssueDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
     public string ContactText => contacts.FirstOrDefault(contact => contact.ContactId == reconciled.Invoice.ContactId)?.Name ?? UiText.Get("T279");
     public string TotalText => Money.Format(reconciled.Invoice.TotalMinor);
     public string PaidText => Money.Format(reconciled.PaidMinor);
@@ -541,7 +541,7 @@ public sealed class ReconciledInvoiceItem(ReconciledInvoice reconciled, IReadOnl
 public sealed class OverdueInvoiceItem(Invoice invoice, IReadOnlyList<AccountingContact> contacts)
 {
     public string Number => invoice.Number;
-    public string DueDateText => invoice.DueDate.ToString("yyyy-MM-dd");
+    public string DueDateText => invoice.DueDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
     public string ContactText => contacts.FirstOrDefault(contact => contact.ContactId == invoice.ContactId)?.Name ?? UiText.Get("T279");
     public string AmountText => Money.Format(invoice.TotalMinor);
     public string TypeText => invoice.Type == InvoiceType.Sales ? UiText.Get("T277") : UiText.Get("T278");
@@ -555,7 +555,7 @@ public sealed class OverdueInvoiceItem(Invoice invoice, IReadOnlyList<Accounting
                 return UiText.Get("T485");
             }
 
-            return UiText.Format("T486", days.ToString());
+            return UiText.Format("T486", days.ToString(System.Globalization.CultureInfo.CurrentCulture));
         }
     }
 }
@@ -597,7 +597,7 @@ public sealed class InvoiceItemViewModel(Invoice invoice, IReadOnlyList<Accounti
     public string ModelInvoiceId => invoice.InvoiceId;
     public bool IsDraft => invoice.Status == InvoiceStatus.Draft;
     public string Number => invoice.Number;
-    public string DateText => invoice.IssueDate.ToString("yyyy-MM-dd");
+    public string DateText => invoice.IssueDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
     public string DueDateText => $"{UiText.Get("T360")}: {invoice.DueDate:yyyy-MM-dd}";
     public string TypeText => invoice.Type == InvoiceType.Sales ? UiText.Get("T277") : UiText.Get("T278");
     public string ContactText => contacts.FirstOrDefault(contact => contact.ContactId == invoice.ContactId)?.Name ?? UiText.Get("T279");
@@ -609,7 +609,7 @@ public sealed class PaymentItemViewModel(Payment payment, IReadOnlyList<Accounti
 {
     public string ModelPaymentId => payment.PaymentId;
     public string Number => payment.Number;
-    public string DateText => payment.PaymentDate.ToString("yyyy-MM-dd");
+    public string DateText => payment.PaymentDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
     public string TypeText => payment.Type == PaymentType.CustomerReceipt ? UiText.Get("T282") : UiText.Get("T283");
     public string ContactText => contacts.FirstOrDefault(contact => contact.ContactId == payment.ContactId)?.Name ?? UiText.Get("T279");
     public string AccountText => payment.AccountCode == DefaultChartOfAccounts.BankCode ? UiText.Get("T370") : UiText.Get("T371");

@@ -11,7 +11,7 @@ public sealed class MovementSearchItemViewModel
     public MovementSearchItemViewModel(ProfitEntry model)
     {
         Model = model;
-        DateText = model.EntryDate.ToString("yyyy-MM-dd");
+        DateText = model.EntryDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
         TitleText = model.Category;
         DetailText = model.Notes;
         AmountText = Money.Format(model.EffectiveAmountMinor);

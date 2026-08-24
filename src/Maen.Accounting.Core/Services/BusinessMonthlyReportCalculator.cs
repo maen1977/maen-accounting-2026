@@ -47,6 +47,12 @@ public static class BusinessMonthlyReportCalculator
             PostedInvoiceCount: (salesByMonth.TryGetValue(month, out var entry1) ? entry1.PostedInvoiceCount : 0)
                 + (purchasesByMonth.TryGetValue(month, out var entry2) ? entry2.PostedInvoiceCount : 0))).ToArray();
 
+        if (slices.Length == 0)
+        {
+            throw new InvalidOperationException("The requested month range did not produce any report slices.");
+        }
+
+        var fallbackMonth = slices[0];
         var bestMonth = slices
             .Where(static slice => slice.NetCashMinor > 0)
             .OrderByDescending(static slice => slice.NetCashMinor)
@@ -58,8 +64,8 @@ public static class BusinessMonthlyReportCalculator
 
         return new BusinessMonthlyReport(
             slices,
-            bestMonth ?? slices.FirstOrDefault(),
-            worstMonth ?? slices.FirstOrDefault(),
+            bestMonth ?? fallbackMonth,
+            worstMonth ?? fallbackMonth,
             slices.Sum(static slice => slice.SalesMinor),
             slices.Sum(static slice => slice.PurchasesMinor),
             slices.Sum(static slice => slice.ReceiptsMinor),

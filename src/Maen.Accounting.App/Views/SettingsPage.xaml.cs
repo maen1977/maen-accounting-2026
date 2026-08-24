@@ -49,9 +49,9 @@ public partial class SettingsPage : ContentPage
 
         _preferences.Language = language;
         _preferences.ApplyCulture();
-        if (Application.Current?.Windows.FirstOrDefault() is Window window)
+        if (Application.Current?.Windows is { Count: > 0 } windows)
         {
-            await _coordinator.ShowCurrentSessionAsync(window);
+            await _coordinator.ShowCurrentSessionAsync(windows[0]);
         }
     }
 

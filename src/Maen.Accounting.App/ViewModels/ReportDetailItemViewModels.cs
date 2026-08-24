@@ -19,7 +19,7 @@ public sealed class CategoryBreakdownItem
     {
         CategoryText = string.IsNullOrWhiteSpace(breakdown.Category) ? UiText.Get("T390") : breakdown.Category;
         SpentText = Money.Format(breakdown.SpentMinor);
-        SummaryText = UiText.Format("T473", breakdown.EntriesCount.ToString());
+        SummaryText = UiText.Format("T473", breakdown.EntriesCount.ToString(System.Globalization.CultureInfo.CurrentCulture));
         ShareText = $"{Math.Round(report.SharePercentFor(breakdown)):0}%";
         ShareProgress = Math.Clamp(report.SharePercentFor(breakdown) / 100d, 0, 1);
         CategoryColor = Microsoft.Maui.Graphics.Color.FromArgb(colorHex);

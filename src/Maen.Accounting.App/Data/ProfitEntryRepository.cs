@@ -110,7 +110,7 @@ public sealed class ProfitEntryRepository
     public async Task<ProfitEntry?> FindByDateAsync(string userId, DateOnly date)
     {
         var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
-        var dateText = date.ToString("yyyy-MM-dd");
+        var dateText = date.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
         var row = await database.Table<ProfitEntryRow>()
             .FirstOrDefaultAsync(item => item.UserId == userId && item.EntryDate == dateText && !item.IsDeleted);
         return row?.ToModel();
