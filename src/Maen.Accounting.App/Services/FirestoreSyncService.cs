@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Maen.Accounting.App.Data;
 using Maen.Accounting.Core.Models;
 using Maen.Accounting.Core.Services;
@@ -16,6 +17,7 @@ public sealed class FirestoreSyncService
     private readonly AuthTokenProvider _tokenProvider;
     private readonly ProfitEntryRepository _repository;
     private readonly AppPreferencesService _preferences;
+    private readonly DeviceIdentityService _deviceIdentity;
     private readonly SemaphoreSlim _gate = new(1, 1);
 
     public FirestoreSyncService(
@@ -23,13 +25,60 @@ public sealed class FirestoreSyncService
         FirebaseOptions options,
         AuthTokenProvider tokenProvider,
         ProfitEntryRepository repository,
-        AppPreferencesService preferences)
+        AppPreferencesService preferences,
+        DeviceIdentityService deviceIdentity)
     {
         _httpClient = httpClient;
         _options = options;
         _tokenProvider = tokenProvider;
         _repository = repository;
         _preferences = preferences;
+        _deviceIdentity = deviceIdentity;
+    }
+
+    public async Task<int> RestoreLegacyBackupIfEmptyAsync(
+        AuthSession session,
+        CancellationToken cancellationToken = default)
+    {
+        if (session.IsLocal)
+        {
+            return 0;
+        }
+
+        await _gate.WaitAsync(cancellationToken);
+        try
+        {
+            var local = await _repository.GetAllForSyncAsync(session.UserId);
+            if (local.Count > 0)
+            {
+                return 0;
+            }
+
+            var legacyJson = await DownloadLegacyBackupAsync(session, cancellationToken);
+            if (legacyJson is null)
+            {
+                return 0;
+            }
+
+            var imported = LegacyBackupParser.Parse(
+                legacyJson,
+                session.UserId,
+                session.Email,
+                _deviceIdentity.GetOrCreate(),
+                DateTimeOffset.UtcNow,
+                _preferences.StorageScope);
+            if (imported.Entries.Count == 0)
+            {
+                return 0;
+            }
+
+            await _repository.UpsertManyAsync(session.UserId, imported.Entries);
+            return imported.Entries.Count;
+        }
+        finally
+        {
+            _gate.Release();
+        }
     }
 
     public async Task<SyncResult> SyncAsync(CancellationToken cancellationToken = default)
@@ -63,7 +112,7 @@ public sealed class FirestoreSyncService
                     remoteEntry.UpdatedAtUtc < entry.UpdatedAtUtc)
                 {
                     throw new InvalidOperationException(
-                        UiText.Format("T309", entry.EntryDate.ToString("yyyy-MM-dd")));
+                        UiText.Format("T309", entry.EntryDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)));
                 }
             }
 
@@ -109,6 +158,130 @@ public sealed class FirestoreSyncService
         return result;
     }
 
+    private async Task<string?> DownloadLegacyBackupAsync(
+        AuthSession session,
+        CancellationToken cancellationToken)
+    {
+        var normalizedEmail = UserIsolation.NormalizeEmail(session.Email);
+        var uri = LegacyDocumentUri(normalizedEmail);
+        using var request = CreateRequest(HttpMethod.Get, uri, session.IdToken);
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
+        var payload = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (response.StatusCode is System.Net.HttpStatusCode.NotFound or System.Net.HttpStatusCode.Forbidden)
+        {
+            return null;
+        }
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw CreateFirestoreException(UiText.Get("T862"), response.StatusCode, payload);
+        }
+
+        using var document = JsonDocument.Parse(payload);
+        if (!document.RootElement.TryGetProperty("fields", out var fields)
+            || !fields.TryGetProperty("entries", out var entriesField))
+        {
+            return null;
+        }
+
+        var entries = ConvertFirestoreValue(entriesField);
+        if (entries is not JsonArray entriesArray || entriesArray.Count == 0)
+        {
+            return null;
+        }
+
+        var backup = new JsonObject
+        {
+            ["version"] = ReadIntegerField(fields, "version") ?? 2,
+            ["backupEmail"] = ReadStringField(fields, "backupEmail") ?? normalizedEmail,
+            ["accountScope"] = ReadStringField(fields, "accountScope") ?? _preferences.StorageScope,
+            ["entries"] = entriesArray
+        };
+        return backup.ToJsonString();
+    }
+
+    private Uri LegacyDocumentUri(string normalizedEmail) => new(
+        $"https://firestore.googleapis.com/v1/projects/{Uri.EscapeDataString(_options.ProjectId)}/" +
+        $"databases/(default)/documents/profit_tracker_backups/{Uri.EscapeDataString(normalizedEmail)}");
+
+    private static string? ReadStringField(JsonElement fields, string name) =>
+        fields.TryGetProperty(name, out var field)
+            && field.TryGetProperty("stringValue", out var value)
+            ? value.GetString()
+            : null;
+
+    private static long? ReadIntegerField(JsonElement fields, string name) =>
+        fields.TryGetProperty(name, out var field)
+            && field.TryGetProperty("integerValue", out var value)
+            && long.TryParse(value.GetString(), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var parsed)
+            ? parsed
+            : null;
+
+    private static JsonNode? ConvertFirestoreValue(JsonElement field)
+    {
+        if (field.TryGetProperty("stringValue", out var stringValue))
+        {
+            return JsonValue.Create(stringValue.GetString() ?? string.Empty);
+        }
+
+        if (field.TryGetProperty("integerValue", out var integerValue)
+            && long.TryParse(integerValue.GetString(), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var integer))
+        {
+            return JsonValue.Create(integer);
+        }
+
+        if (field.TryGetProperty("doubleValue", out var doubleValue)
+            && doubleValue.TryGetDouble(out var number))
+        {
+            return JsonValue.Create(number);
+        }
+
+        if (field.TryGetProperty("booleanValue", out var booleanValue))
+        {
+            return JsonValue.Create(booleanValue.GetBoolean());
+        }
+
+        if (field.TryGetProperty("nullValue", out _))
+        {
+            return null;
+        }
+
+        if (field.TryGetProperty("timestampValue", out var timestampValue))
+        {
+            return JsonValue.Create(timestampValue.GetString() ?? string.Empty);
+        }
+
+        if (field.TryGetProperty("arrayValue", out var arrayValue))
+        {
+            var array = new JsonArray();
+            if (arrayValue.TryGetProperty("values", out var values))
+            {
+                foreach (var value in values.EnumerateArray())
+                {
+                    array.Add(ConvertFirestoreValue(value));
+                }
+            }
+
+            return array;
+        }
+
+        if (field.TryGetProperty("mapValue", out var mapValue))
+        {
+            var map = new JsonObject();
+            if (mapValue.TryGetProperty("fields", out var fields))
+            {
+                foreach (var property in fields.EnumerateObject())
+                {
+                    map[property.Name] = ConvertFirestoreValue(property.Value);
+                }
+            }
+
+            return map;
+        }
+
+        return null;
+    }
+
     private async Task UploadAsync(
         AuthSession session,
         ProfitEntry entry,
@@ -126,7 +299,7 @@ public sealed class FirestoreSyncService
         {
             var payload = await response.Content.ReadAsStringAsync(cancellationToken);
             throw CreateFirestoreException(
-                UiText.Format("T311", entry.EntryDate.ToString("yyyy-MM-dd")),
+                UiText.Format("T311", entry.EntryDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)),
                 response.StatusCode,
                 payload);
         }
@@ -162,7 +335,7 @@ public sealed class FirestoreSyncService
         ["accountScope"] = StringField(_preferences.StorageScope),
         ["entryId"] = StringField(entry.EntryId),
         ["userId"] = StringField(entry.UserId),
-        ["entryDate"] = StringField(entry.EntryDate.ToString("yyyy-MM-dd")),
+        ["entryDate"] = StringField(entry.EntryDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)),
         ["salesMinor"] = IntegerField(entry.SalesMinor),
         ["costMinor"] = IntegerField(entry.CostMinor),
         ["expensesMinor"] = IntegerField(entry.ExpensesMinor),
@@ -188,6 +361,11 @@ public sealed class FirestoreSyncService
         System.Net.HttpStatusCode statusCode,
         string payload)
     {
+        if (statusCode is System.Net.HttpStatusCode.Unauthorized or System.Net.HttpStatusCode.Forbidden)
+        {
+            return new InvalidOperationException(UiText.Get("T864"));
+        }
+
         var detail = ExtractFirestoreError(payload);
         var suffix = string.IsNullOrWhiteSpace(detail) ? string.Empty : $": {detail}";
         return new InvalidOperationException(
@@ -257,8 +435,8 @@ public sealed class FirestoreSyncService
             Integer("expensesMinor"),
             String("notes"),
             Boolean("isDeleted"),
-            DateTimeOffset.Parse(String("createdAtUtc")),
-            DateTimeOffset.Parse(String("updatedAtUtc")),
+            DateTimeOffset.Parse(String("createdAtUtc"), System.Globalization.CultureInfo.InvariantCulture),
+            DateTimeOffset.Parse(String("updatedAtUtc"), System.Globalization.CultureInfo.InvariantCulture),
             checked((int)Integer("version")),
             String("deviceId"),
             OptionalInteger("amountMinor", checked(Integer("salesMinor") + Integer("costMinor") + Integer("expensesMinor"))),

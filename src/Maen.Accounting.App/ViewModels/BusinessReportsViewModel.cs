@@ -8,7 +8,7 @@ namespace Maen.Accounting.App.ViewModels;
 
 public sealed class MonthlySliceViewModel(MonthlySlice slice, MonthlyComparison? comparison)
 {
-    public string MonthText => slice.Month.ToString("yyyy-MM");
+    public string MonthText => slice.Month.ToString("yyyy-MM", System.Globalization.CultureInfo.InvariantCulture);
     public string SalesText => Money.Format(slice.SalesMinor);
     public string PurchasesText => Money.Format(slice.PurchasesMinor);
     public string ReceiptsText => Money.Format(slice.ReceiptsMinor);
@@ -17,11 +17,17 @@ public sealed class MonthlySliceViewModel(MonthlySlice slice, MonthlyComparison?
     public string NetCashColor => slice.NetCashMinor >= 0 ? "#137A53" : "#C2413A";
     public MonthlySlice Model => slice;
 
-    private bool HasMoM => comparison is not null && comparison.PreviousSalesMinor is not null;
+    private bool HasMoM => comparison is { PreviousSalesMinor: not null };
     public bool HasDelta => HasMoM;
-    public string DeltaText => HasMoM ? FormatDeltaText(comparison!.SalesDeltaMinor, comparison.SalesDeltaPercent) : string.Empty;
-    public string DeltaColor => !HasMoM ? "#64748B" : (comparison!.SalesDeltaMinor ?? 0) >= 0 ? "#137A53" : "#C2413A";
-    public string DeltaArrow => !HasMoM ? string.Empty : (comparison.SalesDeltaMinor ?? 0) >= 0 ? "▲" : "▼";
+    public string DeltaText => comparison is { PreviousSalesMinor: not null } current
+        ? FormatDeltaText(current.SalesDeltaMinor, current.SalesDeltaPercent)
+        : string.Empty;
+    public string DeltaColor => comparison is not { PreviousSalesMinor: not null } current
+        ? "#64748B"
+        : (current.SalesDeltaMinor ?? 0) >= 0 ? "#137A53" : "#C2413A";
+    public string DeltaArrow => comparison is not { PreviousSalesMinor: not null } current
+        ? string.Empty
+        : (current.SalesDeltaMinor ?? 0) >= 0 ? "▲" : "▼";
     public string YoYText => comparison is not null && comparison.YearAgoSalesMinor is not null
         ? FormatDeltaText(comparison.SalesYoYDeltaMinor, comparison.SalesYoYDeltaPercent)
         : UiText.Get("T625");
@@ -130,8 +136,8 @@ public sealed class BusinessReportsViewModel : ObservableObject
             var toMonth = DateOnly.FromDateTime(ToDate);
             var report = BusinessMonthlyReportCalculator.Build(invoices, payments, fromMonth, toMonth);
 
-            BestMonthText = report.BestMonth.Month.ToString("yyyy-MM");
-            WorstMonthText = report.WorstMonth.Month.ToString("yyyy-MM");
+            BestMonthText = report.BestMonth.Month.ToString("yyyy-MM", System.Globalization.CultureInfo.InvariantCulture);
+            WorstMonthText = report.WorstMonth.Month.ToString("yyyy-MM", System.Globalization.CultureInfo.InvariantCulture);
             TotalSalesText = Money.Format(report.TotalSalesMinor);
             TotalPurchasesText = Money.Format(report.TotalPurchasesMinor);
             TotalReceiptsText = Money.Format(report.TotalReceiptsMinor);
@@ -173,7 +179,7 @@ public sealed class BusinessReportsViewModel : ObservableObject
 
     private void RebuildComparisons(IReadOnlyList<MonthlyComparison> comparisons)
     {
-        var latest = comparisons.LastOrDefault();
+        var latest = comparisons.Count == 0 ? null : comparisons[^1];
         if (latest is null || latest.PreviousSalesMinor is null)
         {
             HasComparisons = false;

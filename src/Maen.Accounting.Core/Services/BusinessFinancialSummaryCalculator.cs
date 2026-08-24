@@ -87,7 +87,7 @@ public static class BusinessFinancialSummaryCalculator
         return unchecked((long)unpaidShare);
     }
 
-    private static IReadOnlyList<ContactBalance> TopContactsByBalance(
+    private static ContactBalance[] TopContactsByBalance(
         IReadOnlyList<Contact> contacts,
         IReadOnlyList<Invoice> postedInvoices,
         IReadOnlyList<Payment> payments)

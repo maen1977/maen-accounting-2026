@@ -42,7 +42,8 @@
             <VerticalStackLayout Spacing="10">
                 <Border Style="{StaticResource CardBorder}">
                     <VerticalStackLayout Spacing="8">
-                        <Label Text="{local:Tr Key=T075}" FontSize="18" FontAttributes="Bold" />
+                                                    <Label Text="{Binding JournalFormTitle}" FontSize="18" FontAttributes="Bold" />
+
                         <DatePicker Date="{Binding JournalDate}" Format="yyyy-MM-dd" />
                         <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
                             <Picker Title="{local:Tr Key=T025}" ItemsSource="{Binding Accounts}" SelectedItem="{Binding SelectedDebitAccount}" ItemDisplayBinding="{Binding DisplayText}" />
@@ -50,23 +51,67 @@
                         </Grid>
                         <Entry Text="{Binding JournalAmountInput}" Keyboard="Numeric" Placeholder="{local:Tr Key=T297}" />
                         <Entry Text="{Binding JournalDescription}" Placeholder="{local:Tr Key=T298}" />
-                        <Button Text="{local:Tr Key=T054}" Style="{StaticResource PrimaryButton}" Clicked="OnSaveJournalClicked" />
+                        <Button Text="{Binding JournalSaveButtonText}" Style="{StaticResource PrimaryButton}" Clicked="OnSaveJournalClicked" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource CardBorder}">
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="{Binding AccountFormTitle}" FontSize="18" FontAttributes="Bold" />
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                            <Entry Text="{Binding AccountCodeInput}" Placeholder="{local:Tr Key=T855}" />
+                            <Entry Grid.Column="1" Text="{Binding AccountNameInput}" Placeholder="{local:Tr Key=T856}" />
+                        </Grid>
+                        <Picker Title="{local:Tr Key=T050}" ItemsSource="{Binding AccountTypes}" SelectedItem="{Binding SelectedAccountType}" ItemDisplayBinding="{Binding Label}" />
+                        <Button Text="{Binding AccountSaveButtonText}" Style="{StaticResource AccentButton}" Clicked="OnSaveAccountClicked" />
                     </VerticalStackLayout>
                 </Border>
 
                 <Label Text="{local:Tr Key=T066}" FontSize="18" FontAttributes="Bold" />
-                <CollectionView ItemsSource="{Binding Accounts}" HeightRequest="300" EmptyView="{local:Tr Key=T077}">
+                <CollectionView ItemsSource="{Binding Accounts}" HeightRequest="360" EmptyView="{local:Tr Key=T077}">
                     <CollectionView.ItemTemplate>
                         <DataTemplate>
                             <Border Style="{StaticResource CardBorder}" Margin="0,0,0,8">
-                                <Grid ColumnDefinitions="70,*,Auto" ColumnSpacing="8">
+                                <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="70,*,Auto" ColumnSpacing="8" RowSpacing="8">
                                     <Label Text="{Binding Code}" FontAttributes="Bold" />
                                     <VerticalStackLayout Grid.Column="1" Spacing="2">
                                         <Label Text="{Binding Name}" FontAttributes="Bold" />
                                         <Label Text="{Binding TypeText}" Style="{StaticResource MutedLabel}" FontSize="12" />
                                     </VerticalStackLayout>
                                     <Label Grid.Column="2" Text="{local:Tr Key=T097}" TextColor="{StaticResource PrimaryDark}" FontSize="12" />
+                                    <HorizontalStackLayout Grid.Row="1" Grid.ColumnSpan="3" Spacing="8" IsVisible="{Binding IsUserManaged}">
+                                        <Button Text="{local:Tr Key=T488}" Style="{StaticResource SmallButton}" FontSize="11" Clicked="OnEditAccountClicked" CommandParameter="{Binding .}" />
+                                        <Button Text="{local:Tr Key=T490}" Style="{StaticResource DangerButton}" FontSize="11" Clicked="OnDeleteAccountClicked" CommandParameter="{Binding .}" />
+                                    </HorizontalStackLayout>
                                 </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+
+                <Label Text="{local:Tr Key=T854}" FontSize="18" FontAttributes="Bold" />
+                <CollectionView ItemsSource="{Binding JournalEntries}" HeightRequest="420" EmptyView="{local:Tr Key=T857}">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate>
+                            <Border Style="{StaticResource CardBorder}" Margin="0,0,0,8">
+                                <VerticalStackLayout Spacing="6">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <VerticalStackLayout Spacing="2">
+                                            <Label Text="{Binding EntryNumber}" FontAttributes="Bold" />
+                                            <Label Text="{Binding Description}" Style="{StaticResource MutedLabel}" />
+                                            <Label Text="{Binding DateText}" Style="{StaticResource MutedLabel}" FontSize="12" />
+                                        </VerticalStackLayout>
+                                        <Label Grid.Column="1" Text="{Binding SourceText}" TextColor="{StaticResource PrimaryDark}" FontSize="12" VerticalOptions="Center" />
+                                    </Grid>
+                                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                                        <Label Text="{Binding DebitText}" FontAttributes="Bold" />
+                                        <Label Grid.Column="1" Text="{Binding CreditText}" FontAttributes="Bold" HorizontalTextAlignment="End" />
+                                    </Grid>
+                                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8" IsVisible="{Binding IsEditable}">
+                                        <Button Text="{local:Tr Key=T488}" Style="{StaticResource SecondaryButton}" Clicked="OnEditJournalEntryClicked" CommandParameter="{Binding .}" />
+                                        <Button Grid.Column="1" Text="{local:Tr Key=T490}" Style="{StaticResource DangerButton}" Clicked="OnDeleteJournalEntryClicked" CommandParameter="{Binding .}" />
+                                    </Grid>
+                                </VerticalStackLayout>
                             </Border>
                         </DataTemplate>
                     </CollectionView.ItemTemplate>

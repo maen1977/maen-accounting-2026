@@ -7,7 +7,7 @@ public sealed class SyncDocumentMergeEngineTests
     [Fact]
     public void NewLocalDocument_IsQueuedForUploadAndCountedAsLocalWin()
     {
-        var local = Document("c-1", DateTimeOffset.Parse("2026-01-02T00:00:00Z"), 1, "device-a", "local");
+        var local = Document("c-1", DateTimeOffset.Parse("2026-01-02T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture), 1, "device-a", "local");
 
         var plan = SyncDocumentMergeEngine.BuildPlan(
             "user-1",
@@ -28,7 +28,7 @@ public sealed class SyncDocumentMergeEngineTests
     [Fact]
     public void NewRemoteDocument_IsMergedWithoutUploadAndCountedAsRemoteWin()
     {
-        var remote = Document("c-1", DateTimeOffset.Parse("2026-01-02T00:00:00Z"), 1, "device-b", "remote");
+        var remote = Document("c-1", DateTimeOffset.Parse("2026-01-02T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture), 1, "device-b", "remote");
 
         var plan = SyncDocumentMergeEngine.BuildPlan(
             "user-1",
@@ -50,8 +50,8 @@ public sealed class SyncDocumentMergeEngineTests
     [Fact]
     public void NewerLocalDocument_WinsAndIsUploaded()
     {
-        var local = Document("c-1", DateTimeOffset.Parse("2026-01-03T00:00:00Z"), 2, "device-a", "local");
-        var remote = Document("c-1", DateTimeOffset.Parse("2026-01-02T00:00:00Z"), 9, "device-b", "remote");
+        var local = Document("c-1", DateTimeOffset.Parse("2026-01-03T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture), 2, "device-a", "local");
+        var remote = Document("c-1", DateTimeOffset.Parse("2026-01-02T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture), 9, "device-b", "remote");
 
         var plan = SyncDocumentMergeEngine.BuildPlan(
             "user-1",
@@ -72,8 +72,8 @@ public sealed class SyncDocumentMergeEngineTests
     [Fact]
     public void NewerRemoteDocument_WinsWithoutUpload()
     {
-        var local = Document("c-1", DateTimeOffset.Parse("2026-01-02T00:00:00Z"), 9, "device-a", "local");
-        var remote = Document("c-1", DateTimeOffset.Parse("2026-01-03T00:00:00Z"), 1, "device-b", "remote");
+        var local = Document("c-1", DateTimeOffset.Parse("2026-01-02T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture), 9, "device-a", "local");
+        var remote = Document("c-1", DateTimeOffset.Parse("2026-01-03T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture), 1, "device-b", "remote");
 
         var plan = SyncDocumentMergeEngine.BuildPlan(
             "user-1",
@@ -94,8 +94,8 @@ public sealed class SyncDocumentMergeEngineTests
     [Fact]
     public void EqualTimestampAndVersion_UsesDeviceIdAsDeterministicTieBreaker()
     {
-        var local = Document("c-1", DateTimeOffset.Parse("2026-01-02T00:00:00Z"), 1, "device-z", "local");
-        var remote = Document("c-1", DateTimeOffset.Parse("2026-01-02T00:00:00Z"), 1, "device-a", "remote");
+        var local = Document("c-1", DateTimeOffset.Parse("2026-01-02T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture), 1, "device-z", "local");
+        var remote = Document("c-1", DateTimeOffset.Parse("2026-01-02T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture), 1, "device-a", "remote");
 
         var plan = SyncDocumentMergeEngine.BuildPlan(
             "user-1",

@@ -97,7 +97,9 @@ public sealed class UserDatabaseFactory
         }
     }
 
-    private static Task EnsureIndexesAsync(SQLiteAsyncConnection connection) => connection.ExecuteAsync(
+    private static async Task EnsureIndexesAsync(SQLiteAsyncConnection connection)
+    {
+        await connection.ExecuteAsync(
         "DROP INDEX IF EXISTS ux_profit_entries_user_date;" +
         "CREATE INDEX IF NOT EXISTS ix_profit_entries_user_date " +
         "ON profit_entries(UserId, EntryDate) WHERE IsDeleted = 0;" +
@@ -119,22 +121,29 @@ public sealed class UserDatabaseFactory
         "ON invoice_lines(UserId, InvoiceId);" +
         "CREATE INDEX IF NOT EXISTS ix_payments_user_date " +
         "ON payments(UserId, PaymentDate);");
+    }
 
-    private static Task EnsureBusinessEntitySyncIndexesAsync(SQLiteAsyncConnection connection) => connection.ExecuteAsync(
+    private static async Task EnsureBusinessEntitySyncIndexesAsync(SQLiteAsyncConnection connection)
+    {
+        await connection.ExecuteAsync(
         "CREATE INDEX IF NOT EXISTS ix_contacts_user_updated " +
         "ON contacts(UserId, UpdatedAtUtcTicks);" +
         "CREATE INDEX IF NOT EXISTS ix_invoices_user_updated " +
         "ON invoices(UserId, UpdatedAtUtcTicks);" +
         "CREATE INDEX IF NOT EXISTS ix_payments_user_updated " +
         "ON payments(UserId, UpdatedAtUtcTicks);");
+    }
 
-    private static Task EnsurePlansObligationsDepositsAsync(SQLiteAsyncConnection connection) => connection.ExecuteAsync(
+    private static async Task EnsurePlansObligationsDepositsAsync(SQLiteAsyncConnection connection)
+    {
+        await connection.ExecuteAsync(
         "CREATE INDEX IF NOT EXISTS ix_plans_user_updated " +
         "ON financial_plans(UserId, UpdatedAtUtcTicks) WHERE IsDeleted = 0;" +
         "CREATE INDEX IF NOT EXISTS ix_obligations_user_active " +
         "ON obligations(UserId, IsActive, UpdatedAtUtcTicks) WHERE IsDeleted = 0;" +
         "CREATE INDEX IF NOT EXISTS ix_deposits_user_updated " +
         "ON deposits(UserId, UpdatedAtUtcTicks) WHERE IsDeleted = 0;");
+    }
 
     private static async Task EnsurePaymentSoftDeleteColumnAsync(SQLiteAsyncConnection connection)
     {
@@ -150,7 +159,10 @@ public sealed class UserDatabaseFactory
         }
     }
 
-    private static Task EnsureSavingsGoalsTableAsync(SQLiteAsyncConnection connection) => connection.CreateTableAsync<SavingsGoalRow>();
+    private static async Task EnsureSavingsGoalsTableAsync(SQLiteAsyncConnection connection)
+    {
+        await connection.CreateTableAsync<SavingsGoalRow>();
+    }
 
     private static async Task EnsureAttachmentsAndRecurringAsync(SQLiteAsyncConnection connection)
     {

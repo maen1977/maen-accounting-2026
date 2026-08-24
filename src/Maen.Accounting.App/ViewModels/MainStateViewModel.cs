@@ -321,6 +321,7 @@ public sealed class MainStateViewModel : ObservableObject
     public bool IsBusy { get => _isBusy; private set => SetProperty(ref _isBusy, value); }
     public string StatusMessage { get => _statusMessage; private set => SetProperty(ref _statusMessage, value); }
     public string SyncStatus { get => _syncStatus; private set => SetProperty(ref _syncStatus, value); }
+    public string StartupCloudDataMessage { get; private set; } = string.Empty;
     public string BackupStatus { get => _backupStatus; private set => SetProperty(ref _backupStatus, value); }
     public string SaveButtonText => _editingEntry is null ? UiText.Get("T128") : UiText.Get("T129");
     public IReadOnlyList<string> MovementTypes => new[]
@@ -393,9 +394,9 @@ public sealed class MainStateViewModel : ObservableObject
     {
         get
         {
-            Money.TryParse(SalesInput, out var sales);
-            Money.TryParse(CostInput, out var cost);
-            Money.TryParse(ExpensesInput, out var expenses);
+            var sales = Money.TryParse(SalesInput, out var parsedSales) ? parsedSales : 0;
+            var cost = Money.TryParse(CostInput, out var parsedCost) ? parsedCost : 0;
+            var expenses = Money.TryParse(ExpensesInput, out var parsedExpenses) ? parsedExpenses : 0;
             return Money.Format(checked(sales - cost - expenses));
         }
     }
@@ -444,7 +445,7 @@ public sealed class MainStateViewModel : ObservableObject
     public string BankBalanceText => Money.Format(_ledgerSummary.BankBalanceMinor);
     public string CurrentMonthBankDepositsText => Money.Format(_ledgerSummary.CurrentMonthBankDepositsMinor);
     public string CurrentMonthBankWithdrawalsText => Money.Format(_ledgerSummary.CurrentMonthBankWithdrawalsMinor);
-    public string CurrentMonthEntryCountText => _ledgerSummary.CurrentMonth.EntriesCount.ToString();
+    public string CurrentMonthEntryCountText => _ledgerSummary.CurrentMonth.EntriesCount.ToString(System.Globalization.CultureInfo.CurrentCulture);
     public double CurrentMonthSpendingProgress
     {
         get
@@ -497,19 +498,19 @@ public sealed class MainStateViewModel : ObservableObject
 
     public bool HasSavingsTrend => _savingsTrendPoints.Count > 0;
     public string TrendStreakText => _savingsTrend is not null && _savingsTrend.ConsecutiveOnTargetStreak > 0
-        ? UiText.Format("T484", _savingsTrend.ConsecutiveOnTargetStreak.ToString(), UiText.Get("T477"))
+        ? UiText.Format("T484", _savingsTrend.ConsecutiveOnTargetStreak.ToString(System.Globalization.CultureInfo.CurrentCulture), UiText.Get("T477"))
         : string.Empty;
     public System.Collections.ObjectModel.ObservableCollection<SavingsTrendPointItem> SavingsTrendPoints => _savingsTrendPoints;
 
     private static string YearMonthName(int year, int month) =>
-        new DateTime(year, Math.Clamp(month, 1, 12), 1).ToString("MMM yyyy");
+        new DateTime(year, Math.Clamp(month, 1, 12), 1).ToString("MMM yyyy", System.Globalization.CultureInfo.CurrentCulture);
     public string CurrentYearNetText => Money.Format(_ledgerSummary.CurrentYear.NetProfitMinor);
     public string TotalExpensesText => Money.Format(_ledgerSummary.Overall.ExpensesMinor);
     public string ReportGrossText => Money.Format(SummarizeReport().GrossProfitMinor);
     public string ReportAverageNetText => Money.Format(SummarizeReport().AverageNetMinor);
     public string ReportSalesText => Money.Format(SummarizeReport().SalesMinor);
     public string ReportExpensesText => Money.Format(SummarizeReport().ExpensesMinor);
-    public string ReportCountText => SummarizeReport().EntriesCount.ToString();
+    public string ReportCountText => SummarizeReport().EntriesCount.ToString(System.Globalization.CultureInfo.CurrentCulture);
     public string AccountingAccountsText { get; private set; } = "0";
     public string PostedJournalCountText { get; private set; } = "0";
     public string PostedInvoiceTotalText { get; private set; } = Money.Format(0);
@@ -576,12 +577,77 @@ public sealed class MainStateViewModel : ObservableObject
     public async Task InitializeAsync(AuthSession session)
     {
         _session = session;
+        StartupCloudDataMessage = string.Empty;
+        OnPropertyChanged(nameof(StartupCloudDataMessage));
         OnPropertyChanged(nameof(UserEmail));
         OnPropertyChanged(nameof(IsCloudAccount));
         OnPropertyChanged(nameof(AccountModeText));
         await ReloadAsync();
+        if (!session.IsLocal)
+        {
+            await SynchronizeCloudOnStartupAsync(session);
+        }
+
         var info = await _backupService.ReadInfoAsync(session.UserId);
         SetBackupStatus(info);
+    }
+
+    private async Task SynchronizeCloudOnStartupAsync(AuthSession session)
+    {
+        try
+        {
+            var syncResult = await SyncInternalAsync();
+            if (syncResult.RemoteWins > 0
+                || (_lastBusinessSyncResult?.RemoteWins ?? 0) > 0
+                || (_lastPersonalEntitySyncResult?.RemoteWins ?? 0) > 0)
+            {
+                StartupCloudDataMessage = UiText.Get("T863");
+            }
+
+            StatusMessage = FormatSyncSummary(syncResult);
+        }
+        catch (Exception exception)
+        {
+            var detail = CloudSyncExceptionFormatter.GetDetail(exception);
+            SyncStatus = string.IsNullOrWhiteSpace(detail)
+                ? UiText.Get("T135")
+                : $"{UiText.Get("T135")} {detail}";
+            StartupCloudDataMessage = SyncStatus;
+        }
+        // إذا لم توجد بيانات في المسار الجديد، جرّب نسخة Flutter القديمة المرتبطة بالبريد.
+
+        await RestoreLegacyCloudBackupAsync(session);
+    }
+
+    private async Task RestoreLegacyCloudBackupAsync(AuthSession session)
+    {
+        try
+        {
+            var restoredCount = await _syncService.RestoreLegacyBackupIfEmptyAsync(session);
+            if (restoredCount <= 0)
+            {
+                return;
+            }
+
+            await ReloadAsync();
+            await WriteBackupAndUpdateAsync();
+            StatusMessage = UiText.Format("T860", restoredCount);
+            StartupCloudDataMessage = StatusMessage;
+
+            try
+            {
+                await SyncInternalAsync();
+                StatusMessage = $"{StatusMessage}{Environment.NewLine}{SyncStatus}";
+            }
+            catch (Exception exception)
+            {
+                SyncStatus = $"{UiText.Get("T135")} {CloudSyncExceptionFormatter.GetDetail(exception)}";
+            }
+        }
+        catch (Exception exception)
+        {
+            SyncStatus = $"{UiText.Get("T135")} {CloudSyncExceptionFormatter.GetDetail(exception)}";
+        }
     }
 
     public async Task ReloadAsync()
@@ -973,7 +1039,7 @@ public sealed class MainStateViewModel : ObservableObject
                 try
                 {
                     var syncResult = await SyncInternalAsync();
-                    var completedAt = syncResult.CompletedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
+                    var completedAt = syncResult.CompletedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture);
                     StatusMessage = UiText.Format(
                         "T392",
                         syncResult.Uploaded,
@@ -984,7 +1050,7 @@ public sealed class MainStateViewModel : ObservableObject
                 }
                 catch (Exception exception)
                 {
-                    var detail = exception.Message.Trim();
+                    var detail = CloudSyncExceptionFormatter.GetDetail(exception);
                     StatusMessage = string.IsNullOrWhiteSpace(detail)
                         ? UiText.Get("T135")
                         : $"{UiText.Get("T135")} {detail}";
@@ -1009,7 +1075,7 @@ public sealed class MainStateViewModel : ObservableObject
                 try
                 {
                     var syncResult = await SyncInternalAsync();
-                    var completedAt = syncResult.CompletedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
+                    var completedAt = syncResult.CompletedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture);
                     StatusMessage = UiText.Format(
                         "T392",
                         syncResult.Uploaded,
@@ -1020,7 +1086,7 @@ public sealed class MainStateViewModel : ObservableObject
                 }
                 catch (Exception exception)
                 {
-                    var detail = exception.Message.Trim();
+                    var detail = CloudSyncExceptionFormatter.GetDetail(exception);
                     StatusMessage = string.IsNullOrWhiteSpace(detail)
                         ? UiText.Get("T318")
                         : UiText.Format("T319", detail);
@@ -1092,7 +1158,7 @@ public sealed class MainStateViewModel : ObservableObject
 
     private string FormatSyncSummary(SyncResult result)
     {
-        var completedAt = result.CompletedAtUtc.ToLocalTime().ToString("g");
+        var completedAt = result.CompletedAtUtc.ToLocalTime().ToString("g", System.Globalization.CultureInfo.CurrentCulture);
         var summary = UiText.Format(
             "T393",
             completedAt,
@@ -1146,7 +1212,7 @@ public sealed class MainStateViewModel : ObservableObject
     private void SetBackupStatus(BackupInfo info)
     {
         BackupStatus = info.Exists
-            ? UiText.Format("T138", info.UpdatedAtUtc?.ToLocalTime().ToString("g") ?? string.Empty, info.EntriesCount)
+            ? UiText.Format("T138", info.UpdatedAtUtc?.ToLocalTime().ToString("g", System.Globalization.CultureInfo.CurrentCulture) ?? string.Empty, info.EntriesCount)
             : UiText.Get("T131");
     }
 
@@ -1715,8 +1781,8 @@ public sealed class MainStateViewModel : ObservableObject
             .ToArray();
         var trialBalance = await _accountingRepository.GetTrialBalanceAsync(userId, fromDate, toDate);
 
-        AccountingAccountsText = accounts.Count.ToString();
-        PostedJournalCountText = journalEntries.Count(static entry => entry.Status == JournalEntryStatus.Posted).ToString();
+        AccountingAccountsText = accounts.Count.ToString(System.Globalization.CultureInfo.CurrentCulture);
+        PostedJournalCountText = journalEntries.Count(static entry => entry.Status == JournalEntryStatus.Posted).ToString(System.Globalization.CultureInfo.CurrentCulture);
         PostedInvoiceTotalText = Money.Format(invoices.Where(static invoice => invoice.Status == InvoiceStatus.Posted).Sum(static invoice => invoice.TotalMinor));
         PaymentsTotalText = Money.Format(payments.Sum(static payment => payment.AmountMinor));
         TrialBalanceDebitText = Money.Format(trialBalance.TotalDebitMinor);
@@ -1845,10 +1911,6 @@ public sealed class MainStateViewModel : ObservableObject
             (Analytics: TopCategoryAnalyticsEngine.Analyze(entries, currentMonth),
              Totals: TopCategoryAnalyticsEngine.MonthlyTotals(entries, 12)));
 
-        var syncTask = _personalEntitySyncService
-            .SyncAsync()
-            .ContinueWith(task => task.IsCompletedSuccessfully ? task.Result : null, TaskScheduler.Default);
-
         var (analytics, totals) = await analyticsTask;
         _categoryAnalytics = analytics.ToArray();
         _monthlyAmounts = totals.ToArray();
@@ -1877,7 +1939,6 @@ public sealed class MainStateViewModel : ObservableObject
             _auditSummary = null;
         }
 
-        _ = syncTask;
     }
 
     private async Task RunBusyAsync(Func<Task> action)

@@ -19,7 +19,7 @@ public sealed class CategoryBreakdownItem
     {
         CategoryText = string.IsNullOrWhiteSpace(breakdown.Category) ? UiText.Get("T390") : breakdown.Category;
         SpentText = Money.Format(breakdown.SpentMinor);
-        SummaryText = UiText.Format("T473", breakdown.EntriesCount.ToString());
+        SummaryText = UiText.Format("T473", breakdown.EntriesCount.ToString(System.Globalization.CultureInfo.CurrentCulture));
         ShareText = $"{Math.Round(report.SharePercentFor(breakdown)):0}%";
         ShareProgress = Math.Clamp(report.SharePercentFor(breakdown) / 100d, 0, 1);
         CategoryColor = Microsoft.Maui.Graphics.Color.FromArgb(colorHex);
@@ -37,7 +37,7 @@ public sealed class SavingsTrendPointItem
 {
     public SavingsTrendPointItem(SavingsTrendPoint point, long maxAbsSaved)
     {
-        MonthText = new DateTime(point.Year, point.Month, 1).ToString("MMM");
+        MonthText = new DateTime(point.Year, point.Month, 1).ToString("MMM", System.Globalization.CultureInfo.CurrentCulture);
         SavedText = FormatSigned(point.SavedMinor);
         StatusText = point.IsOnTarget ? UiText.Get("T475") : UiText.Get("T476");
         var progress = maxAbsSaved > 0 ? Math.Clamp(Math.Abs(point.SavedMinor) / (double)maxAbsSaved, 0, 1) : 0.0;

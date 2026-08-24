@@ -25,12 +25,21 @@ public partial class BusinessContactsPage : ContentPage
         }
     }
 
-    private async void OnToggleContactClicked(object? sender, EventArgs e)
+    private void OnEditContactClicked(object? sender, EventArgs e)
     {
-        if (sender is not Button button || button.CommandParameter is not ContactItemViewModel item) return;
+        if (sender is Button { CommandParameter: ContactItemViewModel item })
+        {
+            _viewModel.BeginEditContact(item);
+        }
+    }
+
+    private async void OnDeleteContactClicked(object? sender, EventArgs e)
+    {
+        if (sender is not Button { CommandParameter: ContactItemViewModel item }) return;
+        if (!await DisplayAlertAsync(UiText.Get("T838"), UiText.Format("T840", item.Name), UiText.Get("T177"), UiText.Get("T178"))) return;
         try
         {
-            await _viewModel.ToggleContactAsync(item);
+            await _viewModel.DeleteContactAsync(item);
         }
         catch (Exception exception)
         {

@@ -253,7 +253,7 @@ public sealed class PdfReportExporterTests
     [Fact]
     public void BuildReportHtml_EmptyTable_OmitsTable()
     {
-        var html = PdfReportExporter.BuildReportHtml("t", "s", new (string, string)[0], Array.Empty<(string, string, string)>());
+        var html = PdfReportExporter.BuildReportHtml("t", "s", Array.Empty<(string, string)>(), Array.Empty<(string, string, string)>());
         Assert.DoesNotContain("<table>", html);
     }
 

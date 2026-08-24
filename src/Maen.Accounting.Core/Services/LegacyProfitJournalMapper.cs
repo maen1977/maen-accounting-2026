@@ -51,7 +51,7 @@ public static class LegacyProfitJournalMapper
     }
 
     private static void AddPair(
-        ICollection<JournalLine> lines,
+        List<JournalLine> lines,
         string debitLineId,
         string debitAccountId,
         string creditAccountId,

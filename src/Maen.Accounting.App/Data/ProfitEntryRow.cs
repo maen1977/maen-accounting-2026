@@ -40,7 +40,7 @@ public sealed class ProfitEntryRow
     {
         EntryId = entry.EntryId,
         UserId = entry.UserId,
-        EntryDate = entry.EntryDate.ToString("yyyy-MM-dd"),
+        EntryDate = entry.EntryDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
         SalesMinor = entry.SalesMinor,
         CostMinor = entry.CostMinor,
         ExpensesMinor = entry.ExpensesMinor,

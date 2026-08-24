@@ -40,7 +40,7 @@ public sealed class BusinessViewModel : ObservableObject
     private string _paymentSearchText = string.Empty;
     private string _contactSearchText = string.Empty;
     private Invoice? _editingInvoice;
-    private bool _editingContactActive;
+    private Payment? _editingPayment;
     private AccountingContact? _editingContact;
 
     public BusinessViewModel(BusinessRepository repository, DeviceIdentityService deviceIdentity)
@@ -72,6 +72,10 @@ public sealed class BusinessViewModel : ObservableObject
     public ObservableCollection<ContactItemViewModel> FilteredContacts { get; } = [];
     public ObservableCollection<ReconciledInvoiceItem> ReconciledInvoices { get; } = [];
     public string InvoiceFormTitle => _editingInvoice is null ? UiText.Get("T074") : UiText.Get("T488");
+    public string ContactFormTitle => _editingContact is null ? UiText.Get("T073") : UiText.Get("T837");
+    public string ContactSaveButtonText => _editingContact is null ? UiText.Get("T062") : UiText.Get("T831");
+    public string PaymentFormTitle => _editingPayment is null ? UiText.Get("T065") : UiText.Get("T841");
+    public string PaymentSaveButtonText => _editingPayment is null ? UiText.Get("T063") : UiText.Get("T831");
 
     public BusinessFinancialSummary? FinancialPosition => _financialPosition;
     public string ReceivableNetText => Money.Format(_financialPosition?.ReceivableNetMinor ?? 0);
@@ -125,8 +129,8 @@ public sealed class BusinessViewModel : ObservableObject
             foreach (var invoice in _rawInvoices) Invoices.Add(new InvoiceItemViewModel(invoice, _rawContacts));
             Payments.Clear();
             foreach (var payment in _rawPayments) Payments.Add(new PaymentItemViewModel(payment, _rawContacts));
-            SelectedInvoiceContact ??= Contacts.FirstOrDefault();
-            SelectedPaymentContact ??= Contacts.FirstOrDefault();
+            SelectedInvoiceContact = Contacts.FirstOrDefault(contact => contact.ContactId == SelectedInvoiceContact?.ContactId) ?? Contacts.FirstOrDefault();
+            SelectedPaymentContact = Contacts.FirstOrDefault(contact => contact.ContactId == SelectedPaymentContact?.ContactId) ?? Contacts.FirstOrDefault();
             SelectedPaymentAccount ??= PaymentAccounts[0];
             RebuildFinancialPosition();
             RebuildReconciliation();
@@ -143,13 +147,45 @@ public sealed class BusinessViewModel : ObservableObject
         await RunBusyAsync(async () =>
         {
             var now = DateTimeOffset.UtcNow;
-            await _repository.UpsertContactAsync(session.UserId, new AccountingContact(
-                $"contact-{Guid.NewGuid():N}", session.UserId, SelectedContactType.Type, ContactNameInput.Trim(), ContactPhoneInput.Trim(), CreatedAtUtc: now, UpdatedAtUtc: now, DeviceId: _deviceIdentity.GetOrCreate()));
+            if (_editingContact is null)
+            {
+                await _repository.UpsertContactAsync(session.UserId, new AccountingContact(
+                    $"contact-{Guid.NewGuid():N}", session.UserId, SelectedContactType.Type, ContactNameInput.Trim(), ContactPhoneInput.Trim(), CreatedAtUtc: now, UpdatedAtUtc: now, DeviceId: _deviceIdentity.GetOrCreate()));
+            }
+            else
+            {
+                var edited = _editingContact with
+                {
+                    Type = SelectedContactType.Type,
+                    Name = ContactNameInput.Trim(),
+                    Phone = ContactPhoneInput.Trim(),
+                    UpdatedAtUtc = now,
+                    Version = checked(_editingContact.Version + 1),
+                    DeviceId = _deviceIdentity.GetOrCreate(),
+                };
+                await _repository.UpsertContactAsync(session.UserId, edited);
+            }
+
             ContactNameInput = string.Empty;
             ContactPhoneInput = string.Empty;
+            _editingContact = null;
+            OnPropertyChanged(nameof(ContactFormTitle));
+            OnPropertyChanged(nameof(ContactSaveButtonText));
             StatusMessage = UiText.Get("T268");
             await ReloadCoreAsync();
         });
+    }
+
+    public void BeginEditContact(ContactItemViewModel item)
+    {
+        var contact = _rawContacts.FirstOrDefault(raw => raw.ContactId == item.ContactId);
+        if (contact is null) return;
+        _editingContact = contact;
+        ContactNameInput = contact.Name;
+        ContactPhoneInput = contact.Phone;
+        SelectedContactType = ContactTypes.FirstOrDefault(type => type.Type == contact.Type) ?? ContactTypes[0];
+        OnPropertyChanged(nameof(ContactFormTitle));
+        OnPropertyChanged(nameof(ContactSaveButtonText));
     }
 
     public async Task SaveInvoiceAsync()
@@ -237,18 +273,55 @@ public sealed class BusinessViewModel : ObservableObject
         await RunBusyAsync(async () =>
         {
             var now = DateTimeOffset.UtcNow;
-            var payment = new Payment(
-                $"payment-{Guid.NewGuid():N}", session.UserId, sanitizedPaymentNumber, SelectedPaymentType.Type,
-                DateOnly.FromDateTime(PaymentDate), SelectedPaymentContact.ContactId, amount,
-                CreatedAtUtc: now, UpdatedAtUtc: now, DeviceId: _deviceIdentity.GetOrCreate(),
-                AccountCode: SelectedPaymentAccount.Code);
+            var payment = _editingPayment is null
+                ? new Payment(
+                    $"payment-{Guid.NewGuid():N}", session.UserId, sanitizedPaymentNumber, SelectedPaymentType.Type,
+                    DateOnly.FromDateTime(PaymentDate), SelectedPaymentContact.ContactId, amount,
+                    CreatedAtUtc: now, UpdatedAtUtc: now, DeviceId: _deviceIdentity.GetOrCreate(),
+                    AccountCode: SelectedPaymentAccount.Code)
+                : _editingPayment with
+                {
+                    Number = sanitizedPaymentNumber,
+                    Type = SelectedPaymentType.Type,
+                    PaymentDate = DateOnly.FromDateTime(PaymentDate),
+                    ContactId = SelectedPaymentContact.ContactId,
+                    AmountMinor = amount,
+                    UpdatedAtUtc = now,
+                    Version = checked(_editingPayment.Version + 1),
+                    DeviceId = _deviceIdentity.GetOrCreate(),
+                    AccountCode = SelectedPaymentAccount.Code,
+                };
             BusinessDocumentValidator.EnsureValidPayment(payment);
             await _repository.UpsertPaymentAsync(session.UserId, payment);
-            PaymentNumberInput = string.Empty;
-            PaymentAmountInput = string.Empty;
+            ClearPaymentInputs();
+            _editingPayment = null;
+            OnPropertyChanged(nameof(PaymentFormTitle));
+            OnPropertyChanged(nameof(PaymentSaveButtonText));
             StatusMessage = UiText.Get("T276");
             await ReloadCoreAsync();
         });
+    }
+
+    public void EditPayment(PaymentItemViewModel item)
+    {
+        var payment = _rawPayments.FirstOrDefault(raw => raw.PaymentId == item.ModelPaymentId);
+        if (payment is null) return;
+        _editingPayment = payment;
+        PaymentNumberInput = payment.Number;
+        PaymentAmountInput = Money.Format(payment.AmountMinor);
+        SelectedPaymentType = PaymentTypes.FirstOrDefault(type => type.Type == payment.Type) ?? PaymentTypes[0];
+        SelectedPaymentContact = Contacts.FirstOrDefault(contact => contact.ContactId == payment.ContactId);
+        SelectedPaymentAccount = PaymentAccounts.FirstOrDefault(account => account.Code == payment.AccountCode) ?? PaymentAccounts[0];
+        PaymentDate = payment.PaymentDate.ToDateTime(TimeOnly.MinValue);
+        OnPropertyChanged(nameof(PaymentFormTitle));
+        OnPropertyChanged(nameof(PaymentSaveButtonText));
+    }
+
+    private void ClearPaymentInputs()
+    {
+        PaymentNumberInput = string.Empty;
+        PaymentAmountInput = string.Empty;
+        PaymentDate = DateTime.Today;
     }
 
     public void EditInvoice(InvoiceItemViewModel item)
@@ -326,6 +399,29 @@ public sealed class BusinessViewModel : ObservableObject
         {
             await _repository.UpsertContactAsync(session.UserId, contact with { IsActive = !contact.IsActive, Version = contact.Version + 1, UpdatedAtUtc = DateTimeOffset.UtcNow, DeviceId = _deviceIdentity.GetOrCreate() });
             StatusMessage = UiText.Get("T525");
+            await ReloadCoreAsync();
+        });
+    }
+
+    public async Task DeleteContactAsync(ContactItemViewModel item)
+    {
+        var session = RequireSession();
+        var contact = _rawContacts.FirstOrDefault(raw => raw.ContactId == item.ContactId);
+        if (contact is null) return;
+        var contactResult = BusinessDocumentLifecycleService.DeactivateContact(contact, _rawInvoices);
+        if (!contactResult.Ok) throw new InvalidOperationException(contactResult.Reason);
+        await RunBusyAsync(async () =>
+        {
+            await _repository.DeleteContactAsync(session.UserId, contact.ContactId);
+            if (_editingContact?.ContactId == contact.ContactId)
+            {
+                _editingContact = null;
+                ContactNameInput = string.Empty;
+                ContactPhoneInput = string.Empty;
+                OnPropertyChanged(nameof(ContactFormTitle));
+                OnPropertyChanged(nameof(ContactSaveButtonText));
+            }
+            StatusMessage = UiText.Get("T839");
             await ReloadCoreAsync();
         });
     }
@@ -432,7 +528,7 @@ public sealed class BusinessViewModel : ObservableObject
 public sealed class ReconciledInvoiceItem(ReconciledInvoice reconciled, IReadOnlyList<AccountingContact> contacts)
 {
     public string Number => reconciled.Invoice.Number;
-    public string DateText => reconciled.Invoice.IssueDate.ToString("yyyy-MM-dd");
+    public string DateText => reconciled.Invoice.IssueDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
     public string ContactText => contacts.FirstOrDefault(contact => contact.ContactId == reconciled.Invoice.ContactId)?.Name ?? UiText.Get("T279");
     public string TotalText => Money.Format(reconciled.Invoice.TotalMinor);
     public string PaidText => Money.Format(reconciled.PaidMinor);
@@ -445,7 +541,7 @@ public sealed class ReconciledInvoiceItem(ReconciledInvoice reconciled, IReadOnl
 public sealed class OverdueInvoiceItem(Invoice invoice, IReadOnlyList<AccountingContact> contacts)
 {
     public string Number => invoice.Number;
-    public string DueDateText => invoice.DueDate.ToString("yyyy-MM-dd");
+    public string DueDateText => invoice.DueDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
     public string ContactText => contacts.FirstOrDefault(contact => contact.ContactId == invoice.ContactId)?.Name ?? UiText.Get("T279");
     public string AmountText => Money.Format(invoice.TotalMinor);
     public string TypeText => invoice.Type == InvoiceType.Sales ? UiText.Get("T277") : UiText.Get("T278");
@@ -459,7 +555,7 @@ public sealed class OverdueInvoiceItem(Invoice invoice, IReadOnlyList<Accounting
                 return UiText.Get("T485");
             }
 
-            return UiText.Format("T486", days.ToString());
+            return UiText.Format("T486", days.ToString(System.Globalization.CultureInfo.CurrentCulture));
         }
     }
 }
@@ -501,7 +597,7 @@ public sealed class InvoiceItemViewModel(Invoice invoice, IReadOnlyList<Accounti
     public string ModelInvoiceId => invoice.InvoiceId;
     public bool IsDraft => invoice.Status == InvoiceStatus.Draft;
     public string Number => invoice.Number;
-    public string DateText => invoice.IssueDate.ToString("yyyy-MM-dd");
+    public string DateText => invoice.IssueDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
     public string DueDateText => $"{UiText.Get("T360")}: {invoice.DueDate:yyyy-MM-dd}";
     public string TypeText => invoice.Type == InvoiceType.Sales ? UiText.Get("T277") : UiText.Get("T278");
     public string ContactText => contacts.FirstOrDefault(contact => contact.ContactId == invoice.ContactId)?.Name ?? UiText.Get("T279");
@@ -513,7 +609,7 @@ public sealed class PaymentItemViewModel(Payment payment, IReadOnlyList<Accounti
 {
     public string ModelPaymentId => payment.PaymentId;
     public string Number => payment.Number;
-    public string DateText => payment.PaymentDate.ToString("yyyy-MM-dd");
+    public string DateText => payment.PaymentDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
     public string TypeText => payment.Type == PaymentType.CustomerReceipt ? UiText.Get("T282") : UiText.Get("T283");
     public string ContactText => contacts.FirstOrDefault(contact => contact.ContactId == payment.ContactId)?.Name ?? UiText.Get("T279");
     public string AccountText => payment.AccountCode == DefaultChartOfAccounts.BankCode ? UiText.Get("T370") : UiText.Get("T371");

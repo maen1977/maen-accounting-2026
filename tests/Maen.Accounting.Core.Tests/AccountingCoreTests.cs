@@ -49,7 +49,7 @@ public sealed class AccountingCoreTests
     [Fact]
     public void Legacy_profit_entry_maps_to_balanced_posted_journal()
     {
-        var now = DateTimeOffset.Parse("2026-01-10T08:00:00+00:00");
+        var now = DateTimeOffset.Parse("2026-01-10T08:00:00+00:00", System.Globalization.CultureInfo.InvariantCulture);
         var profit = new ProfitEntry("entry-001", "user-1", new DateOnly(2026, 1, 10), 150_000, 60_000, 20_000, "بيع يومي", false, now, now, 1, "device-1");
 
         var journal = LegacyProfitJournalMapper.Map(profit);
@@ -190,7 +190,7 @@ public sealed class AccountingCoreTests
             "user-1",
             "user@example.com",
             "device-2",
-            DateTimeOffset.Parse("2026-01-20T00:00:00Z"));
+            DateTimeOffset.Parse("2026-01-20T00:00:00Z", System.Globalization.CultureInfo.InvariantCulture));
 
         var entry = Assert.Single(result.Entries);
         Assert.True(entry.IsDeleted);

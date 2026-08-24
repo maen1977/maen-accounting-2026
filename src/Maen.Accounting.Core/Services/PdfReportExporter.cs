@@ -37,11 +37,11 @@ public static class PdfReportExporter
           .Append(".row b{color:#047857;}")
           .Append(".footer{margin-top:20px;font-size:11px;color:#9ca3af;text-align:center;}")
           .Append("</style></head><body>")
-          .Append($"<h1>{Escape(title)}</h1><h2>{Escape(subtitle)}</h2>");
+          .Append(System.Globalization.CultureInfo.InvariantCulture, $"<h1>{Escape(title)}</h1><h2>{Escape(subtitle)}</h2>");
 
         foreach (var (label, value) in rows)
         {
-            sb.Append($"<div class=\"row\"><span>{Escape(label)}</span><b>{Escape(value)}</b></div>");
+            sb.Append(System.Globalization.CultureInfo.InvariantCulture, $"<div class=\"row\"><span>{Escape(label)}</span><b>{Escape(value)}</b></div>");
         }
 
         if (table is not null && table.Count > 0)
@@ -49,7 +49,7 @@ public static class PdfReportExporter
             sb.Append("<table><tr>");
             foreach (var header in TupleElements(table[0]))
             {
-                sb.Append($"<th>{Escape(header)}</th>");
+                sb.Append(System.Globalization.CultureInfo.InvariantCulture, $"<th>{Escape(header)}</th>");
             }
 
             sb.Append("</tr>");
@@ -58,7 +58,7 @@ public static class PdfReportExporter
                 sb.Append("<tr>");
                 foreach (var cell in TupleElements(row))
                 {
-                    sb.Append($"<td>{Escape(cell)}</td>");
+                    sb.Append(System.Globalization.CultureInfo.InvariantCulture, $"<td>{Escape(cell)}</td>");
                 }
 
                 sb.Append("</tr>");
@@ -67,7 +67,7 @@ public static class PdfReportExporter
             sb.Append("</table>");
         }
 
-        sb.Append($"<div class=\"footer\">Maen Accounting — {DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm} UTC</div>")
+        sb.Append(System.Globalization.CultureInfo.InvariantCulture, $"<div class=\"footer\">Maen Accounting — {DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm} UTC</div>")
           .Append("</body></html>");
 
         return sb.ToString();

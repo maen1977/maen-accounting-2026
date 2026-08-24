@@ -23,12 +23,12 @@ public static class DataQualityChecker
         {
             if (string.IsNullOrWhiteSpace(entry.Category))
             {
-                warnings.Add(new DataQualityWarning("UncategorizedEntry", entry.EntryDate.ToString("yyyy-MM-dd")));
+                warnings.Add(new DataQualityWarning("UncategorizedEntry", entry.EntryDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)));
             }
 
             if (entry.AmountMinor < 0)
             {
-                warnings.Add(new DataQualityWarning("NegativeAmountEntry", entry.EntryDate.ToString("yyyy-MM-dd")));
+                warnings.Add(new DataQualityWarning("NegativeAmountEntry", entry.EntryDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)));
             }
         }
 

@@ -9,7 +9,7 @@ public sealed class ProfitEntryItemViewModel
     public ProfitEntryItemViewModel(ProfitEntry model)
     {
         Model = model;
-        DateText = model.EntryDate.ToString("yyyy-MM-dd");
+        DateText = model.EntryDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
         SalesText = Money.Format(model.SalesMinor);
         CostText = Money.Format(model.CostMinor);
         ExpensesText = Money.Format(model.ExpensesMinor);

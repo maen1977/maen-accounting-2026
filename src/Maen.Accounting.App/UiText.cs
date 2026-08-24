@@ -674,6 +674,35 @@ public static class UiText
         ["T834"] = ("تم حذف السجل بنجاح.", "The entry was deleted successfully."),
         ["T835"] = ("غيّر الشهر أو أضف سجلًا جديدًا من تبويب إضافة سجل.", "Change the month or add a new entry from the Add entry tab."),
         ["T836"] = ("التقارير والسجلات", "Reports & entries"),
+        ["T837"] = ("تعديل جهة الاتصال", "Edit contact"),
+        ["T838"] = ("حذف جهة الاتصال", "Delete contact"),
+        ["T839"] = ("تم حذف جهة الاتصال", "Contact deleted"),
+        ["T840"] = ("هل تريد حذف جهة الاتصال {0}؟", "Delete contact {0}?"),
+        ["T841"] = ("تعديل الدفعة", "Edit payment"),
+        ["T842"] = ("هل تريد حذف الدفعة {0}؟", "Delete payment {0}?"),
+        ["T843"] = ("رمز الحساب مستخدم مسبقًا.", "The account code is already in use."),
+        ["T844"] = ("تعديل الحساب", "Edit account"),
+        ["T845"] = ("تعديل القيد اليدوي", "Edit manual entry"),
+        ["T846"] = ("هل تريد حذف الحساب {0}؟", "Delete account {0}?"),
+        ["T847"] = ("هل تريد حذف القيد {0}؟", "Delete journal entry {0}?"),
+        ["T848"] = ("لا يمكن تعديل أو حذف الحسابات النظامية.", "System accounts cannot be edited or deleted."),
+        ["T849"] = ("تم حفظ الحساب.", "Account saved."),
+        ["T850"] = ("لا يمكن حذف قيد مرتبط بمستند.", "A document-linked entry cannot be deleted."),
+        ["T851"] = ("تم حذف القيد.", "Journal entry deleted."),
+        ["T852"] = ("قيد يدوي", "Manual entry"),
+        ["T853"] = ("قيد مرتبط بمستند", "Document-linked entry"),
+        ["T854"] = ("القيود اليومية", "Journal entries"),
+        ["T855"] = ("رمز الحساب", "Account code"),
+        ["T856"] = ("اسم الحساب", "Account name"),
+        ["T857"] = ("لا توجد قيود بعد.", "No journal entries yet."),
+        ["T858"] = ("تم حذف الحساب.", "Account deleted."),
+        ["T859"] = ("إضافة حساب جديد", "Add new account"),
+        ["T860"] = ("تم استرجاع {0} سجلًا من النسخة القديمة المرتبطة بهذا البريد.", "Restored {0} records from the legacy backup linked to this email."),
+        ["T861"] = ("إعداد Firebase غير مكتمل. فعّل Email/Password وتحقق من مفتاح Web API في مشروع Firebase.", "Firebase is not configured correctly. Enable Email/Password and verify the Web API key in the Firebase project."),
+        ["T862"] = ("تعذر قراءة النسخة السحابية القديمة.", "The legacy cloud backup could not be read."),
+        ["T863"] = ("وجدنا بيانات مرتبطة بهذا البريد وحمّلناها تلقائيًا. يمكنك الآن تعديلها ومتابعة العمل.", "We found data linked to this email and loaded it automatically. You can edit it and continue working."),
+        ["T864"] = ("رفض Firebase تنزيل البيانات (HTTP 401/403). قد تكون جلسة الدخول منتهية أو قواعد Firestore الجديدة غير منشورة. سجّل الخروج والدخول، وإذا استمر الخطأ انشر ملف firestore.rules على مشروع maen-accountings.", "Firebase rejected the data download (HTTP 401/403). The sign-in session may have expired, or the new Firestore rules may not be deployed. Sign out and sign in again; if it continues, deploy firestore.rules to project maen-accountings."),
+        ["T865"] = ("تعذر إكمال المزامنة بسبب خطأ داخلي في التطبيق ({0}). تم الاحتفاظ بالبيانات محليًا. أغلق التطبيق وافتحه من جديد، ثم أعد المحاولة.", "Cloud sync stopped because of an internal app error ({0}). Your data was kept locally. Close and reopen the app, then try again."),
     };
 
 
@@ -685,5 +714,5 @@ public static class UiText
     }
 
     public static string Format(string key, params object?[] arguments) =>
-        string.Format(System.Globalization.CultureInfo.CurrentUICulture, Get(key), arguments);
+        string.Format(System.Globalization.CultureInfo.CurrentCulture, Get(key), arguments);
 }

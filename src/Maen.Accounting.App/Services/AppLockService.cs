@@ -39,7 +39,7 @@ public static class AppLockService
     public static async Task SetIdleMinutesAsync(int minutes)
     {
         var clamped = Math.Clamp(minutes, 1, 60);
-        await SecureStorage.Default.SetAsync(IdleKey, clamped.ToString());
+        await SecureStorage.Default.SetAsync(IdleKey, clamped.ToString(System.Globalization.CultureInfo.InvariantCulture));
     }
 
     /// <summary>Creates or replaces the lock PIN. Returns true when the PIN is acceptable and stored.</summary>
@@ -93,11 +93,10 @@ public static class AppLockService
 
     private static string HashPin(string pin, byte[] salt)
     {
-        using var sha = SHA256.Create();
         var payload = new byte[salt.Length + Encoding.UTF8.GetByteCount(pin)];
         salt.CopyTo(payload, 0);
         Encoding.UTF8.GetBytes(pin, 0, pin.Length, payload, salt.Length);
-        var digest = sha.ComputeHash(payload);
+        var digest = SHA256.HashData(payload);
         return Convert.ToHexString(digest).ToLowerInvariant();
     }
 

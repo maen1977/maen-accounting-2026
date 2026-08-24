@@ -7,17 +7,24 @@
 - Project ID: `maen-accountings`
 - Web API Key: من مشروع Firebase الأصلي
 
-تأكد من تفعيل Email/Password من Firebase Console. إذا كان مفتاح API مقيدًا باسم حزمة Android القديم، أضف الحزمة الجديدة `com.maen.accounting` أو استخدم مفتاح Web API مخصصًا لواجهات Firebase Authentication.
+تأكد من تفعيل Email/Password من Firebase Console. التطبيق الحالي يستعمل Firebase Authentication REST، لذلك يجب أن يكون مفتاح Web API مسموحًا لواجهات Authentication. إذا كانت قيود مفتاح API أو إعداد Android تعتمد على اسم الحزمة القديم، أنشئ/أضف تطبيق Android باسم `com.maen.accounting` ثم نزّل `google-services.json` الجديد بدل تعديل الملف القديم يدويًا.
 
 ## Firestore
 
-التصميم الجديد لا يستخدم مستندًا واحدًا باسم البريد. المسار الجديد:
+التصميم الجديد لا يستخدم مستندًا واحدًا باسم البريد للبيانات الجديدة. المسارات الجديدة هي:
 
 ```
 users/{firebaseUid}/entries/{entryId}
+users/{firebaseUid}/personalEntries/{entryId}
+users/{firebaseUid}/businessContacts/{recordId}
+users/{firebaseUid}/businessInvoices/{recordId}
+users/{firebaseUid}/businessPayments/{recordId}
+users/{firebaseUid}/personalPlans/{recordId}
+users/{firebaseUid}/personalObligations/{recordId}
+users/{firebaseUid}/personalDeposits/{recordId}
 ```
 
-قواعد `firestore.rules` تسمح للمستخدم المصادق بقراءة وكتابة المستندات التي يكون `userId` فيها مساوياً لمعرف Firebase الخاص به فقط. ولا تسمح بالحذف المباشر؛ الحذف يتم عبر `isDeleted = true` للحفاظ على التزامن بين الأجهزة.
+قواعد `firestore.rules` تسمح للمستخدم المصادق بقراءة وكتابة مستنداته فقط، وتتحقق من `userId` و`accountScope` ونوع السجل. ولا تسمح بالحذف المباشر؛ الحذف يتم عبر `isDeleted = true` في السجلات التي تدعم الحذف المنطقي للحفاظ على التزامن بين الأجهزة. كما تسمح القواعد بقراءة مستند النسخة القديمة المطابق للبريد فقط لغرض الترحيل، ولا تسمح بتعديله أو تعداده.
 
 ### نشر القواعد على المشروع الصحيح
 
@@ -29,7 +36,7 @@ firebase use maen-accountings
 firebase deploy --only firestore:rules
 ```
 
-لا تستبدل القواعد بقاعدة عامة مثل `allow read, write: if true;`؛ ذلك يعرّض بيانات جميع المستخدمين للخطر. إذا ظهر في التطبيق `HTTP 403 — Missing or insufficient permissions`، فهذا يعني غالباً أن القواعد الموجودة في Console لم تُنشر بعد أو أنها مختلفة عن ملف `firestore.rules` في المستودع. بعد نشرها، سجّل الخروج والدخول مرة واحدة ثم اضغط «مزامنة الآن».
+لا تستبدل القواعد بقاعدة عامة مثل `allow read, write: if true;`؛ ذلك يعرّض بيانات جميع المستخدمين للخطر. إذا ظهر في التطبيق `HTTP 403 — Missing or insufficient permissions`، فهذا يعني غالباً أن القواعد الموجودة في Console لم تُنشر بعد أو أنها مختلفة عن ملف `firestore.rules` في المستودع. بعد نشرها، سجّل الخروج والدخول مرة واحدة ثم اضغط «مزامنة الآن». عند تسجيل الدخول بحساب موجود، وإذا كانت قاعدة الجهاز فارغة، يحاول التطبيق قراءة النسخة القديمة `profit_tracker_backups/{email}` ثم تحويلها إلى السجلات الجديدة ورفعها تحت UID؛ لذلك يجب نشر قاعدة القراءة القديمة مرة واحدة أثناء الترحيل.
 
 ## بيانات النسخة القديمة
 
@@ -39,4 +46,4 @@ firebase deploy --only firestore:rules
 profit_tracker_backups/{email}
 ```
 
-لا تنتقل تلقائيًا. صدّر JSON من تطبيق Flutter ثم استخدم زر الاستيراد داخل نسخة MAUI. بعد الاستيراد نفّذ المزامنة لرفع السجلات إلى البنية الجديدة.
+تحاول النسخة الجديدة قراءتها تلقائيًا عند أول تسجيل دخول بالحساب نفسه إذا كانت قاعدة الجهاز فارغة، ثم تحول السجلات وترفعها إلى البنية الجديدة تحت UID. إذا لم تكن النسخة القديمة متاحة للقراءة أو فشل الترحيل، صدّر JSON من تطبيق Flutter ثم استخدم زر الاستيراد داخل نسخة MAUI، وبعد الاستيراد نفّذ المزامنة لرفع السجلات إلى البنية الجديدة.

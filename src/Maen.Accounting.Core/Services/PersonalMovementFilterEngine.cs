@@ -25,7 +25,7 @@ public static class PersonalMovementFilterEngine
             query = query.Where(entry =>
                 entry.Notes.Contains(trimmed, StringComparison.OrdinalIgnoreCase)
                 || entry.Category.Contains(trimmed, StringComparison.OrdinalIgnoreCase)
-                || entry.EntryDate.ToString("yyyy-MM-dd").Contains(trimmed));
+                || entry.EntryDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture).Contains(trimmed));
         }
 
         if (category is not null && category.Length > 0)

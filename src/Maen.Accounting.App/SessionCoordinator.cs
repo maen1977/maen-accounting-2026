@@ -123,11 +123,17 @@ public sealed class SessionCoordinator
             }
             else
             {
+                // يجب أن تسبق مزامنة MainState تحميل صفحات الشركات كي تظهر البيانات المستعادة فورًا.
+                await state.InitializeAsync(session).WaitAsync(StartupInitializationTimeout);
                 await Task.WhenAll(
-                    state.InitializeAsync(session),
                     accounting.InitializeAsync(session),
                     business.InitializeAsync(session))
                     .WaitAsync(StartupInitializationTimeout);
+            }
+
+            if (!string.IsNullOrWhiteSpace(state.StartupCloudDataMessage))
+            {
+                await ShowStartupAlertAsync(state.StartupCloudDataMessage);
             }
         }
         catch (TimeoutException)
@@ -136,7 +142,7 @@ public sealed class SessionCoordinator
         }
         catch (Exception exception)
         {
-            await ShowStartupAlertAsync(UiText.Format("T227", exception.Message));
+            await ShowStartupAlertAsync(UiText.Format("T227", CloudSyncExceptionFormatter.GetDetail(exception)));
         }
     }
 
@@ -171,7 +177,7 @@ public sealed class SessionCoordinator
         {
             if (_window?.Page is Page page)
             {
-                await page.DisplayAlertAsync(UiText.Get("T228"), exception.Message, UiText.Get("T122"));
+                await page.DisplayAlertAsync(UiText.Get("T228"), CloudSyncExceptionFormatter.GetDetail(exception), UiText.Get("T122"));
             }
         }
     }

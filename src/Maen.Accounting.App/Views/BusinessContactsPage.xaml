@@ -18,7 +18,7 @@
                 <Border Style="{StaticResource CardBorder}">
                     <VerticalStackLayout Spacing="10">
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                            <Label Text="{local:Tr Key=T073}" Style="{StaticResource SectionTitle}" />
+                            <Label Text="{Binding ContactFormTitle}" Style="{StaticResource SectionTitle}" />
                             <ActivityIndicator Grid.Column="1" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
                         </Grid>
                         <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
@@ -27,7 +27,7 @@
                         </Grid>
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                             <Entry Text="{Binding ContactPhoneInput}" Placeholder="{local:Tr Key=T300}" Keyboard="Telephone" />
-                            <Button Grid.Column="1" Text="{local:Tr Key=T062}" Style="{StaticResource AccentButton}" Clicked="OnSaveContactClicked" />
+                            <Button Grid.Column="1" Text="{Binding ContactSaveButtonText}" Style="{StaticResource AccentButton}" Clicked="OnSaveContactClicked" />
                         </Grid>
                     </VerticalStackLayout>
                 </Border>
@@ -56,7 +56,10 @@
                                             </Border.StrokeShape>
                                             <Label Text="{Binding TypeText}" TextColor="{StaticResource PrimaryDark}" FontAttributes="Bold" FontSize="12" />
                                         </Border>
-                                        <Button Text="{Binding ToggleLabel}" FontSize="11" Style="{StaticResource SmallButton}" Clicked="OnToggleContactClicked" CommandParameter="{Binding .}" />
+                                        <HorizontalStackLayout Spacing="6">
+                                            <Button Text="{local:Tr Key=T488}" FontSize="11" Style="{StaticResource SmallButton}" Clicked="OnEditContactClicked" CommandParameter="{Binding .}" />
+                                            <Button Text="{local:Tr Key=T838}" FontSize="11" Style="{StaticResource DangerButton}" Clicked="OnDeleteContactClicked" CommandParameter="{Binding .}" />
+                                        </HorizontalStackLayout>
                                     </VerticalStackLayout>
                                 </Grid>
                             </Border>

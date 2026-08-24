@@ -102,5 +102,5 @@ public sealed record CategoryAnalytics(
 public sealed record MonthlyAmount(DateOnly Month, long SpendingMinor, long IncomeMinor = 0)
 {
     public long NetMinor => checked(IncomeMinor - SpendingMinor);
-    public string MonthLabel => Month.ToString("yyyy-MM");
+    public string MonthLabel => Month.ToString("yyyy-MM", System.Globalization.CultureInfo.InvariantCulture);
 }
