@@ -47,7 +47,7 @@ public static class PersonalLedgerSummaryCalculator
     {
         var grouped = entries
             .Where(IsCategorySpending)
-            .GroupBy(static entry => entry.Category.Trim(), StringComparer.OrdinalIgnoreCase)
+            .GroupBy(static entry => string.IsNullOrWhiteSpace(entry.Category) ? string.Empty : entry.Category.Trim(), StringComparer.OrdinalIgnoreCase)
             .Select(group => new PersonalCategorySummary(
                 Category: group.Key,
                 AmountMinor: group.Sum(GetSpendingAmountMinor),

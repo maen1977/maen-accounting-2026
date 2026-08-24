@@ -68,24 +68,24 @@ public sealed class ProfitEntryRow
     };
 
     public ProfitEntry ToModel() => new(
-        EntryId,
-        UserId,
+        EntryId ?? string.Empty,
+        UserId ?? string.Empty,
         DateOnly.ParseExact(EntryDate, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
         SalesMinor,
         CostMinor,
         ExpensesMinor,
-        Notes,
+        Notes ?? string.Empty,
         IsDeleted,
         new DateTimeOffset(CreatedAtUtcTicks, TimeSpan.Zero),
         new DateTimeOffset(UpdatedAtUtcTicks, TimeSpan.Zero),
         Version,
-        DeviceId,
+        DeviceId ?? string.Empty,
         AmountMinor,
         string.IsNullOrWhiteSpace(MovementType) ? "other" : MovementType,
-        Category,
+        Category ?? string.Empty,
         string.IsNullOrWhiteSpace(Wallet) ? "main" : Wallet,
-        Counterparty,
-        IntegrityHash,
-        AttachmentBase64,
+        Counterparty ?? string.Empty,
+        IntegrityHash ?? string.Empty,
+        AttachmentBase64 ?? string.Empty,
         string.IsNullOrWhiteSpace(CurrencyCode) ? string.Empty : CurrencyCode);
 }

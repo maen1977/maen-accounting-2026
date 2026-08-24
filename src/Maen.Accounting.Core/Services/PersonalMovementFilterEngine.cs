@@ -23,15 +23,15 @@ public static class PersonalMovementFilterEngine
         if (trimmed.Length > 0)
         {
             query = query.Where(entry =>
-                entry.Notes.Contains(trimmed, StringComparison.OrdinalIgnoreCase)
-                || entry.Category.Contains(trimmed, StringComparison.OrdinalIgnoreCase)
+                (entry.Notes ?? string.Empty).Contains(trimmed, StringComparison.OrdinalIgnoreCase)
+                || (entry.Category ?? string.Empty).Contains(trimmed, StringComparison.OrdinalIgnoreCase)
                 || entry.EntryDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture).Contains(trimmed));
         }
 
         if (category is not null && category.Length > 0)
         {
             query = query.Where(entry =>
-                entry.Category.Equals(category, StringComparison.OrdinalIgnoreCase));
+                (entry.Category ?? string.Empty).Equals(category, StringComparison.OrdinalIgnoreCase));
         }
 
         if (from.HasValue)

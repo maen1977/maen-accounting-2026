@@ -43,27 +43,27 @@ public static class MovementSearchEngine
     {
         var needle = keyword.AsSpan();
 
-        if (entry.Notes.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+        if ((entry.Notes ?? string.Empty).Contains(keyword, StringComparison.OrdinalIgnoreCase))
         {
             return true;
         }
 
-        if (entry.Category.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+        if ((entry.Category ?? string.Empty).Contains(keyword, StringComparison.OrdinalIgnoreCase))
         {
             return true;
         }
 
-        if (entry.Counterparty.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+        if ((entry.Counterparty ?? string.Empty).Contains(keyword, StringComparison.OrdinalIgnoreCase))
         {
             return true;
         }
 
-        if (entry.Wallet.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+        if ((entry.Wallet ?? string.Empty).Contains(keyword, StringComparison.OrdinalIgnoreCase))
         {
             return true;
         }
 
-        if (entry.MovementType.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+        if ((entry.MovementType ?? string.Empty).Contains(keyword, StringComparison.OrdinalIgnoreCase))
         {
             return true;
         }

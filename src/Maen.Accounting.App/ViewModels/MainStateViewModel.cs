@@ -1476,7 +1476,7 @@ public sealed class MainStateViewModel : ObservableObject
                      item.Model.EntryDate <= range.ToDate &&
                      (query.Length == 0 ||
                       item.DateText.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-                      item.Model.Notes.Contains(query, StringComparison.OrdinalIgnoreCase)))
+                      (item.Model.Notes ?? string.Empty).Contains(query, StringComparison.OrdinalIgnoreCase)))
             .ToList();
 
         foreach (var item in filtered)
