@@ -54,6 +54,7 @@ public sealed class MainStateViewModel : ObservableObject
     private bool _isBusy;
     private string _statusMessage = string.Empty;
     private string _syncStatus = UiText.Get("T130");
+    private string _postSyncWarning = string.Empty;
     private string _backupStatus = UiText.Get("T131");
     private string _amountInput = string.Empty;
     private string _selectedMovementType = UiText.Get("T332");
@@ -1048,13 +1049,13 @@ public sealed class MainStateViewModel : ObservableObject
                 {
                     var syncResult = await SyncInternalAsync();
                     var completedAt = syncResult.CompletedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture);
-                    StatusMessage = UiText.Format(
+                    StatusMessage = AppendPostSyncWarning(UiText.Format(
                         "T392",
                         syncResult.Uploaded,
                         syncResult.LocalWins,
                         syncResult.RemoteWins,
                         syncResult.TotalEntries,
-                        completedAt);
+                        completedAt));
                 }
                 catch (Exception exception)
                 {
@@ -1091,13 +1092,13 @@ public sealed class MainStateViewModel : ObservableObject
                 {
                     var syncResult = await SyncInternalAsync();
                     var completedAt = syncResult.CompletedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture);
-                    StatusMessage = UiText.Format(
+                    StatusMessage = AppendPostSyncWarning(UiText.Format(
                         "T392",
                         syncResult.Uploaded,
                         syncResult.LocalWins,
                         syncResult.RemoteWins,
                         syncResult.TotalEntries,
-                        completedAt);
+                        completedAt));
                 }
                 catch (Exception exception)
                 {
@@ -1159,6 +1160,7 @@ public sealed class MainStateViewModel : ObservableObject
     private async Task<SyncResult> SyncInternalAsync()
     {
         var syncStage = UiText.Get("T872");
+        _postSyncWarning = string.Empty;
         try
         {
             var result = await _syncService.SyncAsync();
@@ -1178,9 +1180,26 @@ public sealed class MainStateViewModel : ObservableObject
 
             syncStage = UiText.Get("T874");
             SyncStatus = FormatSyncSummary(result);
-            await ReloadAsync();
+            try
+            {
+                await ReloadAsync();
+            }
+            catch (Exception exception)
+            {
+                RecordPostSyncWarning(syncStage, exception);
+            }
+
             syncStage = UiText.Get("T875");
-            await WriteBackupAndUpdateAsync();
+            try
+            {
+                await WriteBackupAndUpdateAsync();
+            }
+            catch (Exception exception)
+            {
+                RecordPostSyncWarning(syncStage, exception);
+            }
+
+            SyncStatus = AppendPostSyncWarning(FormatSyncSummary(result));
             return result;
         }
         catch (Exception exception)
@@ -1194,6 +1213,20 @@ public sealed class MainStateViewModel : ObservableObject
                 exception);
         }
     }
+
+    private void RecordPostSyncWarning(string stage, Exception exception)
+    {
+        var detail = CloudSyncExceptionFormatter.GetDetail(exception);
+        _postSyncWarning = UiText.Format(
+            "T877",
+            stage,
+            string.IsNullOrWhiteSpace(detail) ? UiText.Get("T865") : detail);
+    }
+
+    private string AppendPostSyncWarning(string summary) =>
+        string.IsNullOrWhiteSpace(_postSyncWarning)
+            ? summary
+            : $"{summary}{Environment.NewLine}{_postSyncWarning}";
 
     private string FormatSyncSummary(SyncResult result)
     {
@@ -1885,7 +1918,7 @@ public sealed class MainStateViewModel : ObservableObject
                     1,
                     _deviceIdentity.GetOrCreate(),
                     movement.AmountMinor,
-                    movement.Kind.Equals("income", StringComparison.OrdinalIgnoreCase) ? "income" : "expense",
+                    (movement.Kind ?? string.Empty).Equals("income", StringComparison.OrdinalIgnoreCase) ? "income" : "expense",
                     movement.Category);
                 newEntries.Add(entry);
                 await _planningRepository.AdvanceOccurrenceAsync(userId, movement.RecurringId, RecurringMovementCalculator.AdvanceOccurrence(movement.NextOccurrence, movement.Cycle));
