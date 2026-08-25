@@ -583,9 +583,14 @@ public sealed class MainStateViewModel : ObservableObject
         OnPropertyChanged(nameof(UserEmail));
         OnPropertyChanged(nameof(IsCloudAccount));
         OnPropertyChanged(nameof(AccountModeText));
-        await ReloadAsync();
-        if (!session.IsLocal)
+        if (session.IsLocal)
         {
+            await ReloadAsync();
+        }
+        else
+        {
+            // Cloud accounts must sync first. A pre-sync reload can fail on an empty or
+            // partially initialized database and otherwise prevents the cloud download from starting.
             await SynchronizeCloudOnStartupAsync(session);
         }
 
