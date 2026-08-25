@@ -748,10 +748,11 @@ public sealed class MainStateViewModel : ObservableObject
     }
     private async Task RebuildGoalsAndForecastAsync(string userId, IReadOnlyList<ProfitEntry> entries, DateOnly today, IReadOnlyList<ObligationRow> obligations)
     {
-        await Task.WhenAll(
-            RebuildSavingsGoalsAsync(userId),
-            RebuildFinancialHealthAsync(userId, entries, today),
-            RebuildCashForecastAsync(entries, today, obligations));
+        // SQLite-net connections are shared per user database. Keep these reads sequential
+        // so a post-sync reload cannot race multiple queries on the same Android connection.
+        await RebuildSavingsGoalsAsync(userId);
+        await RebuildFinancialHealthAsync(userId, entries, today);
+        await RebuildCashForecastAsync(entries, today, obligations);
     }
     private async Task RebuildSavingsGoalsAsync(string userId)
     {
