@@ -59,21 +59,21 @@ public sealed class InvoiceRow
     };
 
     public Invoice ToModel(IReadOnlyList<InvoiceLine> lines) => new(
-        InvoiceId,
-        UserId,
-        Number,
+        InvoiceId ?? string.Empty,
+        UserId ?? string.Empty,
+        Number ?? string.Empty,
         Enum.IsDefined(typeof(InvoiceType), Type) ? (InvoiceType)Type : InvoiceType.Sales,
-        DateOnly.ParseExact(IssueDate, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
-        DateOnly.ParseExact(DueDate, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
-        ContactId,
+        DateOnly.ParseExact(IssueDate ?? string.Empty, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
+        DateOnly.ParseExact(DueDate ?? string.Empty, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
+        ContactId ?? string.Empty,
         lines,
         TaxMinor,
         Enum.IsDefined(typeof(InvoiceStatus), Status) ? (InvoiceStatus)Status : InvoiceStatus.Draft,
-        Notes,
+        Notes ?? string.Empty,
         new DateTimeOffset(CreatedAtUtcTicks, TimeSpan.Zero),
         new DateTimeOffset(UpdatedAtUtcTicks, TimeSpan.Zero),
         Version,
-        DeviceId);
+        DeviceId ?? string.Empty);
 }
 
 [Table("invoice_lines")]
@@ -99,5 +99,5 @@ public sealed class InvoiceLineRow
         AmountMinor = line.AmountMinor
     };
 
-    public InvoiceLine ToModel() => new(LineId, Description, AmountMinor);
+    public InvoiceLine ToModel() => new(LineId ?? string.Empty, Description ?? string.Empty, AmountMinor);
 }

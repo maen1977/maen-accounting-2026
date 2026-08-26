@@ -12,15 +12,6 @@ public partial class PersonalDashboardPage : ContentPage
         BindingContext = _state = state;
     }
 
-    protected override async void OnAppearing()
-    {
-        base.OnAppearing();
-        if (!string.IsNullOrWhiteSpace(_state.UserEmail))
-        {
-            await _state.ReloadAsync();
-        }
-    }
-
     private async void OnSaveBudgetClicked(object? sender, EventArgs e)
     {
         try

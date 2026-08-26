@@ -41,16 +41,16 @@ public sealed class ContactRow
     };
 
     public AccountingContact ToModel() => new(
-        ContactId,
-        UserId,
+        ContactId ?? string.Empty,
+        UserId ?? string.Empty,
         Enum.IsDefined(typeof(ContactType), Type) ? (ContactType)Type : ContactType.Customer,
-        Name,
-        Phone,
-        Email,
-        Address,
+        Name ?? string.Empty,
+        Phone ?? string.Empty,
+        Email ?? string.Empty,
+        Address ?? string.Empty,
         IsActive,
         new DateTimeOffset(CreatedAtUtcTicks, TimeSpan.Zero),
         new DateTimeOffset(UpdatedAtUtcTicks, TimeSpan.Zero),
         Version,
-        DeviceId);
+        DeviceId ?? string.Empty);
 }

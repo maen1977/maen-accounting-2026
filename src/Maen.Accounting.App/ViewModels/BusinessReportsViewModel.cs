@@ -53,6 +53,7 @@ public sealed class BusinessReportsViewModel : ObservableObject
     private string _statusMessage = string.Empty;
     private AuthSession? _session;
     private bool _isBusy;
+    private readonly SemaphoreSlim _loadGate = new(1, 1);
 
     public BusinessReportsViewModel(BusinessRepository repository)
     {
@@ -116,14 +117,15 @@ public sealed class BusinessReportsViewModel : ObservableObject
 
     public async Task LoadAsync()
     {
-        if (_session is null)
-        {
-            return;
-        }
-
-        IsBusy = true;
+        await _loadGate.WaitAsync();
         try
         {
+            if (_session is null)
+            {
+                return;
+            }
+
+            IsBusy = true;
             var userId = _session.UserId;
             if (string.IsNullOrWhiteSpace(userId))
             {
@@ -174,6 +176,7 @@ public sealed class BusinessReportsViewModel : ObservableObject
         finally
         {
             IsBusy = false;
+            _loadGate.Release();
         }
     }
 

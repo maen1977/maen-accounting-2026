@@ -44,10 +44,10 @@ public sealed class AccountRow
     };
 
     public Account ToModel() => new(
-        AccountId,
-        UserId,
-        Code,
-        Name,
+        AccountId ?? string.Empty,
+        UserId ?? string.Empty,
+        Code ?? string.Empty,
+        Name ?? string.Empty,
         Enum.IsDefined(typeof(AccountType), Type) ? (AccountType)Type : AccountType.Asset,
         string.IsNullOrWhiteSpace(ParentAccountId) ? null : ParentAccountId,
         IsSystem,
@@ -56,5 +56,5 @@ public sealed class AccountRow
         new DateTimeOffset(CreatedAtUtcTicks, TimeSpan.Zero),
         new DateTimeOffset(UpdatedAtUtcTicks, TimeSpan.Zero),
         Version,
-        DeviceId);
+        DeviceId ?? string.Empty);
 }
