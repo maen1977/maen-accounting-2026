@@ -1,0 +1,50 @@
+<ContentPage
+    x:Class="Maen.Accounting.App.Views.BusinessProfilePage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:local="clr-namespace:Maen.Accounting.App"
+    xmlns:views="clr-namespace:Maen.Accounting.App.Views">
+    <Grid RowDefinitions="Auto,*" Padding="18" MaximumWidthRequest="1100" HorizontalOptions="Center">
+        <views:BrandHeaderView
+            Eyebrow="Maen Accounting"
+            Title="{local:Tr Key=T889}"
+            Subtitle="{local:Tr Key=T902}"
+            Status="{Binding StatusMessage}"
+            HasStatus="True" />
+
+        <ScrollView Grid.Row="1" Margin="0,14,0,0">
+            <VerticalStackLayout Spacing="14">
+                <Border Style="{StaticResource CardBorder}">
+                    <VerticalStackLayout Spacing="10">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                            <Label Text="{local:Tr Key=T903}" Style="{StaticResource SectionTitle}" />
+                            <ActivityIndicator Grid.Column="1" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" />
+                        </Grid>
+                        <Entry Text="{Binding CompanyNameInput}" Placeholder="{local:Tr Key=T904}" />
+                        <Entry Text="{Binding LegalNameInput}" Placeholder="{local:Tr Key=T905}" />
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                            <Entry Text="{Binding RegistrationNumberInput}" Placeholder="{local:Tr Key=T906}" />
+                            <Entry Grid.Column="1" Text="{Binding TaxNumberInput}" Placeholder="{local:Tr Key=T907}" />
+                        </Grid>
+                        <Editor Text="{Binding CompanyAddressInput}" Placeholder="{local:Tr Key=T908}" AutoSize="TextChanges" MinimumHeightRequest="80" />
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                            <Entry Text="{Binding CompanyPhoneInput}" Placeholder="{local:Tr Key=T909}" Keyboard="Telephone" />
+                            <Entry Grid.Column="1" Text="{Binding CompanyEmailInput}" Placeholder="{local:Tr Key=T900}" Keyboard="Email" />
+                        </Grid>
+                        <Entry Text="{Binding CapitalInput}" Placeholder="{local:Tr Key=T901}" Keyboard="Numeric" />
+                        <Button Text="{local:Tr Key=T891}" Style="{StaticResource AccentButton}" Clicked="OnSaveClicked" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border BackgroundColor="#EAF8F2" StrokeThickness="0" Padding="18">
+                    <Border.StrokeShape><RoundRectangle CornerRadius="20" /></Border.StrokeShape>
+                    <VerticalStackLayout Spacing="4">
+                        <Label Text="{local:Tr Key=T910}" Style="{StaticResource MetricCaption}" />
+                        <Label Text="{Binding CapitalText}" TextColor="#087A55" FontAttributes="Bold" FontSize="26" />
+                        <Label Text="{local:Tr Key=T911}" Style="{StaticResource MutedLabel}" LineBreakMode="WordWrap" />
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>

@@ -73,6 +73,7 @@
                                             <Button Text="{local:Tr Key=T489}" FontSize="11" TextColor="{StaticResource Danger}" Background="Transparent" Clicked="OnVoidInvoiceClicked" CommandParameter="{Binding .}" />
                                         </HorizontalStackLayout>
                                         <Button Text="{local:Tr Key=T490}" FontSize="11" TextColor="{StaticResource Danger}" Background="Transparent" Clicked="OnDeleteInvoiceClicked" CommandParameter="{Binding .}" />
+                                        <Button Text="{local:Tr Key=T920}" FontSize="11" Style="{StaticResource SmallButton}" Clicked="OnExportInvoicePdfClicked" CommandParameter="{Binding .}" />
                                     </VerticalStackLayout>
                                 </Grid>
                             </Border>

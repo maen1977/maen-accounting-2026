@@ -46,6 +46,25 @@ public partial class BusinessInvoicesPage : ContentPage
         }
     }
 
+    private async void OnExportInvoicePdfClicked(object? sender, EventArgs e)
+    {
+        if (sender is not Button { CommandParameter: InvoiceItemViewModel item }) return;
+        try
+        {
+            var path = await _viewModel.CreateInvoicePdfAsync(item);
+            await Share.Default.RequestAsync(new ShareFileRequest
+            {
+                Title = UiText.Get("T920"),
+                File = new ShareFile(path)
+            });
+            await DisplayAlertAsync(UiText.Get("T920"), UiText.Get("T937"), UiText.Get("T122"));
+        }
+        catch (Exception exception)
+        {
+            await DisplayAlertAsync(UiText.Get("T938"), exception.Message, UiText.Get("T122"));
+        }
+    }
+
     private async void OnDeleteInvoiceClicked(object? sender, EventArgs e)
     {
         if (sender is not Button button || button.CommandParameter is not InvoiceItemViewModel item) return;

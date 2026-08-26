@@ -11,7 +11,9 @@ namespace Maen.Accounting.App.ViewModels;
 public sealed class BusinessViewModel : ObservableObject
 {
     private readonly BusinessRepository _repository;
+    private readonly AccountingRepository _accountingRepository;
     private readonly DeviceIdentityService _deviceIdentity;
+    private readonly InvoicePdfService _invoicePdfService;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private AuthSession? _session;
     private bool _isBusy;
@@ -33,6 +35,15 @@ public sealed class BusinessViewModel : ObservableObject
     private PaymentAccountOption _selectedPaymentAccount = PaymentAccounts[0];
     private ContactItemViewModel? _selectedInvoiceContact;
     private ContactItemViewModel? _selectedPaymentContact;
+    private CompanyProfile? _companyProfile;
+    private string _companyNameInput = string.Empty;
+    private string _legalNameInput = string.Empty;
+    private string _registrationNumberInput = string.Empty;
+    private string _taxNumberInput = string.Empty;
+    private string _companyAddressInput = string.Empty;
+    private string _companyPhoneInput = string.Empty;
+    private string _companyEmailInput = string.Empty;
+    private string _capitalInput = string.Empty;
     private DateTime _invoiceDate = DateTime.Today;
     private DateTime _invoiceDueDate = DateTime.Today;
     private DateTime _paymentDate = DateTime.Today;
@@ -43,10 +54,16 @@ public sealed class BusinessViewModel : ObservableObject
     private Payment? _editingPayment;
     private AccountingContact? _editingContact;
 
-    public BusinessViewModel(BusinessRepository repository, DeviceIdentityService deviceIdentity)
+    public BusinessViewModel(
+        BusinessRepository repository,
+        AccountingRepository accountingRepository,
+        DeviceIdentityService deviceIdentity,
+        InvoicePdfService invoicePdfService)
     {
         _repository = repository;
+        _accountingRepository = accountingRepository;
         _deviceIdentity = deviceIdentity;
+        _invoicePdfService = invoicePdfService;
     }
 
     public static IReadOnlyList<ContactTypeOption> ContactTypes { get; } =
@@ -76,6 +93,16 @@ public sealed class BusinessViewModel : ObservableObject
     public string ContactSaveButtonText => _editingContact is null ? UiText.Get("T062") : UiText.Get("T831");
     public string PaymentFormTitle => _editingPayment is null ? UiText.Get("T065") : UiText.Get("T841");
     public string PaymentSaveButtonText => _editingPayment is null ? UiText.Get("T063") : UiText.Get("T831");
+    public CompanyProfile? CompanyProfile => _companyProfile;
+    public string CompanyNameInput { get => _companyNameInput; set => SetProperty(ref _companyNameInput, value); }
+    public string LegalNameInput { get => _legalNameInput; set => SetProperty(ref _legalNameInput, value); }
+    public string RegistrationNumberInput { get => _registrationNumberInput; set => SetProperty(ref _registrationNumberInput, value); }
+    public string TaxNumberInput { get => _taxNumberInput; set => SetProperty(ref _taxNumberInput, value); }
+    public string CompanyAddressInput { get => _companyAddressInput; set => SetProperty(ref _companyAddressInput, value); }
+    public string CompanyPhoneInput { get => _companyPhoneInput; set => SetProperty(ref _companyPhoneInput, value); }
+    public string CompanyEmailInput { get => _companyEmailInput; set => SetProperty(ref _companyEmailInput, value); }
+    public string CapitalInput { get => _capitalInput; set => SetProperty(ref _capitalInput, value); }
+    public string CapitalText => _companyProfile is null ? Money.Format(0) : Money.Format(_companyProfile.CapitalMinor);
 
     public BusinessFinancialSummary? FinancialPosition => _financialPosition;
     public string ReceivableNetText => Money.Format(_financialPosition?.ReceivableNetMinor ?? 0);
@@ -113,6 +140,101 @@ public sealed class BusinessViewModel : ObservableObject
     {
         _session = session;
         await ReloadAsync();
+        await LoadCompanyProfileAsync();
+    }
+
+    public async Task LoadCompanyProfileAsync()
+    {
+        var session = RequireSession();
+        var profile = await _repository.GetCompanyProfileAsync(session.UserId);
+        _companyProfile = profile;
+        CompanyNameInput = profile?.CompanyName ?? string.Empty;
+        LegalNameInput = profile?.LegalName ?? string.Empty;
+        RegistrationNumberInput = profile?.RegistrationNumber ?? string.Empty;
+        TaxNumberInput = profile?.TaxNumber ?? string.Empty;
+        CompanyAddressInput = profile?.Address ?? string.Empty;
+        CompanyPhoneInput = profile?.Phone ?? string.Empty;
+        CompanyEmailInput = profile?.Email ?? string.Empty;
+        CapitalInput = profile is null ? string.Empty : Money.ToDecimal(profile.CapitalMinor).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
+        OnPropertyChanged(nameof(CompanyProfile));
+        OnPropertyChanged(nameof(CapitalText));
+    }
+
+    public async Task SaveCompanyProfileAsync()
+    {
+        var session = RequireSession();
+        var companyName = InputSanitizer.SanitizeName(CompanyNameInput).Trim();
+        if (string.IsNullOrWhiteSpace(companyName))
+        {
+            throw new InvalidOperationException(UiText.Get("T890"));
+        }
+
+        if (!Money.TryParse(CapitalInput, out var capitalMinor) || capitalMinor < 0)
+        {
+            throw new InvalidOperationException(UiText.Get("T892"));
+        }
+
+        await RunBusyAsync(async () =>
+        {
+            var now = DateTimeOffset.UtcNow;
+            var profile = (_companyProfile ?? new CompanyProfile(session.UserId, companyName)) with
+            {
+                UserId = session.UserId,
+                CompanyName = companyName,
+                LegalName = (LegalNameInput ?? string.Empty).Trim(),
+                RegistrationNumber = (RegistrationNumberInput ?? string.Empty).Trim(),
+                TaxNumber = (TaxNumberInput ?? string.Empty).Trim(),
+                Address = InputSanitizer.SanitizeNotes(CompanyAddressInput).Trim(),
+                Phone = (CompanyPhoneInput ?? string.Empty).Trim(),
+                Email = (CompanyEmailInput ?? string.Empty).Trim(),
+                CapitalMinor = capitalMinor,
+                CurrencyCode = CompanyProfileDefaults.CurrencyCode,
+                UpdatedAtUtc = now,
+                Version = checked((_companyProfile?.Version ?? 0) + 1),
+                DeviceId = _deviceIdentity.GetOrCreate()
+            };
+
+            await _repository.UpsertCompanyProfileAsync(session.UserId, profile);
+            await UpdateOpeningCapitalJournalAsync(session, profile, _companyProfile?.CapitalMinor ?? 0);
+            _companyProfile = profile;
+            StatusMessage = UiText.Get("T891");
+            OnPropertyChanged(nameof(CompanyProfile));
+            OnPropertyChanged(nameof(CapitalText));
+        });
+    }
+
+    private async Task UpdateOpeningCapitalJournalAsync(AuthSession session, CompanyProfile profile, long previousCapitalMinor)
+    {
+        const string entryIdPrefix = "opening-capital-";
+        var entryId = entryIdPrefix + UserIsolation.SafeHash(session.UserId, 24);
+        if (profile.CapitalMinor <= 0)
+        {
+            if (previousCapitalMinor > 0)
+            {
+                await _accountingRepository.DeleteOpeningCapitalJournalAsync(session.UserId, entryId);
+            }
+            return;
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var entry = new JournalEntry(
+            entryId,
+            session.UserId,
+            DateOnly.FromDateTime(DateTime.Today),
+            "OPENING-CAPITAL",
+            "رأس المال الافتتاحي",
+            [
+                new JournalLine($"{entryId}-cash", DefaultChartOfAccounts.IdForCode(DefaultChartOfAccounts.CashCode), DebitMinor: profile.CapitalMinor, Description: "إثبات رأس المال في الصندوق"),
+                new JournalLine($"{entryId}-capital", DefaultChartOfAccounts.IdForCode(DefaultChartOfAccounts.CapitalCode), CreditMinor: profile.CapitalMinor, Description: "إثبات رأس المال")
+            ],
+            JournalEntryStatus.Posted,
+            Reference: "company-profile",
+            CreatedAtUtc: _companyProfile?.UpdatedAtUtc ?? now,
+            UpdatedAtUtc: now,
+            Version: profile.Version,
+            DeviceId: profile.DeviceId);
+
+        await _accountingRepository.UpsertJournalEntryAsync(session.UserId, entry);
     }
 
     public async Task ReloadAsync()
@@ -354,6 +476,25 @@ public sealed class BusinessViewModel : ObservableObject
             StatusMessage = UiText.Get("T523");
             await ReloadCoreAsync();
         });
+    }
+
+    public async Task<string> CreateInvoicePdfAsync(InvoiceItemViewModel item)
+    {
+        var session = RequireSession();
+        var invoice = _rawInvoices.FirstOrDefault(raw => raw.InvoiceId == item.ModelInvoiceId);
+        if (invoice is null)
+        {
+            throw new InvalidOperationException(UiText.Get("T936"));
+        }
+
+        var profile = _companyProfile ?? await _repository.GetCompanyProfileAsync(session.UserId);
+        var contactName = _rawContacts.FirstOrDefault(contact => contact.ContactId == invoice.ContactId)?.Name
+            ?? UiText.Get("T923");
+        return await Task.Run(() => _invoicePdfService.CreateInvoicePdf(
+            invoice,
+            profile,
+            contactName,
+            FileSystem.CacheDirectory));
     }
 
     public async Task DeleteInvoiceAsync(InvoiceItemViewModel item)

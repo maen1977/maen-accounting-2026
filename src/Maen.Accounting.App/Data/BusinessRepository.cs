@@ -21,6 +21,27 @@ public sealed class BusinessRepository
         _preferences = preferences;
     }
 
+    public async Task<CompanyProfile?> GetCompanyProfileAsync(string userId)
+    {
+        var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
+        var rows = await database.Table<CompanyProfileRow>()
+            .Where(row => row.UserId == userId)
+            .ToListAsync();
+        return rows.FirstOrDefault()?.ToModel();
+    }
+
+    public async Task UpsertCompanyProfileAsync(string userId, CompanyProfile profile)
+    {
+        UserIsolation.EnsureOwner(userId, profile.UserId);
+        if (string.IsNullOrWhiteSpace(profile.CompanyName))
+        {
+            throw new ArgumentException(UiText.Get("T890"));
+        }
+
+        var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
+        await database.InsertOrReplaceAsync(CompanyProfileRow.FromModel(profile));
+    }
+
     public async Task<IReadOnlyList<AccountingContact>> GetContactsAsync(string userId, ContactType? type = null)
     {
         var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);

@@ -98,6 +98,24 @@ public sealed class AccountingRepository
         });
     }
 
+    public async Task DeleteOpeningCapitalJournalAsync(string userId, string entryId)
+    {
+        var database = await _databaseFactory.GetAsync(userId, _preferences.StorageScope);
+        await database.RunInTransactionAsync(connection =>
+        {
+            connection.Execute(
+                "DELETE FROM journal_lines WHERE EntryId = ? AND UserId = ? AND EntryId LIKE ?",
+                entryId,
+                userId,
+                "opening-capital-%");
+            connection.Execute(
+                "DELETE FROM journal_entries WHERE EntryId = ? AND UserId = ? AND Reference = ?",
+                entryId,
+                userId,
+                "company-profile");
+        });
+    }
+
     public async Task<IReadOnlyList<JournalEntry>> GetJournalEntriesAsync(
         string userId,
         DateOnly? fromDate = null,
