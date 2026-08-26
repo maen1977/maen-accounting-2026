@@ -1,6 +1,7 @@
 using System.Reflection;
 #if ANDROID
 using Android.Graphics;
+using AndroidPaint = Android.Graphics.Paint;
 using AndroidPdfDocument = Android.Graphics.Pdf.PdfDocument;
 #endif
 using Maen.Accounting.Core.Models;
@@ -111,17 +112,17 @@ public sealed class InvoicePdfService
         var pageInfo = new AndroidPdfDocument.PageInfo.Builder(595, 842, 1).Create();
         var page = document.StartPage(pageInfo);
         var canvas = page.Canvas;
-        var regular = CreateAndroidPaint(12, Android.Graphics.Color.Black, Paint.Align.Right, false);
-        var small = CreateAndroidPaint(10, Android.Graphics.Color.Black, Paint.Align.Right, false);
-        var bold = CreateAndroidPaint(18, Android.Graphics.Color.White, Paint.Align.Right, true);
-        var heading = CreateAndroidPaint(18, Android.Graphics.Color.Rgb(200, 164, 93), Paint.Align.Right, true);
-        var whiteSmall = CreateAndroidPaint(10, Android.Graphics.Color.White, Paint.Align.Right, false);
-        var accent = new Paint(PaintFlags.AntiAlias) { Color = Android.Graphics.Color.Rgb(200, 164, 93) };
-        accent.SetStyle(Paint.Style.Fill);
-        var line = new Paint(PaintFlags.AntiAlias) { Color = Android.Graphics.Color.Rgb(210, 216, 224), StrokeWidth = 1 };
-        line.SetStyle(Paint.Style.Stroke);
+        var regular = CreateAndroidPaint(12, Android.Graphics.Color.Black, AndroidPaint.Align.Right, false);
+        var small = CreateAndroidPaint(10, Android.Graphics.Color.Black, AndroidPaint.Align.Right, false);
+        var bold = CreateAndroidPaint(18, Android.Graphics.Color.White, AndroidPaint.Align.Right, true);
+        var heading = CreateAndroidPaint(18, Android.Graphics.Color.Rgb(200, 164, 93), AndroidPaint.Align.Right, true);
+        var whiteSmall = CreateAndroidPaint(10, Android.Graphics.Color.White, AndroidPaint.Align.Right, false);
+        var accent = new AndroidPaint(PaintFlags.AntiAlias) { Color = Android.Graphics.Color.Rgb(200, 164, 93) };
+        accent.SetStyle(AndroidPaint.Style.Fill);
+        var line = new AndroidPaint(PaintFlags.AntiAlias) { Color = Android.Graphics.Color.Rgb(210, 216, 224), StrokeWidth = 1 };
+        line.SetStyle(AndroidPaint.Style.Stroke);
 
-        canvas.DrawRect(0, 0, 595, 92, new Paint(PaintFlags.AntiAlias) { Color = Android.Graphics.Color.Rgb(11, 31, 51) });
+        canvas.DrawRect(0, 0, 595, 92, new AndroidPaint(PaintFlags.AntiAlias) { Color = Android.Graphics.Color.Rgb(11, 31, 51) });
         DrawAndroidRight(canvas, company, bold, 550, 32);
         DrawAndroidRight(canvas, profile?.LegalName ?? string.Empty, whiteSmall, 550, 60);
 
@@ -173,9 +174,9 @@ public sealed class InvoicePdfService
         return path;
     }
 
-    private static Paint CreateAndroidPaint(float textSize, Android.Graphics.Color color, Paint.Align align, bool isBold)
+    private static AndroidPaint CreateAndroidPaint(float textSize, Android.Graphics.Color color, AndroidPaint.Align align, bool isBold)
     {
-        var paint = new Paint(PaintFlags.AntiAlias)
+        var paint = new AndroidPaint(PaintFlags.AntiAlias)
         {
             Color = color,
             TextSize = textSize,
@@ -186,7 +187,7 @@ public sealed class InvoicePdfService
         return paint;
     }
 
-    private static void DrawAndroidRight(Canvas canvas, string? text, Paint paint, float right, float baseline) =>
+    private static void DrawAndroidRight(Canvas canvas, string? text, AndroidPaint paint, float right, float baseline) =>
         canvas.DrawText(text ?? string.Empty, right, baseline, paint);
 #endif
 
