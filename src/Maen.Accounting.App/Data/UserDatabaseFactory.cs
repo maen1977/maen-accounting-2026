@@ -38,6 +38,7 @@ public sealed class UserDatabaseFactory
             await connection.CreateTableAsync<InvoiceRow>();
             await connection.CreateTableAsync<InvoiceLineRow>();
             await connection.CreateTableAsync<PaymentRow>();
+            await connection.CreateTableAsync<CompanyProfileRow>();
             await connection.CreateTableAsync<FinancialPlanRow>();
             await connection.CreateTableAsync<ObligationRow>();
             await connection.CreateTableAsync<DepositRow>();
@@ -76,7 +77,8 @@ public sealed class UserDatabaseFactory
             [7] = () => EnsureIntegrityHashColumnsAsync(connection),
             [8] = () => EnsureSavingsGoalsTableAsync(connection),
             [9] = () => EnsureAttachmentsAndRecurringAsync(connection),
-            [10] = () => EnsureMultiCurrencyAndBudgetAsync(connection)
+            [10] = () => EnsureMultiCurrencyAndBudgetAsync(connection),
+            [11] = () => EnsureCompanyProfileTableAsync(connection)
         };
 
         foreach (var migration in SchemaMigrationCatalog.All)
@@ -250,6 +252,11 @@ public sealed class UserDatabaseFactory
     private sealed class SqliteColumnInfo
     {
         public string Name { get; set; } = string.Empty;
+    }
+
+    private static async Task EnsureCompanyProfileTableAsync(SQLiteAsyncConnection connection)
+    {
+        await connection.CreateTableAsync<CompanyProfileRow>();
     }
 
     private static async Task EnsureMultiCurrencyAndBudgetAsync(SQLiteAsyncConnection connection)

@@ -13,7 +13,8 @@ service cloud.firestore {
       function isBusinessEntityCollection() {
         return collection == 'businessContacts'
             || collection == 'businessInvoices'
-            || collection == 'businessPayments';
+            || collection == 'businessPayments'
+            || collection == 'businessProfiles';
       }
 
       function isPersonalEntityCollection() {
@@ -39,6 +40,7 @@ service cloud.firestore {
         return (collection == 'businessContacts' && request.resource.data.entityType == 'contact')
             || (collection == 'businessInvoices' && request.resource.data.entityType == 'invoice')
             || (collection == 'businessPayments' && request.resource.data.entityType == 'payment')
+            || (collection == 'businessProfiles' && request.resource.data.entityType == 'companyProfile')
             || (collection == 'personalPlans' && request.resource.data.entityType == 'plan')
             || (collection == 'personalObligations' && request.resource.data.entityType == 'obligation')
             || (collection == 'personalDeposits' && request.resource.data.entityType == 'deposit');

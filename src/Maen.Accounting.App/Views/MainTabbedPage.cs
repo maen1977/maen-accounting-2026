@@ -14,7 +14,11 @@ public sealed class MainTabbedPage : Microsoft.Maui.Controls.TabbedPage
         MainStateViewModel state,
         DashboardPage dashboardPage,
         AccountingPage accountingPage,
-        BusinessTabbedPage businessPage,
+        BusinessContactsPage contactsPage,
+        BusinessInvoicesPage invoicesPage,
+        BusinessPaymentsPage paymentsPage,
+        BusinessReportsPage businessReportsPage,
+        BusinessProfilePage profilePage,
         EntryPage entryPage,
         ReportsPage reportsPage,
         SettingsPage settingsPage)
@@ -29,9 +33,24 @@ public sealed class MainTabbedPage : Microsoft.Maui.Controls.TabbedPage
         AndroidTabbedPage.SetToolbarPlacement(this, ToolbarPlacement.Bottom);
         _entryPage = entryPage;
 
+        dashboardPage.Title = UiText.Get("T032");
+        accountingPage.Title = UiText.Get("T044");
+        contactsPage.Title = UiText.Get("T073");
+        invoicesPage.Title = UiText.Get("T074");
+        paymentsPage.Title = UiText.Get("T065");
+        businessReportsPage.Title = UiText.Get("T503");
+        profilePage.Title = UiText.Get("T889");
+        entryPage.Title = UiText.Get("T035");
+        reportsPage.Title = UiText.Get("T022");
+        settingsPage.Title = UiText.Get("T018");
+
         Children.Add(dashboardPage);
         Children.Add(accountingPage);
-        Children.Add(businessPage);
+        Children.Add(contactsPage);
+        Children.Add(invoicesPage);
+        Children.Add(paymentsPage);
+        Children.Add(businessReportsPage);
+        Children.Add(profilePage);
         Children.Add(entryPage);
         Children.Add(reportsPage);
         Children.Add(settingsPage);

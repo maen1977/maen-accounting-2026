@@ -1368,6 +1368,7 @@ public sealed class MainStateViewModel : ObservableObject
         var business = _lastBusinessSyncResult;
         return $"{summary}{Environment.NewLine}{UiText.Format(
             "T394",
+            business.ProfileTotal,
             business.ContactsTotal,
             business.InvoicesTotal,
             business.PaymentsTotal,

@@ -10,6 +10,10 @@ using AccountingContact = Maen.Accounting.Core.Models.Contact;
 namespace Maen.Accounting.App.Services;
 
 public sealed record BusinessSyncResult(
+    int ProfileTotal,
+    int ProfileUploaded,
+    int ProfileLocalWins,
+    int ProfileRemoteWins,
     int ContactsTotal,
     int ContactsUploaded,
     int ContactsLocalWins,
@@ -24,10 +28,10 @@ public sealed record BusinessSyncResult(
     int PaymentsRemoteWins,
     DateTimeOffset CompletedAtUtc)
 {
-    public int TotalRecords => ContactsTotal + InvoicesTotal + PaymentsTotal;
-    public int Uploaded => ContactsUploaded + InvoicesUploaded + PaymentsUploaded;
-    public int LocalWins => ContactsLocalWins + InvoicesLocalWins + PaymentsLocalWins;
-    public int RemoteWins => ContactsRemoteWins + InvoicesRemoteWins + PaymentsRemoteWins;
+    public int TotalRecords => ProfileTotal + ContactsTotal + InvoicesTotal + PaymentsTotal;
+    public int Uploaded => ProfileUploaded + ContactsUploaded + InvoicesUploaded + PaymentsUploaded;
+    public int LocalWins => ProfileLocalWins + ContactsLocalWins + InvoicesLocalWins + PaymentsLocalWins;
+    public int RemoteWins => ProfileRemoteWins + ContactsRemoteWins + InvoicesRemoteWins + PaymentsRemoteWins;
 }
 
 public sealed class BusinessFirestoreSyncService
@@ -74,9 +78,33 @@ public sealed class BusinessFirestoreSyncService
                 throw new InvalidOperationException(UiText.Get("T308"));
             }
 
+            var profile = await _repository.GetCompanyProfileAsync(session.UserId);
             var contacts = await _repository.GetContactsForSyncAsync(session.UserId);
             var invoices = await _repository.GetInvoicesAsync(session.UserId);
             var payments = await _repository.GetPaymentsAsync(session.UserId);
+
+            EntitySyncStats profileStats;
+            try
+            {
+                profileStats = await SyncEntityAsync(
+                    session,
+                    profile is null ? Array.Empty<CompanyProfile>() : [profile],
+                    collection: "businessProfiles",
+                    entityType: "companyProfile",
+                    idSelector: static item => item.UserId,
+                    updatedAtSelector: static item => item.UpdatedAtUtc ?? DateTimeOffset.MinValue,
+                    versionSelector: static item => item.Version,
+                    deviceSelector: static item => item.DeviceId,
+                    saveMerged: merged => SaveCompanyProfilesAsync(session.UserId, merged),
+                    cancellationToken);
+            }
+            catch (InvalidOperationException exception) when (exception.Message == UiText.Get("T864"))
+            {
+                // Older published rules may not know businessProfiles yet. Keep the
+                // existing business entities synchronized; the profile remains local
+                // until the compatible rules are deployed.
+                profileStats = new EntitySyncStats(0, 0, 0, 0);
+            }
 
             var contactStats = await SyncEntityAsync(
                 session,
@@ -115,6 +143,10 @@ public sealed class BusinessFirestoreSyncService
                 cancellationToken);
 
             return new BusinessSyncResult(
+                profileStats.Total,
+                profileStats.Uploaded,
+                profileStats.LocalWins,
+                profileStats.RemoteWins,
                 contactStats.Total,
                 contactStats.Uploaded,
                 contactStats.LocalWins,
@@ -132,6 +164,14 @@ public sealed class BusinessFirestoreSyncService
         finally
         {
             _gate.Release();
+        }
+    }
+
+    private async Task SaveCompanyProfilesAsync(string userId, IReadOnlyList<CompanyProfile> profiles)
+    {
+        foreach (var profile in profiles)
+        {
+            await _repository.UpsertCompanyProfileAsync(userId, profile);
         }
     }
 
@@ -390,6 +430,7 @@ public sealed class BusinessFirestoreSyncService
 
     private static string GetUserId<T>(T item) => item switch
     {
+        CompanyProfile profile => profile.UserId,
         AccountingContact contact => contact.UserId,
         Invoice invoice => invoice.UserId,
         Payment payment => payment.UserId,
