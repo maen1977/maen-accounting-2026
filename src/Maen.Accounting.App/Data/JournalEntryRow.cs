@@ -46,16 +46,16 @@ public sealed class JournalEntryRow
     };
 
     public JournalEntry ToModel(IReadOnlyList<JournalLine> lines) => new(
-        EntryId,
-        UserId,
-        DateOnly.ParseExact(EntryDate, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
-        EntryNumber,
-        Description,
+        EntryId ?? string.Empty,
+        UserId ?? string.Empty,
+        DateOnly.ParseExact(EntryDate ?? string.Empty, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
+        EntryNumber ?? string.Empty,
+        Description ?? string.Empty,
         lines,
         Enum.IsDefined(typeof(JournalEntryStatus), Status) ? (JournalEntryStatus)Status : JournalEntryStatus.Draft,
-        Reference,
+        Reference ?? string.Empty,
         new DateTimeOffset(CreatedAtUtcTicks, TimeSpan.Zero),
         new DateTimeOffset(UpdatedAtUtcTicks, TimeSpan.Zero),
         Version,
-        DeviceId);
+        DeviceId ?? string.Empty);
 }

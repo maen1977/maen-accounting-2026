@@ -715,6 +715,17 @@ public static class UiText
         ["T875"] = ("إنشاء النسخة الاحتياطية بعد المزامنة", "creating the backup after sync"),
         ["T876"] = ("فشلت المزامنة في المرحلة «{0}». السبب: {1}. تم الاحتفاظ بالحركة محليًا؛ اضغط مزامنة الآن لإعادة المحاولة.", "Cloud sync failed at stage “{0}”. Reason: {1}. The record was kept locally; tap Sync now to retry."),
         ["T877"] = ("تمت المزامنة، لكن تعذر {0}. السبب: {1}. البيانات السحابية محفوظة ويمكن متابعة العمل.", "Sync succeeded, but {0} failed. Reason: {1}. Cloud data is saved and work can continue."),
+        ["T878"] = ("بدء تحديث الشاشة", "starting screen refresh"),
+        ["T879"] = ("قراءة السجلات المحلية", "reading local entries"),
+        ["T880"] = ("قراءة ملخص المحاسبة", "reading accounting summary"),
+        ["T881"] = ("تجهيز قائمة السجلات", "building the entries list"),
+        ["T882"] = ("حساب ملخص الحركات", "calculating movement summary"),
+        ["T883"] = ("حساب المركز المالي للشركات", "calculating the business financial position"),
+        ["T884"] = ("تحديث التقارير والمرشحات", "updating reports and filters"),
+        ["T885"] = ("تحديث التخطيط الشخصي", "updating personal planning"),
+        ["T886"] = ("تحديث التحليلات والتدقيق", "updating analytics and audit"),
+        ["T887"] = ("تحديث الميزانية", "updating the budget"),
+        ["T888"] = ("تعذر تحديث الشاشة في المرحلة «{0}». السبب: {1}.", "The screen could not be refreshed at stage “{0}”. Reason: {1}."),
     };
 
 

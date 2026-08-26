@@ -23,8 +23,21 @@ public sealed class AuthSessionStore
         }
     }
 
-    public Task SaveAsync(AuthSession session) =>
-        SecureStorage.Default.SetAsync(SessionKey, JsonSerializer.Serialize(session, JsonOptions));
+    public async Task SaveAsync(AuthSession session)
+    {
+        ArgumentNullException.ThrowIfNull(session);
+
+        try
+        {
+            await SecureStorage.Default.SetAsync(SessionKey, JsonSerializer.Serialize(session, JsonOptions));
+        }
+        catch when (session.IsLocal)
+        {
+            // SecureStorage can be unavailable during the first Android activity
+            // transition. Local access does not need a cloud token, so it must still
+            // open the app; the user can choose local access again on the next launch.
+        }
+    }
 
     public Task ClearAsync()
     {

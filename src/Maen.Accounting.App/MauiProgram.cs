@@ -61,7 +61,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<MainStateViewModel>();
         builder.Services.AddSingleton<AccountingViewModel>();
         builder.Services.AddSingleton<BusinessViewModel>();
-        builder.Services.AddTransient<BusinessReportsViewModel>();
+        builder.Services.AddSingleton<BusinessReportsViewModel>();
         builder.Services.AddSingleton<SessionCoordinator>();
 
         builder.Services.AddTransient<LoginPage>();

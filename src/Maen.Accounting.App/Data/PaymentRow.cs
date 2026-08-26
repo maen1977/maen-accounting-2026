@@ -54,18 +54,18 @@ public sealed class PaymentRow
     };
 
     public Payment ToModel() => new(
-        PaymentId,
-        UserId,
-        Number,
+        PaymentId ?? string.Empty,
+        UserId ?? string.Empty,
+        Number ?? string.Empty,
         Enum.IsDefined(typeof(PaymentType), Type) ? (PaymentType)Type : PaymentType.CustomerReceipt,
-        DateOnly.ParseExact(PaymentDate, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
-        ContactId,
+        DateOnly.ParseExact(PaymentDate ?? string.Empty, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
+        ContactId ?? string.Empty,
         AmountMinor,
-        Notes,
+        Notes ?? string.Empty,
         CreatedAtUtc: new DateTimeOffset(CreatedAtUtcTicks, TimeSpan.Zero),
         UpdatedAtUtc: new DateTimeOffset(UpdatedAtUtcTicks, TimeSpan.Zero),
         Version: Version,
-        DeviceId: DeviceId,
+        DeviceId: DeviceId ?? string.Empty,
         AccountCode: string.IsNullOrWhiteSpace(AccountCode) ? "1000" : AccountCode,
         IsDeleted: IsDeleted);
 }

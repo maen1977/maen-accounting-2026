@@ -34,9 +34,9 @@ public sealed class JournalLineRow
     };
 
     public JournalLine ToModel() => new(
-        LineId,
-        AccountId,
+        LineId ?? string.Empty,
+        AccountId ?? string.Empty,
         DebitMinor,
         CreditMinor,
-        Description);
+        Description ?? string.Empty);
 }

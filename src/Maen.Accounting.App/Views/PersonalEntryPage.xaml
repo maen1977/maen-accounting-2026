@@ -76,7 +76,6 @@
 
             <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="{StaticResource Primary}" />
             <Button Text="{Binding SaveButtonText}" Clicked="OnSaveClicked" Style="{StaticResource PrimaryButton}" HeightRequest="56" />
-            <Label Text="{Binding StatusMessage}" Style="{StaticResource MutedLabel}" LineBreakMode="WordWrap" />
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>

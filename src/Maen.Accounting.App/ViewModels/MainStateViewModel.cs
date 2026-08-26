@@ -29,6 +29,7 @@ public sealed class MainStateViewModel : ObservableObject
     private readonly AuthSessionStore _sessionStore;
     private readonly AppPreferencesService _preferences;
     private readonly SemaphoreSlim _gate = new(1, 1);
+    private readonly SemaphoreSlim _reloadGate = new(1, 1);
     private PersonalLedgerSummary _ledgerSummary = PersonalLedgerSummaryCalculator.Summarize(
         Array.Empty<ProfitEntry>(),
         DateOnly.FromDateTime(DateTime.Today));
@@ -658,26 +659,121 @@ public sealed class MainStateViewModel : ObservableObject
 
     public async Task ReloadAsync()
     {
-        var session = RequireSession();
-        var entries = await _repository.GetVisibleAsync(session.UserId);
-        await RefreshAccountingSummaryAsync(session.UserId);
-        Entries.Clear();
-        foreach (var entry in entries)
+        await _reloadGate.WaitAsync();
+        try
         {
-            Entries.Add(new ProfitEntryItemViewModel(entry));
-        }
+            var session = RequireSession();
+            var reloadStage = UiText.Get("T878");
 
-        _ledgerSummary = PersonalLedgerSummaryCalculator.Summarize(entries, DateOnly.FromDateTime(DateTime.Today));
-        await RebuildBusinessFinancialPositionAsync(session.UserId);
-        RebuildRecent();
-        RebuildCategorySpending();
-        RebuildMovementFilterCategories();
-        RebuildReport();
-        RebuildAnnualReport(entries);
-        await RebuildPlanningAsync(session.UserId, entries);
-        await RebuildAnalyticsAndAuditAsync(session.UserId, entries);
-        await RebuildBudgetAsync(session.UserId, entries);
-        RaiseSummaries();
+            try
+            {
+                reloadStage = UiText.Get("T879");
+                var entries = await _repository.GetVisibleAsync(session.UserId);
+
+                if (IsBusinessExperience)
+                {
+                    reloadStage = UiText.Get("T880");
+                    await RefreshAccountingSummaryAsync(session.UserId);
+                }
+                else
+                {
+                    ResetAccountingSummary();
+                }
+
+                reloadStage = UiText.Get("T881");
+                Entries.Clear();
+                foreach (var entry in entries)
+                {
+                    Entries.Add(new ProfitEntryItemViewModel(entry));
+                }
+
+                reloadStage = UiText.Get("T882");
+                _ledgerSummary = PersonalLedgerSummaryCalculator.Summarize(entries, DateOnly.FromDateTime(DateTime.Today));
+
+                if (IsBusinessExperience)
+                {
+                    reloadStage = UiText.Get("T883");
+                    await RebuildBusinessFinancialPositionAsync(session.UserId);
+                }
+                else
+                {
+                    ResetBusinessSummary();
+                }
+
+                reloadStage = UiText.Get("T884");
+                RebuildRecent();
+                RebuildCategorySpending();
+                RebuildMovementFilterCategories();
+                RebuildReport();
+                RebuildAnnualReport(entries);
+
+                reloadStage = UiText.Get("T885");
+                await RebuildPlanningAsync(session.UserId, entries);
+
+                reloadStage = UiText.Get("T886");
+                await RebuildAnalyticsAndAuditAsync(session.UserId, entries);
+
+                reloadStage = UiText.Get("T887");
+                await RebuildBudgetAsync(session.UserId, entries);
+                RaiseSummaries();
+            }
+            catch (Exception exception)
+            {
+                var detail = CloudSyncExceptionFormatter.GetDetail(exception);
+                throw new InvalidOperationException(
+                    UiText.Format("T888", reloadStage, string.IsNullOrWhiteSpace(detail) ? UiText.Get("T865") : detail),
+                    exception);
+            }
+        }
+        finally
+        {
+            _reloadGate.Release();
+        }
+    }
+
+    private void ResetAccountingSummary()
+    {
+        AccountingAccountsText = "0";
+        PostedJournalCountText = "0";
+        PostedInvoiceTotalText = Money.Format(0);
+        PaymentsTotalText = Money.Format(0);
+        TrialBalanceDebitText = Money.Format(0);
+        TrialBalanceCreditText = Money.Format(0);
+        TrialBalanceStatusText = UiText.Get("T200");
+
+        OnPropertyChanged(nameof(AccountingAccountsText));
+        OnPropertyChanged(nameof(PostedJournalCountText));
+        OnPropertyChanged(nameof(PostedInvoiceTotalText));
+        OnPropertyChanged(nameof(PaymentsTotalText));
+        OnPropertyChanged(nameof(TrialBalanceDebitText));
+        OnPropertyChanged(nameof(TrialBalanceCreditText));
+        OnPropertyChanged(nameof(TrialBalanceStatusText));
+    }
+
+    private void ResetBusinessSummary()
+    {
+        _businessFinancialPosition = null;
+        _debtAging = null;
+        _personalQualityWarnings = Array.Empty<DataQualityWarning>();
+        _overdueSalesInvoices.Clear();
+        _overduePurchasesInvoices.Clear();
+
+        OnPropertyChanged(nameof(HasFinancialPosition));
+        OnPropertyChanged(nameof(ReceivableNetText));
+        OnPropertyChanged(nameof(PayableNetText));
+        OnPropertyChanged(nameof(NetPositionText));
+        OnPropertyChanged(nameof(NetPositionColor));
+        OnPropertyChanged(nameof(OverdueSalesText));
+        OnPropertyChanged(nameof(OverduePurchasesText));
+        OnPropertyChanged(nameof(HasOverdueInvoices));
+        OnPropertyChanged(nameof(ReceivablesAgingTotalText));
+        OnPropertyChanged(nameof(ReceivablesAgingCurrentText));
+        OnPropertyChanged(nameof(ReceivablesAgingOverNinetyText));
+        OnPropertyChanged(nameof(PayablesAgingTotalText));
+        OnPropertyChanged(nameof(HasAgingExposure));
+        OnPropertyChanged(nameof(DataQualityStatusText));
+        OnPropertyChanged(nameof(DataQualityStatusColor));
+        OnPropertyChanged(nameof(HasDataQualityWarnings));
     }
 
     public PersonalPlanProgress? PlanProgress => _planProgress;

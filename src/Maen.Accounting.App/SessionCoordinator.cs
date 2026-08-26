@@ -105,30 +105,32 @@ public sealed class SessionCoordinator
         var state = _services.GetRequiredService<MainStateViewModel>();
         var accounting = _services.GetRequiredService<AccountingViewModel>();
         var business = _services.GetRequiredService<BusinessViewModel>();
+        var reports = _services.GetRequiredService<BusinessReportsViewModel>();
         state.SignedOut -= OnSignedOut;
         state.SignedOut += OnSignedOut;
 
         // تبديل الشاشة قبل تحميل البيانات يمنع بقاء شاشة البداية في حالة دوران صامتة.
         // تبقى بيانات الشركات كما هي، لكن الحساب الفردي يحصل على مسار أبسط بلا أقسام تجارية متداخلة.
         var isPersonalExperience = _preferences.Experience == AccountExperience.Personal;
-        SetPage(isPersonalExperience
-            ? _services.GetRequiredService<PersonalTabbedPage>()
-            : _services.GetRequiredService<MainTabbedPage>());
 
         try
         {
+            SetPage(isPersonalExperience
+                ? _services.GetRequiredService<PersonalTabbedPage>()
+                : _services.GetRequiredService<MainTabbedPage>());
+
             if (isPersonalExperience)
             {
                 await state.InitializeAsync(session).WaitAsync(StartupInitializationTimeout);
             }
             else
             {
-                // يجب أن تسبق مزامنة MainState تحميل صفحات الشركات كي تظهر البيانات المستعادة فورًا.
+                // SQLite-net يستخدم اتصال قاعدة المستخدم نفسه؛ التهيئة المتوازية كانت تسمح
+                // لتبويبات الشركات والتقارير بالتنافس على القراءة الأولى وإظهار دوران مستمر.
                 await state.InitializeAsync(session).WaitAsync(StartupInitializationTimeout);
-                await Task.WhenAll(
-                    accounting.InitializeAsync(session),
-                    business.InitializeAsync(session))
-                    .WaitAsync(StartupInitializationTimeout);
+                await accounting.InitializeAsync(session).WaitAsync(StartupInitializationTimeout);
+                await business.InitializeAsync(session).WaitAsync(StartupInitializationTimeout);
+                await reports.InitializeAsync(session).WaitAsync(StartupInitializationTimeout);
             }
 
             if (!string.IsNullOrWhiteSpace(state.StartupCloudDataMessage))
