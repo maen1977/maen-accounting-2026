@@ -1,4 +1,5 @@
 using System.Reflection;
+using IoPath = System.IO.Path;
 #if ANDROID
 using Android.Graphics;
 using AndroidPaint = Android.Graphics.Paint;
@@ -29,7 +30,7 @@ public sealed class InvoicePdfService
         var company = profile?.DisplayName ?? UiText.Get("T923");
         contactName = string.IsNullOrWhiteSpace(contactName) ? UiText.Get("T923") : contactName.Trim();
         var fileName = $"{SanitizeFilePart(company)}-{SanitizeFilePart(invoice.Number)}.pdf";
-        var path = Path.Combine(outputDirectory, fileName);
+        var path = IoPath.Combine(outputDirectory, fileName);
 
         using var document = new PdfDocument();
         document.Info.Title = $"{UiText.Get("T920")} {invoice.Number}";
@@ -106,12 +107,12 @@ public sealed class InvoicePdfService
         var company = profile?.DisplayName ?? UiText.Get("T923");
         contactName = string.IsNullOrWhiteSpace(contactName) ? UiText.Get("T923") : contactName.Trim();
         var fileName = $"{SanitizeFilePart(company)}-{SanitizeFilePart(invoice.Number)}.pdf";
-        var path = Path.Combine(outputDirectory, fileName);
+        var path = IoPath.Combine(outputDirectory, fileName);
 
         using var document = new AndroidPdfDocument();
         var pageInfo = new AndroidPdfDocument.PageInfo.Builder(595, 842, 1).Create();
         var page = document.StartPage(pageInfo);
-        var canvas = page.Canvas;
+        var canvas = page.Canvas!;
         var regular = CreateAndroidPaint(12, Android.Graphics.Color.Black, AndroidPaint.Align.Right, false);
         var small = CreateAndroidPaint(10, Android.Graphics.Color.Black, AndroidPaint.Align.Right, false);
         var bold = CreateAndroidPaint(18, Android.Graphics.Color.White, AndroidPaint.Align.Right, true);
@@ -180,9 +181,9 @@ public sealed class InvoicePdfService
         {
             Color = color,
             TextSize = textSize,
-            TextAlign = align,
-            Typeface = Typeface.Create("sans-serif", isBold ? TypefaceStyle.Bold : TypefaceStyle.Normal)
+            TextAlign = align!
         };
+        paint.SetTypeface(Typeface.Create("sans-serif", isBold ? TypefaceStyle.Bold : TypefaceStyle.Normal));
         paint.SubpixelText = true;
         return paint;
     }
@@ -222,7 +223,7 @@ public sealed class InvoicePdfService
 
     private static string SanitizeFilePart(string value)
     {
-        var invalid = Path.GetInvalidFileNameChars();
+        var invalid = IoPath.GetInvalidFileNameChars();
         var cleaned = new string((value ?? string.Empty).Select(character => invalid.Contains(character) ? '_' : character).ToArray()).Trim();
         return string.IsNullOrWhiteSpace(cleaned) ? "invoice" : cleaned;
     }
