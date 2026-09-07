@@ -41,9 +41,10 @@
                 <VerticalStackLayout Spacing="16">
                     <Label x:Name="ExperienceTitleLabel" Text="{local:Tr Key=T015}" FontSize="19" FontAttributes="Bold" />
                     <Label x:Name="ExperienceHintLabel" Text="{local:Tr Key=T103}" TextColor="{StaticResource TextSecondary}" FontSize="13" />
-                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
                         <Button x:Name="PersonalButton" Text="{local:Tr Key=T027}" Clicked="OnPersonalClicked" Style="{StaticResource SecondaryButton}" HeightRequest="86" />
                         <Button x:Name="BusinessButton" Grid.Column="1" Text="{local:Tr Key=T036}" Clicked="OnBusinessClicked" Style="{StaticResource PrimaryButton}" HeightRequest="86" />
+                        <Button x:Name="WalletButton" Grid.Column="2" Text="محفظتي" Clicked="OnWalletClicked" Style="{StaticResource SecondaryButton}" HeightRequest="86" />
                     </Grid>
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
                         <Button x:Name="BackButton" Text="" Clicked="OnBackClicked" Style="{StaticResource SecondaryButton}" HeightRequest="52" />

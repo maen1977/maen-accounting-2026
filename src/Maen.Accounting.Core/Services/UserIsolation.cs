@@ -33,6 +33,7 @@ public static class UserIsolation
         {
             "personal" => "personal",
             "business" => "business",
+            "wallet" => "wallet",
             _ => throw new ArgumentException("Unsupported storage scope.", nameof(storageScope))
         };
 

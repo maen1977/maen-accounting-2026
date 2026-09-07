@@ -63,6 +63,12 @@ public partial class OnboardingPage : ContentPage
         UpdateSelectionStyles();
     }
 
+    private void OnWalletClicked(object? sender, EventArgs e)
+    {
+        _experience = AccountExperience.Wallet;
+        UpdateSelectionStyles();
+    }
+
     private void OnContinueClicked(object? sender, EventArgs e)
     {
         if (!_languageStepComplete)
@@ -89,6 +95,7 @@ public partial class OnboardingPage : ContentPage
         ExperienceHintLabel.Text = UiText.Get("T103");
         PersonalButton.Text = UiText.Get("T027");
         BusinessButton.Text = UiText.Get("T036");
+        WalletButton.Text = _language == AppLanguage.English ? "My Wallet" : "محفظتي";
         ArabicButton.Text = UiText.Get("T037");
         EnglishButton.Text = UiText.Get("T001");
         LanguageContinueButton.Text = UiText.Get("T087");
@@ -112,5 +119,7 @@ public partial class OnboardingPage : ContentPage
         PersonalButton.TextColor = _experience == AccountExperience.Personal ? primaryText : secondaryText;
         BusinessButton.BackgroundColor = _experience == AccountExperience.Business ? primary : secondary;
         BusinessButton.TextColor = _experience == AccountExperience.Business ? primaryText : secondaryText;
+        WalletButton.BackgroundColor = _experience == AccountExperience.Wallet ? primary : secondary;
+        WalletButton.TextColor = _experience == AccountExperience.Wallet ? primaryText : secondaryText;
     }
 }

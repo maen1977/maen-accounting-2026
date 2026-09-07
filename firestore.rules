@@ -7,7 +7,7 @@ service cloud.firestore {
       }
 
       function isLedgerCollection() {
-        return collection == 'entries' || collection == 'personalEntries';
+        return collection == 'entries' || collection == 'personalEntries' || collection == 'walletEntries';
       }
 
       function isBusinessEntityCollection() {
@@ -32,6 +32,7 @@ service cloud.firestore {
       function scopeMatchesCollection() {
         return (collection == 'entries' && request.resource.data.accountScope == 'business')
             || (collection == 'personalEntries' && request.resource.data.accountScope == 'personal')
+            || (collection == 'walletEntries' && request.resource.data.accountScope == 'wallet')
             || (isBusinessEntityCollection() && request.resource.data.accountScope == 'business')
             || (isPersonalEntityCollection() && request.resource.data.accountScope == 'personal');
       }

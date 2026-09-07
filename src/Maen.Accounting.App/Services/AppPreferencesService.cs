@@ -11,7 +11,8 @@ public enum AppLanguage
 public enum AccountExperience
 {
     Personal,
-    Business
+    Business,
+    Wallet
 }
 
 public sealed class AppPreferencesService
@@ -30,13 +31,20 @@ public sealed class AppPreferencesService
 
     public AccountExperience Experience
     {
-        get => Preferences.Default.Get(ExperienceKey, nameof(AccountExperience.Business)) == nameof(AccountExperience.Personal)
-            ? AccountExperience.Personal
-            : AccountExperience.Business;
-        set => Preferences.Default.Set(ExperienceKey, value == AccountExperience.Personal ? nameof(AccountExperience.Personal) : nameof(AccountExperience.Business));
+        get
+        {
+            var stored = Preferences.Default.Get(ExperienceKey, nameof(AccountExperience.Business));
+            return Enum.TryParse<AccountExperience>(stored, out var experience) ? experience : AccountExperience.Business;
+        }
+        set => Preferences.Default.Set(ExperienceKey, value.ToString());
     }
 
-    public string StorageScope => Experience == AccountExperience.Personal ? "personal" : "business";
+    public string StorageScope => Experience switch
+    {
+        AccountExperience.Personal => "personal",
+        AccountExperience.Wallet => "wallet",
+        _ => "business"
+    };
 
     public bool IsConfigured => Preferences.Default.Get(OnboardingKey, false);
 

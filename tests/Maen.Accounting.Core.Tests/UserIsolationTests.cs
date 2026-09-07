@@ -11,6 +11,18 @@ public sealed class UserIsolationTests
     }
 
     [Fact]
+    public void Wallet_scope_is_isolated_from_other_experiences()
+    {
+        var wallet = UserIsolation.DatabaseFileName("uid-a", "wallet");
+        var personal = UserIsolation.DatabaseFileName("uid-a", "personal");
+        var business = UserIsolation.DatabaseFileName("uid-a", "business");
+
+        Assert.Contains("_wallet.db3", wallet);
+        Assert.NotEqual(wallet, personal);
+        Assert.NotEqual(wallet, business);
+    }
+
+    [Fact]
     public void Email_normalization_is_stable()
     {
         Assert.Equal("person@example.com", UserIsolation.NormalizeEmail(" Person@Example.COM "));

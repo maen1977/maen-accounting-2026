@@ -320,7 +320,12 @@ public sealed class FirestoreSyncService
         $"https://firestore.googleapis.com/v1/projects/{Uri.EscapeDataString(_options.ProjectId)}/" +
         $"databases/(default)/documents/users/{Uri.EscapeDataString(userId)}/{CollectionName()}/{Uri.EscapeDataString(entryId)}");
 
-    private string CollectionName() => _preferences.StorageScope == "personal" ? "personalEntries" : "entries";
+    private string CollectionName() => _preferences.StorageScope switch
+    {
+        "personal" => "personalEntries",
+        "wallet" => "walletEntries",
+        _ => "entries"
+    };
 
     private static HttpRequestMessage CreateRequest(HttpMethod method, Uri uri, string idToken)
     {

@@ -110,16 +110,20 @@ public sealed class SessionCoordinator
         state.SignedOut += OnSignedOut;
 
         // تبديل الشاشة قبل تحميل البيانات يمنع بقاء شاشة البداية في حالة دوران صامتة.
-        // تبقى بيانات الشركات كما هي، لكن الحساب الفردي يحصل على مسار أبسط بلا أقسام تجارية متداخلة.
-        var isPersonalExperience = _preferences.Experience == AccountExperience.Personal;
+        // لكل تجربة مساحة SQLite ومسار Firestore مستقلان: personal أو business أو wallet.
+        var experience = _preferences.Experience;
+        var isLightweightExperience = experience is AccountExperience.Personal or AccountExperience.Wallet;
 
         try
         {
-            SetPage(isPersonalExperience
-                ? _services.GetRequiredService<PersonalTabbedPage>()
-                : _services.GetRequiredService<MainTabbedPage>());
+            SetPage(experience switch
+            {
+                AccountExperience.Personal => _services.GetRequiredService<PersonalTabbedPage>(),
+                AccountExperience.Wallet => _services.GetRequiredService<WalletTabbedPage>(),
+                _ => _services.GetRequiredService<MainTabbedPage>()
+            });
 
-            if (isPersonalExperience)
+            if (isLightweightExperience)
             {
                 await state.InitializeAsync(session).WaitAsync(StartupInitializationTimeout);
             }

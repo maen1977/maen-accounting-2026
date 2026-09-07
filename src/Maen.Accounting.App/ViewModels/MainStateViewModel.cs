@@ -1273,11 +1273,17 @@ public sealed class MainStateViewModel : ObservableObject
                 _lastBusinessSyncResult = await _businessSyncService.SyncAsync();
                 _lastPersonalEntitySyncResult = null;
             }
-            else
+            else if (string.Equals(_preferences.StorageScope, "personal", StringComparison.Ordinal))
             {
                 syncStage = UiText.Get("T873");
                 _lastBusinessSyncResult = null;
                 _lastPersonalEntitySyncResult = await _personalEntitySyncService.SyncAsync();
+            }
+            else
+            {
+                // محفظتي تستخدم سجل القيود المعزول فقط، ولا تستخدم جداول التخطيط الشخصي.
+                _lastBusinessSyncResult = null;
+                _lastPersonalEntitySyncResult = null;
             }
 
             syncStage = UiText.Get("T874");

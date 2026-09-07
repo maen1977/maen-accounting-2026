@@ -84,6 +84,7 @@ public static class MauiProgram
         builder.Services.AddTransient<BusinessTabbedPage>();
         builder.Services.AddTransient<MainTabbedPage>();
         builder.Services.AddTransient<PersonalTabbedPage>();
+        builder.Services.AddTransient<WalletTabbedPage>();
 
         return builder.Build();
     }
