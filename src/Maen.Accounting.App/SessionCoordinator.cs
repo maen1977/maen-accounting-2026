@@ -34,12 +34,6 @@ public sealed class SessionCoordinator
     public async Task StartAsync(Window window)
     {
         _window = window;
-        if (!_preferences.IsConfigured)
-        {
-            ShowOnboarding();
-            return;
-        }
-
         _preferences.ApplyCulture();
         var session = await _sessionStore.LoadAsync();
         if (session is { IsLocal: false } && session.NeedsRefresh(DateTimeOffset.UtcNow))
@@ -60,6 +54,10 @@ public sealed class SessionCoordinator
         {
             ShowLogin();
         }
+        else if (!_preferences.IsConfigured)
+        {
+            ShowOnboarding();
+        }
         else
         {
             await ShowMainAsync(session);
@@ -69,6 +67,12 @@ public sealed class SessionCoordinator
     public async Task CompleteLoginAsync(AuthSession session)
     {
         await _sessionStore.SaveAsync(session);
+        if (!_preferences.IsConfigured)
+        {
+            ShowOnboarding();
+            return;
+        }
+
         await ShowMainAsync(session);
     }
 
@@ -79,6 +83,12 @@ public sealed class SessionCoordinator
         if (session is null)
         {
             ShowLogin();
+            return;
+        }
+
+        if (!_preferences.IsConfigured)
+        {
+            ShowOnboarding();
             return;
         }
 

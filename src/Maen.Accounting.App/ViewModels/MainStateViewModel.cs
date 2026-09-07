@@ -1027,15 +1027,15 @@ public sealed class MainStateViewModel : ObservableObject
     {
         _editingEntry = item.Model;
         EntryDate = item.Model.EntryDate.ToDateTime(TimeOnly.MinValue);
-        AmountInput = Money.ToDecimal(item.Model.EffectiveAmountMinor).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
+        AmountInput = Money.ToDecimal(item.Model.EffectiveAmountMinor).ToString("0.000", System.Globalization.CultureInfo.InvariantCulture);
         SelectedMovementType = DisplayMovementType(item.Model.MovementType);
         SelectedDirection = item.Model.IsIncome ? UiText.Get("T151") : UiText.Get("T150");
         CategoryInput = item.Model.Category;
         WalletInput = item.Model.Wallet == "main" ? string.Empty : item.Model.Wallet;
         CounterpartyInput = item.Model.Counterparty;
-        SalesInput = Money.ToDecimal(item.Model.SalesMinor).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
-        CostInput = Money.ToDecimal(item.Model.CostMinor).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
-        ExpensesInput = Money.ToDecimal(item.Model.ExpensesMinor).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture);
+        SalesInput = Money.ToDecimal(item.Model.SalesMinor).ToString("0.000", System.Globalization.CultureInfo.InvariantCulture);
+        CostInput = Money.ToDecimal(item.Model.CostMinor).ToString("0.000", System.Globalization.CultureInfo.InvariantCulture);
+        ExpensesInput = Money.ToDecimal(item.Model.ExpensesMinor).ToString("0.000", System.Globalization.CultureInfo.InvariantCulture);
         NotesInput = item.Model.Notes;
         OnPropertyChanged(nameof(SaveButtonText));
         EntryEditorRequested?.Invoke(this, EventArgs.Empty);
@@ -1603,17 +1603,17 @@ public sealed class MainStateViewModel : ObservableObject
             builder.AppendLine(string.Join(",", new object?[]
             {
                 YearMonthName(month.Year, month.Month),
-                Money.ToDecimal(month.IncomeMinor).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture),
-                Money.ToDecimal(month.SpendingMinor).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture),
-                Money.ToDecimal(month.NetMinor).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)
+                Money.ToDecimal(month.IncomeMinor).ToString("0.000", System.Globalization.CultureInfo.InvariantCulture),
+                Money.ToDecimal(month.SpendingMinor).ToString("0.000", System.Globalization.CultureInfo.InvariantCulture),
+                Money.ToDecimal(month.NetMinor).ToString("0.000", System.Globalization.CultureInfo.InvariantCulture)
             }.Select(cell => EscapeCsv(cell?.ToString() ?? string.Empty))));
         }
         builder.AppendLine(string.Join(",", new object?[]
         {
             UiText.Get("T070"),
-            Money.ToDecimal(report.TotalIncomeMinor).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture),
-            Money.ToDecimal(report.TotalSpendingMinor).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture),
-            Money.ToDecimal(report.TotalNetMinor).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)
+            Money.ToDecimal(report.TotalIncomeMinor).ToString("0.000", System.Globalization.CultureInfo.InvariantCulture),
+            Money.ToDecimal(report.TotalSpendingMinor).ToString("0.000", System.Globalization.CultureInfo.InvariantCulture),
+            Money.ToDecimal(report.TotalNetMinor).ToString("0.000", System.Globalization.CultureInfo.InvariantCulture)
         }.Select(cell => EscapeCsv(cell?.ToString() ?? string.Empty))));
         var fileName = $"maen-accounting-annual-{year}.csv";
         var filePath = Path.Combine(FileSystem.CacheDirectory, fileName);

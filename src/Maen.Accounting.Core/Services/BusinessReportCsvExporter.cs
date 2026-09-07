@@ -35,19 +35,19 @@ public static class BusinessReportCsvExporter
             totalSupplier += slice.SupplierPaymentsMinor;
             builder.AppendLine(string.Join(",",
                 Escape(slice.Month.ToString("yyyy-MM", CultureInfo.InvariantCulture)),
-                Money.ToDecimal(slice.SalesMinor).ToString("0.00", CultureInfo.InvariantCulture),
-                Money.ToDecimal(slice.PurchasesMinor).ToString("0.00", CultureInfo.InvariantCulture),
-                Money.ToDecimal(slice.ReceiptsMinor).ToString("0.00", CultureInfo.InvariantCulture),
-                Money.ToDecimal(slice.SupplierPaymentsMinor).ToString("0.00", CultureInfo.InvariantCulture),
-                Money.ToDecimal(slice.NetCashMinor).ToString("0.00", CultureInfo.InvariantCulture)));
+                Money.ToDecimal(slice.SalesMinor).ToString("0.000", CultureInfo.InvariantCulture),
+                Money.ToDecimal(slice.PurchasesMinor).ToString("0.000", CultureInfo.InvariantCulture),
+                Money.ToDecimal(slice.ReceiptsMinor).ToString("0.000", CultureInfo.InvariantCulture),
+                Money.ToDecimal(slice.SupplierPaymentsMinor).ToString("0.000", CultureInfo.InvariantCulture),
+                Money.ToDecimal(slice.NetCashMinor).ToString("0.000", CultureInfo.InvariantCulture)));
         }
         builder.AppendLine(string.Join(",",
             Escape(UiTextKeys.Get("T510")),
-            Money.ToDecimal(totalSales).ToString("0.00", CultureInfo.InvariantCulture),
-            Money.ToDecimal(totalPurchases).ToString("0.00", CultureInfo.InvariantCulture),
-            Money.ToDecimal(totalReceipts).ToString("0.00", CultureInfo.InvariantCulture),
-            Money.ToDecimal(totalSupplier).ToString("0.00", CultureInfo.InvariantCulture),
-            Money.ToDecimal(totalReceipts - totalSupplier).ToString("0.00", CultureInfo.InvariantCulture)));
+            Money.ToDecimal(totalSales).ToString("0.000", CultureInfo.InvariantCulture),
+            Money.ToDecimal(totalPurchases).ToString("0.000", CultureInfo.InvariantCulture),
+            Money.ToDecimal(totalReceipts).ToString("0.000", CultureInfo.InvariantCulture),
+            Money.ToDecimal(totalSupplier).ToString("0.000", CultureInfo.InvariantCulture),
+            Money.ToDecimal(totalReceipts - totalSupplier).ToString("0.000", CultureInfo.InvariantCulture)));
         return builder.ToString();
     }
 

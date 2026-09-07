@@ -15,6 +15,12 @@ public sealed class MoneyTests
         Assert.Equal(expected, minor);
     }
 
+    [Fact]
+    public void Formats_money_with_three_decimal_places()
+    {
+        Assert.Equal("12.340", Money.Format(1234, System.Globalization.CultureInfo.InvariantCulture));
+    }
+
     [Theory]
     [InlineData("-1")]
     [InlineData("abc")]

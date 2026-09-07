@@ -24,10 +24,10 @@ public static class ReportCsvExporter
             var cells = new[]
             {
                 entry.EntryDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-                Money.ToDecimal(entry.SalesMinor).ToString("0.00", CultureInfo.InvariantCulture),
-                Money.ToDecimal(entry.CostMinor).ToString("0.00", CultureInfo.InvariantCulture),
-                Money.ToDecimal(entry.ExpensesMinor).ToString("0.00", CultureInfo.InvariantCulture),
-                Money.ToDecimal(entry.NetProfitMinor).ToString("0.00", CultureInfo.InvariantCulture),
+                Money.ToDecimal(entry.SalesMinor).ToString("0.000", CultureInfo.InvariantCulture),
+                Money.ToDecimal(entry.CostMinor).ToString("0.000", CultureInfo.InvariantCulture),
+                Money.ToDecimal(entry.ExpensesMinor).ToString("0.000", CultureInfo.InvariantCulture),
+                Money.ToDecimal(entry.NetProfitMinor).ToString("0.000", CultureInfo.InvariantCulture),
                 entry.MovementType,
                 entry.Wallet,
                 entry.Category,

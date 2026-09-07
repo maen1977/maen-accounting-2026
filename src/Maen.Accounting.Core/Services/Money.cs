@@ -53,7 +53,7 @@ public static class Money
     public static string Format(long minor, CultureInfo? culture = null)
     {
         culture ??= CultureInfo.GetCultureInfo("ar-JO");
-        return ToDecimal(minor).ToString("N2", culture);
+        return ToDecimal(minor).ToString("N3", culture);
     }
 
     private static string NormalizeDigits(string value)

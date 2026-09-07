@@ -21,7 +21,7 @@ public sealed class ReportCsvExporterTests
 
         Assert.Equal(3, lines.Length);
         Assert.StartsWith("التاريخ,المبيعات", lines[0], StringComparison.Ordinal);
-        Assert.StartsWith("2026-01-02,100.00,0.00,10.00,90.00", lines[1], StringComparison.Ordinal);
+        Assert.StartsWith("2026-01-02,100.000,0.000,10.000,90.000", lines[1], StringComparison.Ordinal);
         Assert.Contains("\"ملاحظة, ثانية\"", lines[2], StringComparison.Ordinal);
         Assert.Contains("\"متجر \"\"الخير\"\"\"", lines[2], StringComparison.Ordinal);
         Assert.DoesNotContain("محذوف", csv, StringComparison.Ordinal);
